@@ -1,0 +1,478 @@
+{
+  "version": "v1.2",
+  "source": "main_story_v12.json",
+  "events": {
+    "E01": {
+      "scoringKey": "E01",
+      "align": "ok",
+      "title": "新员工手册",
+      "month": 1,
+      "options": {
+        "option_a": "A",
+        "option_b": "B",
+        "option_c": "C"
+      }
+    },
+    "E02": {
+      "scoringKey": "E02",
+      "align": "ok",
+      "title": "第一次被轻视",
+      "month": 2,
+      "options": {
+        "option_a": "A",
+        "option_b": "B",
+        "option_c": "C"
+      }
+    },
+    "E03": {
+      "scoringKey": "E03",
+      "align": "ok",
+      "title": "AI代码标注",
+      "month": 3,
+      "options": {
+        "option_a": "A",
+        "option_b": "B",
+        "option_c": "C"
+      }
+    },
+    "E04": {
+      "scoringKey": "E04",
+      "align": "ok",
+      "title": "技术选型 自研还是开源",
+      "month": 4,
+      "options": {
+        "option_a": "A",
+        "option_b": "B",
+        "option_c": "C"
+      }
+    },
+    "E05": {
+      "scoringKey": "E05",
+      "align": "ok",
+      "title": "评测集要不要建",
+      "month": 5,
+      "options": {
+        "option_a": "A",
+        "option_b": "B",
+        "option_c": "C"
+      }
+    },
+    "E06": {
+      "scoringKey": "E06",
+      "align": "ok",
+      "title": "RAG 微调还是长上下文",
+      "month": 5,
+      "options": {
+        "option_a": "A",
+        "option_b": "B",
+        "option_c": "C"
+      }
+    },
+    "E07": {
+      "scoringKey": "E07",
+      "align": "ok",
+      "title": "合作同事会上甩锅",
+      "month": 6,
+      "options": {
+        "option_a": "A",
+        "option_b": "B",
+        "option_c": "C"
+      }
+    },
+    "E08": {
+      "scoringKey": "E08",
+      "align": "ok",
+      "title": "客户临时加需求",
+      "month": 8,
+      "options": {
+        "option_a": "A",
+        "option_b": "B",
+        "option_c": "C"
+      }
+    },
+    "E09": {
+      "scoringKey": "E09",
+      "align": "ok",
+      "title": "token成本爆了",
+      "month": 9,
+      "options": {
+        "option_a": "A",
+        "option_b": "B",
+        "option_c": "C"
+      }
+    },
+    "E10": {
+      "scoringKey": "E10",
+      "align": "ok",
+      "title": "保证不胡说",
+      "month": 10,
+      "options": {
+        "option_a": "A",
+        "option_b": "B",
+        "option_c": "C"
+      }
+    },
+    "E11": {
+      "scoringKey": "E11",
+      "align": "ok",
+      "title": "对外API破坏性变更",
+      "month": 11,
+      "options": {
+        "option_a": "A",
+        "option_b": "B",
+        "option_c": "C"
+      }
+    },
+    "E12": {
+      "scoringKey": "E12",
+      "align": "ok",
+      "title": "它记不住中间那段",
+      "month": 12,
+      "options": {
+        "option_a": "A",
+        "option_b": "B",
+        "option_c": "C"
+      }
+    },
+    "E13": {
+      "scoringKey": "E13",
+      "align": "ok",
+      "title": "跨组接口技术异议",
+      "month": 13,
+      "options": {
+        "option_a": "A",
+        "option_b": "B",
+        "option_c": "C"
+      }
+    },
+    "E14": {
+      "scoringKey": "E14",
+      "align": "ok",
+      "title": "连续加班后心悸",
+      "month": 14,
+      "options": {
+        "option_a": "A",
+        "option_b": "B",
+        "option_c": "C"
+      }
+    },
+    "E15": {
+      "scoringKey": "E15",
+      "align": "ok",
+      "title": "会议上点子被抢先",
+      "month": 15,
+      "options": {
+        "option_a": "A",
+        "option_b": "B",
+        "option_c": "C"
+      }
+    },
+    "E36": {
+      "scoringKey": "E36",
+      "align": "ok",
+      "title": "绩效互评 给好友打分",
+      "month": 16,
+      "options": {
+        "option_a": "A",
+        "option_b": "B",
+        "option_c": "C"
+      }
+    },
+    "E37": {
+      "scoringKey": "E37",
+      "align": "ok",
+      "title": "内部同事的助手",
+      "month": 17,
+      "options": {
+        "option_a": "A",
+        "option_b": "B",
+        "option_c": "C"
+      }
+    },
+    "E16": {
+      "scoringKey": "E16",
+      "align": "ok",
+      "title": "紧急热修复",
+      "month": 18,
+      "options": {
+        "option_a": "A",
+        "option_b": "B",
+        "option_c": "C"
+      }
+    },
+    "E17": {
+      "scoringKey": "E17",
+      "align": "ok",
+      "title": "客户现场Demo翻车",
+      "month": 20,
+      "options": {
+        "option_a": "A",
+        "option_b": "B",
+        "option_c": "C"
+      }
+    },
+    "E18": {
+      "scoringKey": "E18",
+      "align": "ok",
+      "title": "压测结果与产品预期冲突",
+      "month": 21,
+      "options": {
+        "option_a": "A",
+        "option_b": "B",
+        "option_c": "C"
+      }
+    },
+    "E19": {
+      "scoringKey": "E19",
+      "align": "ok",
+      "title": "Agent出错了算谁的",
+      "month": 22,
+      "options": {
+        "option_a": "A",
+        "option_b": "B",
+        "option_c": "C"
+      }
+    },
+    "E20": {
+      "scoringKey": "E20",
+      "align": "ok",
+      "title": "怎么证明变好了",
+      "month": 23,
+      "options": {
+        "option_a": "A",
+        "option_b": "B",
+        "option_c": "C"
+      }
+    },
+    "E21": {
+      "scoringKey": "E21",
+      "align": "ok",
+      "title": "Review发现好友代码缺陷",
+      "month": 24,
+      "options": {
+        "option_a": "A",
+        "option_b": "B",
+        "option_c": "C"
+      }
+    },
+    "E22": {
+      "scoringKey": "E22",
+      "align": "ok",
+      "title": "安全漏洞 修复成本很高",
+      "month": 25,
+      "options": {
+        "option_a": "A",
+        "option_b": "B",
+        "option_c": "C"
+      }
+    },
+    "E23": {
+      "scoringKey": "E23",
+      "align": "ok",
+      "title": "重构路线",
+      "month": 27,
+      "options": {
+        "option_a": "A",
+        "option_b": "B",
+        "option_c": "C"
+      }
+    },
+    "E24": {
+      "scoringKey": "E24",
+      "align": "ok",
+      "title": "要不要全自动",
+      "month": 28,
+      "options": {
+        "option_a": "A",
+        "option_b": "B",
+        "option_c": "C"
+      }
+    },
+    "E25": {
+      "scoringKey": "E25",
+      "align": "ok",
+      "title": "有人拿它干坏事",
+      "month": 29,
+      "options": {
+        "option_a": "A",
+        "option_b": "B",
+        "option_c": "C"
+      }
+    },
+    "E26": {
+      "scoringKey": "E26",
+      "align": "ok",
+      "title": "基座升级 prompt全废",
+      "month": 31,
+      "options": {
+        "option_a": "A",
+        "option_b": "B",
+        "option_c": "C"
+      }
+    },
+    "E27": {
+      "scoringKey": "E27",
+      "align": "ok",
+      "title": "人家有专属模型",
+      "month": 32,
+      "options": {
+        "option_a": "A",
+        "option_b": "B",
+        "option_c": "C"
+      }
+    },
+    "E28": {
+      "scoringKey": "E28",
+      "align": "ok",
+      "title": "资深同事侵占实习生署名",
+      "month": 33,
+      "options": {
+        "option_a": "A",
+        "option_b": "B",
+        "option_c": "C"
+      }
+    },
+    "E29": {
+      "scoringKey": "E29",
+      "align": "ok",
+      "title": "核心知识文档化还是留一手",
+      "month": 34,
+      "options": {
+        "option_a": "A",
+        "option_b": "B",
+        "option_c": "C"
+      }
+    },
+    "E30": {
+      "scoringKey": "E30",
+      "align": "ok",
+      "title": "新模块用新框架还是成熟方案",
+      "month": 35,
+      "options": {
+        "option_a": "A",
+        "option_b": "B",
+        "option_c": "C"
+      }
+    },
+    "E38": {
+      "scoringKey": "E38",
+      "align": "ok",
+      "title": "向高管做里程碑汇报",
+      "month": 36,
+      "options": {
+        "option_a": "A",
+        "option_b": "B",
+        "option_c": "C"
+      }
+    },
+    "E39": {
+      "scoringKey": "E39",
+      "align": "ok",
+      "title": "副业边界",
+      "month": 37,
+      "options": {
+        "option_a": "A",
+        "option_b": "B",
+        "option_c": "C"
+      }
+    },
+    "E31": {
+      "scoringKey": "E31",
+      "align": "ok",
+      "title": "未参与项目被挂名申奖",
+      "month": 38,
+      "options": {
+        "option_a": "A",
+        "option_b": "B",
+        "option_c": "C"
+      }
+    },
+    "E32": {
+      "scoringKey": "E32",
+      "align": "ok",
+      "title": "Agent该有人设吗",
+      "month": 40,
+      "options": {
+        "option_a": "A",
+        "option_b": "B",
+        "option_c": "C"
+      }
+    },
+    "E33": {
+      "scoringKey": "E33",
+      "align": "ok",
+      "title": "吹哨两难",
+      "month": 42,
+      "options": {
+        "option_a": "A",
+        "option_b": "B",
+        "option_c": "C"
+      }
+    },
+    "E34": {
+      "scoringKey": "E34",
+      "align": "ok",
+      "title": "全员推AI工具 担心被替代",
+      "month": 44,
+      "options": {
+        "option_a": "A",
+        "option_b": "B",
+        "option_c": "C"
+      }
+    },
+    "E35": {
+      "scoringKey": "E35",
+      "align": "ok",
+      "title": "晋升终局答辩",
+      "month": 48,
+      "options": {
+        "option_a": "A",
+        "option_b": "B",
+        "option_c": "C"
+      }
+    }
+  },
+  "playableOrder": {
+    "list": [
+      "E01",
+      "E02",
+      "E03",
+      "E04",
+      "E05",
+      "E06",
+      "E07",
+      "E08",
+      "E09",
+      "E10",
+      "E11",
+      "E12",
+      "E13",
+      "E14",
+      "E15",
+      "E36",
+      "E37",
+      "E16",
+      "E17",
+      "E18",
+      "E19",
+      "E20",
+      "E21",
+      "E22",
+      "E23",
+      "E24",
+      "E25",
+      "E26",
+      "E27",
+      "E28",
+      "E29",
+      "E30",
+      "E38",
+      "E39",
+      "E31",
+      "E32",
+      "E33",
+      "E34",
+      "E35"
+    ]
+  }
+}

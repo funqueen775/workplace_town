@@ -87,6 +87,8 @@ def settle_window(state: GameState, month: int) -> dict:
     # 窗口重置（数值不清零 → 六维保留，只重置窗口统计）
     state.window_cumulative = 0
     state.window_flags = []
+    state.window_action_spends = {}
+    state.window_action_bonus_granted = False
     return result
 
 

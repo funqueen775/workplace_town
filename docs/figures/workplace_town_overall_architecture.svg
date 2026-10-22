@@ -1,0 +1,151 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1180" viewBox="0 0 1600 1180" role="img" aria-labelledby="desc">
+  <title id="desc">职场小镇整体技术与业务架构图，展示构建交付、鸿蒙运行、游戏体验、数据传输、服务端决策和结果反馈。</title>
+  <defs>
+    <pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse">
+      <path d="M24 0H0V24" fill="none" stroke="#e8edf0" stroke-width="1"/>
+    </pattern>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M1 1L9 5L1 9" fill="none" stroke="#536878" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+    <style>
+      text { font-family: "Microsoft YaHei", "Noto Sans CJK SC", "PingFang SC", sans-serif; fill: #253744; }
+      .title { font-size: 33px; font-weight: 700; }
+      .subtitle { font-size: 16px; fill: #526774; }
+      .stage { font-size: 23px; font-weight: 700; text-anchor: middle; }
+      .stage-note { font-size: 14px; fill: #4c6570; text-anchor: middle; }
+      .band-title { font-size: 21px; font-weight: 700; }
+      .card-title { font-size: 18px; font-weight: 700; text-anchor: middle; }
+      .card-body { font-size: 14px; fill: #4a5d66; text-anchor: middle; }
+      .small { font-size: 13px; fill: #566973; text-anchor: middle; }
+      .arrow-label { font-size: 13px; fill: #526774; text-anchor: middle; }
+      .rail { font-size: 15px; font-weight: 700; text-anchor: middle; }
+      .panel { stroke: #6d8790; stroke-width: 1.5; }
+      .card { fill: #fff; stroke: #7c939b; stroke-width: 1.35; }
+      .flow { fill: none; stroke: #536878; stroke-width: 2.2; marker-end: url(#arrow); }
+    </style>
+  </defs>
+
+  <rect width="1600" height="1180" fill="#f7faf9"/>
+  <rect width="1600" height="1180" fill="url(#grid)"/>
+  <g transform="translate(0,-85)">
+
+  <rect x="32" y="112" width="180" height="140" rx="5" fill="#bcebd9" class="panel"/>
+  <text x="122" y="169" class="stage">构建交付</text>
+  <text x="122" y="195" class="stage-note">制作与打包</text>
+  <rect x="228" y="112" width="1324" height="140" rx="5" fill="#e9f5ed" class="panel"/>
+  <text x="252" y="144" class="band-title">从游戏工程到鸿蒙安装包</text>
+  <rect x="250" y="163" width="283" height="63" rx="4" class="card"/>
+  <text x="391" y="190" class="card-title">Godot 项目</text>
+  <text x="391" y="211" class="card-body">剧情、地图、NPC、美术与训练谷</text>
+  <path d="M535 194H573" class="flow"/>
+  <rect x="577" y="163" width="282" height="63" rx="4" class="card"/>
+  <text x="718" y="190" class="card-title">Web 导出</text>
+  <text x="718" y="211" class="card-body">HTML / JS / WASM / PCK</text>
+  <path d="M861 194H899" class="flow"/>
+  <rect x="903" y="163" width="282" height="63" rx="4" class="card"/>
+  <text x="1044" y="190" class="card-title">DevEco + Hvigor</text>
+  <text x="1044" y="211" class="card-body">ArkTS 容器编译与资源封装</text>
+  <path d="M1187 194H1225" class="flow"/>
+  <rect x="1229" y="163" width="299" height="63" rx="4" fill="#dff1ff" stroke="#6c9fb9" stroke-width="1.5"/>
+  <text x="1378" y="190" class="card-title">签名 HAP</text>
+  <text x="1378" y="211" class="card-body">设备安装与真机运行</text>
+
+  <path d="M890 254V276" class="flow"/>
+  <rect x="32" y="279" width="180" height="193" rx="5" fill="#cbe7f7" class="panel"/>
+  <text x="122" y="351" class="stage">鸿蒙运行</text>
+  <text x="122" y="377" class="stage-note">设备侧容器</text>
+  <rect x="228" y="279" width="1324" height="193" rx="5" fill="#eaf5fb" class="panel"/>
+  <text x="252" y="312" class="band-title">HarmonyOS 应用层：本地加载游戏画面，不在设备内保存大模型密钥</text>
+  <rect x="250" y="333" width="287" height="107" rx="4" class="card"/>
+  <text x="393" y="361" class="card-title">EntryAbility · 窗口</text>
+  <text x="393" y="385" class="card-body">横屏、全屏、系统栏控制</text>
+  <text x="393" y="408" class="card-body">前后台恢复与画布聚焦</text>
+  <rect x="552" y="333" width="287" height="107" rx="4" class="card"/>
+  <text x="695" y="361" class="card-title">ArkWeb · 游戏容器</text>
+  <text x="695" y="385" class="card-body">运行 Godot Web / WebGL2</text>
+  <text x="695" y="408" class="card-body">触控输入与渲染兼容</text>
+  <rect x="854" y="333" width="319" height="107" rx="4" class="card"/>
+  <text x="1013" y="361" class="card-title">包内资源拦截</text>
+  <text x="1013" y="385" class="card-body">虚拟 HTTPS 来源与白名单</text>
+  <text x="1013" y="408" class="card-body">HTML / WASM / PCK / 音乐</text>
+  <rect x="1188" y="333" width="340" height="107" rx="4" class="card"/>
+  <text x="1358" y="361" class="card-title">运行状态与兼容提示</text>
+  <text x="1358" y="385" class="card-body">WebGL2 能力检测</text>
+  <text x="1358" y="408" class="card-body">资源加载及图形错误反馈</text>
+
+  <path d="M890 474V496" class="flow"/>
+  <rect x="32" y="499" width="180" height="248" rx="5" fill="#d8edb4" class="panel"/>
+  <text x="122" y="594" class="stage">游戏体验</text>
+  <text x="122" y="620" class="stage-note">48 个月主线</text>
+  <rect x="228" y="499" width="1324" height="248" rx="5" fill="#f0f7e7" class="panel"/>
+  <text x="252" y="532" class="band-title">Godot 游戏前端：玩家操作、剧情演出与结果展示</text>
+  <rect x="250" y="553" width="278" height="115" rx="4" class="card"/>
+  <text x="389" y="582" class="card-title">场景与角色</text>
+  <text x="389" y="608" class="card-body">地图、碰撞、移动与室内场景</text>
+  <text x="389" y="633" class="card-body">NPC 接近、对话入口</text>
+  <rect x="542" y="553" width="278" height="115" rx="4" class="card"/>
+  <text x="681" y="582" class="card-title">剧情与自由活动</text>
+  <text x="681" y="608" class="card-body">主线选择、月份推进</text>
+  <text x="681" y="633" class="card-body">三点行动力、区域活动</text>
+  <rect x="834" y="553" width="278" height="115" rx="4" class="card"/>
+  <text x="973" y="582" class="card-title">训练谷打牌</text>
+  <text x="973" y="608" class="card-body">第 6 月后接入教学战斗</text>
+  <text x="973" y="633" class="card-body">胜负记录不直接改变晋升分</text>
+  <rect x="1126" y="553" width="402" height="115" rx="4" class="card"/>
+  <text x="1327" y="582" class="card-title">关键页面</text>
+  <text x="1327" y="608" class="card-body">每六个月晋升检查 · 终局答辩</text>
+  <text x="1327" y="633" class="card-body">雷达图 / 大五 / 风格标签</text>
+  <rect x="250" y="684" width="1278" height="41" rx="4" fill="#e0f0d5" stroke="#9cbe8a"/>
+  <text x="889" y="711" class="rail">界面展示服务端返回的能力、关系、晋升与测评数据；本地进度不作为最终评分依据</text>
+
+  <path d="M890 749V771" class="flow"/>
+  <rect x="32" y="774" width="180" height="149" rx="5" fill="#f9e8b8" class="panel"/>
+  <text x="122" y="831" class="stage">数据连接</text>
+  <text x="122" y="857" class="stage-note">请求与回包</text>
+  <rect x="228" y="774" width="1324" height="149" rx="5" fill="#fff6e3" class="panel"/>
+  <text x="252" y="807" class="band-title">ApiClient：会话握手、事件重传与接口调用</text>
+  <rect x="250" y="826" width="301" height="67" rx="4" class="card"/>
+  <text x="400" y="854" class="card-title">会话与状态</text>
+  <text x="400" y="877" class="card-body">创建 / 恢复 session</text>
+  <rect x="565" y="826" width="301" height="67" rx="4" class="card"/>
+  <text x="715" y="854" class="card-title">行为事件队列</text>
+  <text x="715" y="877" class="card-body">选择、活动、对话 · 幂等重试</text>
+  <rect x="880" y="826" width="301" height="67" rx="4" class="card"/>
+  <text x="1030" y="854" class="card-title">专项请求</text>
+  <text x="1030" y="877" class="card-body">NPC 聊天 / 晋升检查 / 报告</text>
+  <rect x="1195" y="826" width="333" height="67" rx="4" fill="#fff" stroke="#7c939b" stroke-width="1.35"/>
+  <text x="1361" y="854" class="card-title">网络边界</text>
+  <text x="1361" y="877" class="card-body">手机需可达后端 API 地址</text>
+
+  <path d="M890 925V947" class="flow"/>
+  <rect x="32" y="950" width="180" height="209" rx="5" fill="#efdcf5" class="panel"/>
+  <text x="122" y="1033" class="stage">服务端判定</text>
+  <text x="122" y="1059" class="stage-note">Python API</text>
+  <rect x="228" y="950" width="1324" height="209" rx="5" fill="#f8eff9" class="panel"/>
+  <text x="252" y="983" class="band-title">后端权威数据链：校验并保存事件，由固定规则给出结论</text>
+  <rect x="250" y="1004" width="301" height="120" rx="4" class="card"/>
+  <text x="400" y="1033" class="card-title">会话与事件 API</text>
+  <text x="400" y="1059" class="card-body">校验内容版本、事件 ID</text>
+  <text x="400" y="1084" class="card-body">状态推进与 SQLite 持久化</text>
+  <rect x="565" y="1004" width="301" height="120" rx="4" class="card"/>
+  <text x="715" y="1033" class="card-title">晋升与测评引擎</text>
+  <text x="715" y="1059" class="card-body">主线选择、行动证据</text>
+  <text x="715" y="1084" class="card-body">六个月结算与终局报告</text>
+  <rect x="880" y="1004" width="301" height="120" rx="4" class="card"/>
+  <text x="1030" y="1033" class="card-title">NPC 人设与记忆</text>
+  <text x="1030" y="1059" class="card-body">角色配置 + 会话事件上下文</text>
+  <text x="1030" y="1084" class="card-body">组织自由对话输入</text>
+  <rect x="1195" y="1004" width="333" height="120" rx="4" fill="#e8f1ff" stroke="#7a9db6" stroke-width="1.35"/>
+  <text x="1361" y="1033" class="card-title">DeepSeek 模型服务</text>
+  <text x="1361" y="1059" class="card-body">生成 NPC 自然语言回复</text>
+  <text x="1361" y="1084" class="card-body">密钥仅置于后端运行环境</text>
+  <path d="M1183 1064H1193" class="flow"/>
+  <rect x="250" y="1136" width="1278" height="15" rx="3" fill="#ddbce7"/>
+
+  <path d="M890 1161V1183" class="flow"/>
+  <rect x="32" y="1186" width="180" height="60" rx="5" fill="#bfe4ec" class="panel"/>
+  <text x="122" y="1223" class="stage" style="font-size:20px">结果反馈</text>
+  <rect x="228" y="1186" width="1324" height="60" rx="5" fill="#e6f5f6" class="panel"/>
+  <text x="889" y="1223" class="rail">权威状态与晋升结果返回游戏 UI · 第 48 月终局后生成测评报告 · NPC 回复返回对话界面</text>
+  </g>
+</svg>

@@ -18,6 +18,12 @@ signal finale_closed
 const FONT := preload("res://assets/fonts/NotoSansCJKsc-Regular.otf")
 const FAREWELL_PATH := "res://data/story/finale_farewell.json"
 const REPORT_PANEL := preload("res://scripts/ReportPanel.gd")
+const NPC_PORTRAITS := {
+	"wang_ge": "res://assets/ui/rework_v1/profile/components/03_人际关系/王哥头像.png",
+	"xiao_lin": "res://assets/ui/rework_v1/profile/components/03_人际关系/小林头像.png",
+	"xiao_zhao": "res://assets/ui/rework_v1/profile/components/03_人际关系/小赵头像.png",
+	"lao_zhou": "res://assets/ui/rework_v1/profile/components/03_人际关系/老周头像.png",
+}
 
 const COLOR_DIM := Color(0.04, 0.06, 0.05, 0.66)
 const COLOR_WOOD := Color("54321f")
@@ -56,7 +62,7 @@ func _ready() -> void:
 	_build_static()
 
 
-## bears = MonthlyLife.relation_overview() 的返回值；on_view_report 留空则默认开报告面板。
+## bears 可选；on_view_report 留空则默认打开报告面板。
 func setup(bears: Array, on_view_report: Callable = Callable()) -> void:
 	_bears = bears
 	_on_view_report = on_view_report
@@ -80,6 +86,14 @@ func _build_static() -> void:
 	_panel.size = Vector2(1560, 996)
 	_panel.add_theme_stylebox_override("panel", _style(COLOR_PAPER, COLOR_WOOD, 12, 7))
 	add_child(_panel)
+	var paper := TextureRect.new()
+	paper.texture = load("res://assets/ui/ledger/paper_tex.png")
+	paper.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	paper.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	paper.modulate = Color(1, 1, 1, 0.10)
+	paper.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	paper.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_panel.add_child(paper)
 
 	var title := _label("四 十 八 个 月 ， 到 此 一 程", 34, COLOR_INK)
 	title.position = Vector2(40, 26)
@@ -210,6 +224,12 @@ func _build_bear_cards() -> void:
 		inner.position = Vector2(18, 13)
 		inner.size = Vector2(card.custom_minimum_size.x - 36, 66)
 		inner.add_theme_constant_override("separation", 14)
+		var portrait := TextureRect.new()
+		portrait.texture = load(String(NPC_PORTRAITS.get(npc_id, "")))
+		portrait.custom_minimum_size = Vector2(56, 56)
+		portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		inner.add_child(portrait)
 
 		var dot := ColorRect.new()
 		dot.custom_minimum_size = Vector2(DOT, DOT)

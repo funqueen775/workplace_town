@@ -185,6 +185,7 @@ TRACKING_EVENTS = (
     "explore_click", "survival_state_change", "crisis_talk_choice",
     "monthly_action_variant", "achievement_view", "zone_dwell",
     "ai_reaction_view", "task_complete", "report_view",
+    "action_spent", "training_result",
 )
 
 # 时间口径（算法册 §6）：所有统计用 seq，只有展示用 month

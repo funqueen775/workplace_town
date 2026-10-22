@@ -1,13 +1,10 @@
 class_name WorldTimeHud
 extends CanvasLayer
 
-## 右上角时间面板：以「时段」为单位显示一天的进度（早上 → 上班后 → 下班 → 夜晚）。
-## 2026-09-16：「推进到下月」按钮已删除 —— 时间不再由玩家手动跳。
-## 2026-09-17（24 件基准拍板 #7）：时间推进双驱动 = 睡觉跨天 + 主线事件结算推进一拍；
-## 养成行动（月度 3 点精力）不再承担推进职责。
+## 右上角时间面板。月份由文档主线与行动窗口顺序推进。
 
 const FONT := preload("res://assets/fonts/NotoSansCJKsc-Regular.otf")
-## 视觉上只区分白天和晚上；WorldClock 的细分时刻仍用于事件和睡觉门禁。
+## 视觉上只区分白天和晚上。
 const PHASE_COUNT := 2
 
 var _title: Label
@@ -61,7 +58,7 @@ func _ready() -> void:
 	_next_event.clip_text = true
 	_next_event.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	panel.add_child(_next_event)
-	var hint := _label("睡觉跨天 · 主线结算推进时间", 17, Color("d5b77b"))
+	var hint := _label("完成行动窗口后开放下一主线", 17, Color("d5b77b"))
 	hint.position = Vector2(18, 170)
 	hint.size = Vector2(314, 24)
 	panel.add_child(hint)

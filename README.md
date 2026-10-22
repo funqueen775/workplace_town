@@ -29,7 +29,18 @@ web/                    Web 版开场原型（React + Vite），设计验证用�
 
 ## 本地运行
 
-在 Godot 4.3+ 中导入本目录，打开 `project.godot`，按 F6/F5 运行。
+Windows 本地体验：安装 Python 3.10+ 和 Godot 4.7，然后双击根目录的 `Start-Game.cmd`。脚本会启动本机后端和游戏；若 Godot 不在 PATH 或 WinGet 目录，先设置 `GODOT_EXE` 指向 Godot 可执行文件。
+
+每次启动都会先检查本地后端。若本地保存的会话已不在后端数据库中，启动脚本会把旧会话、待发送事件队列和拒绝记录移入 `%APPDATA%\Godot\app_userdata\职场小镇\api_recovery\`，然后启动游戏并由游戏创建新会话；旧队列只作备份，不会混入新会话。若只是后端暂时无法访问，脚本会停止启动且保留这些文件，修复服务后重试即可。需要主动重启后端时，可在 PowerShell 运行 `& (Join-Path $PWD 'Start-Game.ps1') -Restart`。
+
+本地 NPC 大模型密钥只保存在被 Git 忽略的 `backend/local_llm_config.json`。克隆项目后，复制 `backend/local_llm_config.example.json` 为该文件并填写自己有权使用的 API Key；不要把真实密钥提交到仓库、提交记录或共享压缩包。共享仓库不包含任何人的个人 API Key。
+
+## 协作开发
+
+- 使用 Godot 4.7.x；本地启动还需要 Python 3.10+。Windows 可双击 `Start-Game.cmd`。
+- `entry/src/main/resources/rawfile/game/index.pck` 是约 166 MiB 的 Godot Web 导出文件，已配置 Git LFS。安装 Git LFS 后执行 `git lfs install`；克隆后若文件仍是指针，执行 `git lfs pull`。
+- 新功能在独立分支开发并通过 Pull Request 合并到 `main`。提交前运行相关后端/Godot 测试，并确认没有 API Key、数据库、`.godot/` 缓存或 `artifacts/` 构建包。
+- `artifacts/`、数据库、Godot 导入缓存和本地大模型配置仅用于本机，不上传。美术源文件和剧情数据如被项目引用，应保留并提交。
 
 操作：WASD 或方向键移动；手机/模拟器用左下角摇杆；靠近 NPC 后按 E、空格或点击交互按钮。
 

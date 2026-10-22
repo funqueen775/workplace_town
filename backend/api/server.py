@@ -52,7 +52,11 @@
 from __future__ import annotations
 
 import json
+import hashlib
+import hmac
+import os
 import re
+import secrets
 import sqlite3
 import sys
 import threading
@@ -64,7 +68,7 @@ from pathlib import Path
 _ENGINE_ROOT = Path(__file__).resolve().parents[1] / "engine_core"
 sys.path.insert(0, str(_ENGINE_ROOT))
 
-from app.core.loader import load  # noqa: E402
+from app.core.loader import EventDef, load  # noqa: E402
 from app.core import constants as C  # noqa: E402
 from app.engine import promotion as pr  # noqa: E402
 from app.engine import survival as sv  # noqa: E402
@@ -74,6 +78,7 @@ from app.engine.state import DecisionRecord, GameState  # noqa: E402
 from app.report import build as build_report  # noqa: E402
 
 import id_map  # noqa: E402
+import npc_chat  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DB_PATH = Path(sys.argv[sys.argv.index("--db") + 1]) if "--db" in sys.argv \
@@ -84,13 +89,51 @@ PORT = int(sys.argv[sys.argv.index("--port") + 1]) if "--port" in sys.argv \
 
 # 叙事编号 ↔ 引擎测评节点键的唯一映射（人工逐条确认，data/story 下）。
 STORY_KEY_MAP_PATH = REPO_ROOT / "data" / "story" / "story_key_map.json"
+STORY_KEY_MAP_V12_PATH = REPO_ROOT / "data" / "story" / "story_key_map_v12.json"
+STORY_V12_PATH = REPO_ROOT / "data" / "story" / "main_story_v12.json"
 
 NPC_IDS = {"wang_ge", "chen_gong", "xiao_lin", "lao_zhou", "xiao_zhao"}
 # 契约 eventType 枚举里没有 "main_choice"（fixture 在用），两条口径都收。
 CHOICE_TAPS = {"main_choice", "option_click"}
 REGION_RE = re.compile(r"^[A-H]$")
 
-_lock = threading.Lock()
+_lock = threading.RLock()
+
+
+def load_story_json(path: Path) -> dict:
+    """读取 Godot JSON 资源，兼容资源文件允许的尾逗号。"""
+    raw = path.read_text(encoding="utf-8")
+    cleaned: list[str] = []
+    in_string = False
+    escaped = False
+    index = 0
+    while index < len(raw):
+        char = raw[index]
+        if in_string:
+            cleaned.append(char)
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == '"':
+                in_string = False
+            index += 1
+            continue
+        if char == '"':
+            in_string = True
+            cleaned.append(char)
+            index += 1
+            continue
+        if char == ",":
+            lookahead = index + 1
+            while lookahead < len(raw) and raw[lookahead].isspace():
+                lookahead += 1
+            if lookahead < len(raw) and raw[lookahead] in "]}":
+                index += 1
+                continue
+        cleaned.append(char)
+        index += 1
+    return json.loads("".join(cleaned))
 
 
 def now_iso() -> str:
@@ -109,7 +152,8 @@ class Store:
             session_id      TEXT PRIMARY KEY,
             created_at      TEXT NOT NULL,
             content_version TEXT NOT NULL,
-            state_json      TEXT NOT NULL
+            state_json      TEXT NOT NULL,
+            access_token_hash TEXT NOT NULL DEFAULT ''
         );
         CREATE TABLE IF NOT EXISTS events(
             session_id    TEXT NOT NULL,
@@ -131,13 +175,19 @@ class Store:
             generated_at TEXT
         );
         """)
+        columns = {row[1] for row in self.conn.execute("PRAGMA table_info(sessions)")}
+        if "access_token_hash" not in columns:
+            self.conn.execute(
+                "ALTER TABLE sessions ADD COLUMN access_token_hash TEXT NOT NULL DEFAULT ''")
+            self.conn.commit()
 
     # ---- sessions
     def create_session(self, content_version: str, state_json: str) -> str:
         sid = str(uuid.uuid4())
         with _lock:
             self.conn.execute(
-                "INSERT INTO sessions VALUES(?,?,?,?)",
+                "INSERT INTO sessions(session_id, created_at, content_version, state_json)"
+                " VALUES(?,?,?,?)",
                 (sid, now_iso(), content_version, state_json))
             self.conn.commit()
         return sid
@@ -147,6 +197,30 @@ class Store:
             row = self.conn.execute(
                 "SELECT * FROM sessions WHERE session_id=?", (sid,)).fetchone()
         return row
+
+    def set_access_token(self, sid: str, token: str) -> None:
+        digest = hashlib.sha256(token.encode("utf-8")).hexdigest()
+        with _lock:
+            self.conn.execute("UPDATE sessions SET access_token_hash=? WHERE session_id=?",
+                              (digest, sid))
+            self.conn.commit()
+
+    def verify_access_token(self, sid: str, token: str) -> bool:
+        if not token:
+            return False
+        row = self.get_session(sid)
+        return bool(row and row["access_token_hash"] and hmac.compare_digest(
+            row["access_token_hash"], hashlib.sha256(token.encode("utf-8")).hexdigest()))
+
+    def claim_legacy_session(self, sid: str) -> str | None:
+        token = secrets.token_urlsafe(32)
+        digest = hashlib.sha256(token.encode("utf-8")).hexdigest()
+        with _lock:
+            updated = self.conn.execute(
+                "UPDATE sessions SET access_token_hash=?"
+                " WHERE session_id=? AND access_token_hash=''", (digest, sid))
+            self.conn.commit()
+        return token if updated.rowcount == 1 else None
 
     def save_state(self, sid: str, state_json: str) -> None:
         with _lock:
@@ -178,6 +252,13 @@ class Store:
                 (response_json, sid, event_id))
             self.conn.commit()
 
+    def update_event_payload(self, sid: str, event_id: str, payload: dict) -> None:
+        with _lock:
+            self.conn.execute(
+                "UPDATE events SET payload_json=? WHERE session_id=? AND event_id=?",
+                (json.dumps(payload, ensure_ascii=False), sid, event_id))
+            self.conn.commit()
+
     def story_ids(self, sid: str) -> list[str]:
         with _lock:
             rows = self.conn.execute(
@@ -206,7 +287,7 @@ class Store:
         """本会话的原始事件流（按落库顺序）。报告层要用它还原埋点轨迹。"""
         with _lock:
             return self.conn.execute(
-                "SELECT event_type, payload_json FROM events WHERE session_id=?"
+                "SELECT event_id, event_type, payload_json FROM events WHERE session_id=?"
                 " ORDER BY created_at", (sid,)).fetchall()
 
     # ---- reports（一个会话一份；契约要求幂等，所以按 session_id 主键 upsert）
@@ -231,12 +312,21 @@ class Store:
 class Engine:
     """engine_core 的进程内单例：配置装一次，schedule 算一次。"""
 
-    def __init__(self):
+    def __init__(self, story_version: str = "legacy"):
         # 引擎的 FILES 直接拼 scoring_cards.json，配置在 data/story/ 下
         self.reg = load(REPO_ROOT / "data" / "story")
-        schedule = tl.build_schedule(self.reg)
-        self.sched_month = {eid: m for m, eid in schedule}
-        self.sched_order = [eid for _, eid in schedule]
+        if story_version == "v1.2":
+            story = load_story_json(STORY_V12_PATH)["events"]
+            for index, event in enumerate(story):
+                key = event["scoringKey"]
+                if key not in self.reg.events:
+                    self.reg.events[key] = EventDef(key, self.reg.cards[key], index)
+            self.sched_month = {e["scoringKey"]: int(e["month"]) for e in story}
+            self.sched_order = [e["scoringKey"] for e in story]
+        else:
+            schedule = tl.build_schedule(self.reg)
+            self.sched_month = {eid: m for m, eid in schedule}
+            self.sched_order = [eid for _, eid in schedule]
 
     def new_state(self) -> GameState:
         return GameState(seed=0)
@@ -261,8 +351,8 @@ class Engine:
 
     # ---- 主线结算
     def settle_mainline(self, st: GameState, engine_key: str, option: str,
-                        hesitation_ms, switch_count) -> dict:
-        month = self.sched_month[engine_key]
+                        hesitation_ms, switch_count, month: int | None = None) -> dict:
+        month = month if month is not None else self.sched_month[engine_key]
         st.month = max(st.month, month)
         choice = normalize_mainline(self.reg, engine_key, option)
         result = settle(st, choice, self.reg, month=month,
@@ -314,6 +404,7 @@ class Engine:
             # ② 生存轨月度推进：状态迁移 + 自我修复
             rec["survival"] = sv.monthly_tick(st, m)
             out.append(rec)
+            st.month_log.append(rec)
         return out
 
     def next_undone(self, st: GameState) -> str | None:
@@ -351,6 +442,7 @@ class Service:
         self.store = store
         self.engine = engine
         self.mapping = mapping
+        self._chat_lock = threading.Lock()
 
     # ---- 推进口径
     def _next_step(self, st: GameState) -> str | None:
@@ -363,6 +455,9 @@ class Service:
         playableOrder 随剧情补齐逐件变长，全部补齐就等价于全量 schedule。
         """
         return self.mapping.next_playable(set(st.events_done))
+
+    def _scheduled_month(self, engine_key: str) -> int:
+        return self.engine.sched_month[engine_key]
 
     def _client_label(self, engine_key: str | None) -> str | None:
         """引擎键 → 回给客户端的叙事 id。映射表查不到才退回契约口径拼装。"""
@@ -385,12 +480,20 @@ class Service:
             "chapterId": f"M{max(1, (st.month - 1) // 12 + 1)}",
             "currentNodeId": current,
             "completedStoryIds": self.store.story_ids(sid),
+            "skippedStoryIds": [self._client_label(key) for key in st.events_skipped],
             "completedActivityIds": [],
             "unlockedRegionIds": sorted(set(regions)),
             "energy": st.life,
             # 职级是**服务端-gameplay 权威值**（2026-09-17 拍板：口径只留一份）。
             # Godot 只负责显示，本地不算 —— 否则同一个东西会有两份会漂移的真相。
             "level": st.level,
+            "abilityLevels": self._ability_levels(st),
+            "currentMonth": st.month,
+            "assessmentHistory": [
+                {"month": w["month"], "passed": w["promoted"],
+                 "levelAfter": w["level_after"]}
+                for w in st.promotion_windows
+            ],
             # 下一次考评落在第几个月。**服务端算**：Godot 不必再抄一份考核月日历，
             # 否则 §2.3 的七个窗会在两边各写一遍，改一处忘一处。
             # None（全部考完）时缺席而不是给 0 —— 「没有下一次了」不该显示成「第 0 月」。
@@ -407,6 +510,18 @@ class Service:
             # 版本号跟打分卡走，别写死 —— 硬编码会在换版后骗人
             "scoringVersion": "v" + str(self.engine.reg.version.get("scoring_cards", "?")),
         }
+
+    @staticmethod
+    def _ability_levels(st: GameState) -> dict[str, int]:
+        groups = {
+            "technical": ("technical_decision", "architecture"),
+            "collaboration": ("collaboration", "communication"),
+            "expression": ("assertiveness",),
+            "integrity": ("integrity",),
+            "resilience": ("resilience",),
+        }
+        return {name: max(1, min(5, 3 + sum(st.competency.get(key, 0) for key in keys)))
+                for name, keys in groups.items()}
 
     @staticmethod
     def _relation_stages(st: GameState) -> dict[str, str]:
@@ -510,7 +625,43 @@ class Service:
             "choices": choices,
         }
 
+    def settle_assessment(self, sid: str, month: int) -> tuple[int, dict]:
+        with _lock:
+            row = self.store.get_session(sid)
+            if row is None:
+                return 404, {"error": "unknown sessionId"}
+            if month not in C.PROMOTION_MONTHS:
+                return 400, {"error": "not an assessment month"}
+            st = Engine.state_from_json(row["state_json"])
+            if month not in st.settled_months:
+                next_key = self._next_step(st)
+                if next_key is not None and self._scheduled_month(next_key) <= month:
+                    return 409, {"error": "earlier story nodes are incomplete",
+                                 "expected": self._client_label(next_key)}
+                st.month = max(st.month, month)
+                self.engine.settle_months_tail(st)
+                self.store.save_state(sid, Engine.state_to_json(st))
+            result = next(w for w in st.promotion_windows if w["month"] == month)
+            tracking = self._report_tracking(sid, st)
+            window_tracking = [item for item in tracking
+                               if month - 6 < (item.get("month") or 0) <= month]
+            return 200, {
+                "month": month, "passed": result["promoted"],
+                "levelAfter": result["level_after"],
+                "assessmentSummary": {
+                    "cumulativePassed": result["cumulative"]["pass"],
+                    "behaviorPassed": result["behavior"]["pass"],
+                    "defensePassed": result["defense"]["pass"],
+                },
+                "interactionEvidence": self._interaction_trace(window_tracking),
+                "state": self._session_state(sid, st),
+            }
+
     def post_event(self, sid: str, body: dict) -> tuple[int, dict]:
+        with _lock:
+            return self._post_event_locked(sid, body)
+
+    def _post_event_locked(self, sid: str, body: dict) -> tuple[int, dict]:
         row = self.store.get_session(sid)
         if row is None:
             return 404, {"error": "unknown sessionId"}
@@ -537,13 +688,44 @@ class Service:
         story_id = str(payload.get("storyId") or "")
         choice_id = str(payload.get("choiceId") or "")
 
+        if event_type == "action_spent":
+            window_id = str(payload.get("windowId") or "")
+            remaining = _as_int(payload.get("remainingAfter"))
+            if (not window_id or payload.get("activityKind") != "area_activity"
+                    or remaining not in (0, 1, 2)):
+                return 400, {"error": "invalid action_spent payload"}
+            spends = st.window_action_spends.setdefault(window_id, [])
+            if remaining in spends:
+                return 409, {"error": "action point already recorded"}
+            spends.append(remaining)
+            if not st.window_action_bonus_granted and set(spends) == {0, 1, 2}:
+                st.window_cumulative += 1
+                st.window_action_bonus_granted = True
+
+        if event_type == "month_jump":
+            target = _as_int(payload.get("targetMonth"))
+            if (self.mapping.version != "v1.2" or row["content_version"] != "v1.2"
+                    or body["contentVersion"] != "v1.2"):
+                return 409, {"error": "month jump requires a V1.2 session"}
+            if target is None or target <= st.month or target > 48:
+                return 400, {"error": "targetMonth must be a future month within 48"}
+            for key in self.mapping.playable_engine_order():
+                if self._scheduled_month(key) >= target:
+                    break
+                if key not in st.events_done:
+                    st.events_done.append(key)
+                    st.events_skipped.append(key)
+            st.month = target - 1
+            self.engine.settle_months_tail(st)
+            st.month = target
+
         # ---- ① 纯叙事成就节点（C1/C2/C3）的推进通道
         # 这三个节点 no_decision=True、options 为空，永远走不进 CHOICE_TAPS。
         # 没有这条分支，_next_step 会一直停在 C1，它后面的节点全部 409 ——
         # 实测「Godot 走完第 8 件就再也过不去」就是这个原因。
         # 这一档只把节点记进 events_done：不调 settle、不加 seq、不进 decisions，
         # 因为成就演出本来就不测评（算法册：纯演出无 marker）。
-        if event_type == "achievement_view" and story_id:
+        elif event_type == "achievement_view" and story_id:
             a_key = self.mapping.scoring_key(story_id)
             a_ev = self.engine.reg.events.get(a_key or "")
             if a_ev is not None and a_ev.is_achievement and not a_ev.has_decision:
@@ -584,28 +766,33 @@ class Service:
                                  "expected": self._client_label(nxt)}
                 self.engine.settle_mainline(st, engine_key, option,
                                             _as_int(payload.get("hesitationMs")),
-                                            _as_int(payload.get("switchCount")))
+                                            _as_int(payload.get("switchCount")),
+                                            self._scheduled_month(engine_key))
                 seq = st.seq
             # ALIGN_NON_SCORING（熊熊有招训练对局这类 Godot 自创事件）：
             # 玩家确实做完了剧情，所以照常落库、进 completedStoryIds，
             # 但不进引擎结算 —— 只落日志不算账。
 
-        # 先落事件行（响应占位），再算会话状态 —— 否则 state 里的
-        # completedStoryIds / 解锁区域看不到本事件，幂等重放时也对不上。
-        self.store.save_state(sid, Engine.state_to_json(st))
-        self.store.insert_event(sid, event_id, seq, event_type,
-                                str(body["clientTime"]), json.dumps(payload, ensure_ascii=False),
-                                "{}")
-        state = self._session_state(sid, st)
-        nxt2 = self._next_step(st)
-        resp = {
-            "eventId": event_id,
-            # 走到这里 = 校验全过：选择事件已结算、其余埋点已落日志，都算 accepted
-            "accepted": True,
-            "state": state,
-            "nextNodeId": self._client_label(nxt2),
-        }
-        self.store.update_event_response(sid, event_id, json.dumps(resp, ensure_ascii=False))
+        with self.store.conn:
+            self.store.conn.execute(
+                "INSERT INTO events VALUES(?,?,?,?,?,?,?,?)",
+                (sid, event_id, seq, event_type, str(body["clientTime"]),
+                 json.dumps(payload, ensure_ascii=False), "{}", now_iso()))
+            self.store.conn.execute(
+                "UPDATE sessions SET state_json=? WHERE session_id=?",
+                (Engine.state_to_json(st), sid))
+            state = self._session_state(sid, st)
+            resp = {
+                "eventId": event_id,
+                "accepted": True,
+                "state": state,
+                "nextNodeId": self._client_label(self._next_step(st)),
+            }
+            self.store.conn.execute(
+                "UPDATE events SET response_json=? WHERE session_id=? AND event_id=?",
+                (json.dumps(resp, ensure_ascii=False), sid, event_id))
+            if event_type != "report_view":
+                self.store.conn.execute("DELETE FROM reports WHERE session_id=?", (sid,))
         return 200, resp
 
     def npc_memories(self, sid: str, npc_id: str, layers: list[str] | None,
@@ -674,11 +861,79 @@ class Service:
                 })
 
         # social 层：闲聊进游戏记忆流（/chat 未实现前恒为空）
+        if "social" in want:
+            for row in self.store.event_stream(sid):
+                if row["event_type"] != "npc_dialogue_complete":
+                    continue
+                payload = json.loads(row["payload_json"] or "{}")
+                if str(payload.get("npcId", "")) != npc_id:
+                    continue
+                message = str(payload.get("message", "")).strip()
+                if not message:
+                    continue
+                items.append({
+                    "npcId": npc_id, "layer": "social", "kind": "player_message",
+                    "month": _as_int(payload.get("month")) or st.month, "seq": 0,
+                    "fact": message, "eventRef": row["event_id"],
+                })
+                chat_response = payload.get("chatResponse") or {}
+                if isinstance(chat_response, dict) and chat_response.get("reply"):
+                    items.append({
+                        "npcId": npc_id, "layer": "social", "kind": "npc_reply",
+                        "month": _as_int(payload.get("month")) or st.month, "seq": 0,
+                        "fact": str(chat_response["reply"]), "eventRef": row["event_id"],
+                    })
+
         # 只保留能指回客户端 eventId 的条目（seq 作键查，不是查 eventId 集合）
         items = [i for i in items if i["seq"] == 0 or i["seq"] in seq_to_client]
         items.sort(key=lambda x: (-x["seq"], x["month"]))
         stage = f"Lv{st.npc_level.get(npc_id, 1)}"
         return 200, {"npcId": npc_id, "relationStage": stage, "items": items[:limit]}
+
+    def npc_chat(self, sid: str, npc_id: str, body: dict) -> tuple[int, dict]:
+        if not isinstance(body, dict):
+            return 400, {"error": "invalid chat request"}
+        if npc_id not in npc_chat.NPCS:
+            return 404, {"error": f"unknown npcId: {npc_id}"}
+        session = self.store.get_session(sid)
+        if session is None:
+            return 404, {"error": "unknown sessionId"}
+        event_id = str(body.get("eventId") or "")
+        message = str(body.get("text") or "").strip()
+        if (not event_id or not body.get("clientTime") or not message
+                or len(message) > 500 or body.get("contentVersion") != session["content_version"]):
+            return 400, {"error": "invalid chat request"}
+        with self._chat_lock:
+            event = self.store.get_event(sid, event_id)
+            if event is None:
+                npc = npc_chat.NPCS[npc_id]
+                code, result = self.post_event(sid, {
+                    "eventId": event_id, "eventType": "npc_dialogue_complete",
+                    "contentVersion": body["contentVersion"], "clientTime": body["clientTime"],
+                    "payload": {"regionId": npc["zone"], "npcId": npc_id,
+                                "message": message, "messageLength": len(message),
+                                "month": self.engine.state_from_json(session["state_json"]).month or 1},
+                })
+                if code != 200:
+                    return code, result
+                event = self.store.get_event(sid, event_id)
+            if event["event_type"] != "npc_dialogue_complete":
+                return 409, {"error": "eventId belongs to another event type"}
+            payload = json.loads(event["payload_json"])
+            if payload.get("npcId") != npc_id or payload.get("message") != message:
+                return 409, {"error": "eventId belongs to another chat message"}
+            if isinstance(payload.get("chatResponse"), dict):
+                return 200, payload["chatResponse"]
+            _, memories = self.npc_memories(sid, npc_id, None, 100)
+            refs = npc_chat.memory_refs(memories["items"], message, event_id)
+            reply, source = npc_chat.reply(npc_chat.NPCS[npc_id], message, refs)
+            result = {
+                "eventId": event_id, "reply": reply, "generatedBy": source,
+                "memoryRefs": refs, "relationStage": memories["relationStage"],
+            }
+            payload["chatResponse"] = result
+            self.store.update_event_payload(sid, event_id, payload)
+            return 200, result
 
     # ---- 报告层（算法在 app.report，这里只喂料）
     def _report_tracking(self, sid: str, st: GameState) -> list[dict]:
@@ -692,6 +947,34 @@ class Service:
         """
         tracking: list[dict] = []
         for row in self.store.event_stream(sid):
+            if row["event_type"] == "action_spent":
+                payload = json.loads(row["payload_json"] or "{}")
+                tracking.append({
+                    "tap": "action_spent", "month": _as_int(payload.get("month")) or st.month,
+                    "activityId": payload.get("activityId"),
+                    "activityKind": payload.get("activityKind"),
+                    "windowId": payload.get("windowId"),
+                })
+                continue
+            if row["event_type"] == "npc_dialogue_complete":
+                payload = json.loads(row["payload_json"] or "{}")
+                tracking.append({
+                    "tap": "npc_dialogue", "month": _as_int(payload.get("month")) or st.month,
+                    "npcId": payload.get("npcId"),
+                    "message": payload.get("message", ""),
+                    "messageLength": _as_int(payload.get("messageLength")) or 0,
+                })
+                continue
+            if row["event_type"] == "training_result":
+                payload = json.loads(row["payload_json"] or "{}")
+                result = payload.get("result") if isinstance(payload.get("result"), dict) else {}
+                tracking.append({
+                    "tap": "training_result", "month": _as_int(payload.get("month")) or st.month,
+                    "activityId": payload.get("activityId"),
+                    "outcome": result.get("outcome", "unknown"),
+                    "rounds": _as_int(result.get("rounds")),
+                })
+                continue
             if row["event_type"] == "encounter_choice":
                 payload = json.loads(row["payload_json"] or "{}")
                 tags = payload.get("memoryTags")
@@ -720,6 +1003,31 @@ class Service:
                              "passed": w["promoted"]})
         return tracking
 
+    @staticmethod
+    def _interaction_trace(tracking: list[dict]) -> dict:
+        actions = [x for x in tracking if x.get("tap") == "action_spent"]
+        chats = [x for x in tracking if x.get("tap") == "npc_dialogue"]
+        trainings = [x for x in tracking if x.get("tap") == "training_result"]
+        by_kind: dict[str, int] = {}
+        by_npc: dict[str, int] = {}
+        for item in actions:
+            kind = str(item.get("activityKind") or "unknown")
+            by_kind[kind] = by_kind.get(kind, 0) + 1
+        for item in chats:
+            npc_id = str(item.get("npcId") or "unknown")
+            by_npc[npc_id] = by_npc.get(npc_id, 0) + 1
+        return {
+            "actionCount": len(actions),
+            "actionsByKind": by_kind,
+            "dialogueCount": len(chats),
+            "dialogueByNpc": by_npc,
+            "trainingResults": [
+                {"outcome": x.get("outcome", "unknown"), "rounds": x.get("rounds")}
+                for x in trainings
+            ],
+            "scoringNote": "同一行动力窗口用完 3 点，可为所在考核窗增加 1 点累积；每个考核窗最多一次。对话正文和训练胜负不直接计分。",
+        }
+
     def _self_ratings(self, sid: str) -> dict[str, float] | None:
         """建档自评（0-10）。profile_answer 埋点尚未采集 → 现在恒为 None，
         大五只有行为一列、不出后验与矛盾度。埋点一落地这里自动生效。"""
@@ -739,24 +1047,34 @@ class Service:
         return None
 
     def generate_report(self, sid: str) -> tuple[int, dict]:
+        with _lock:
+            return self._generate_report_locked(sid)
+
+    def _generate_report_locked(self, sid: str) -> tuple[int, dict]:
         """POST /report。契约写的是异步（202 + 状态），但生成是纯模板、毫秒级、无大模型
         → 同步算完如实回 ready，不伪造 pending/generating 中间态。
         幂等：已成片就返回同一 handle，不重算（契约「请求两次返回同一个 handle」）。"""
         row = self.store.get_session(sid)
         if row is None:
             return 404, {"error": "unknown sessionId"}
+        st = Engine.state_from_json(row["state_json"])
+        if not st.events_done or self._next_step(st) is not None or st.month < 48:
+            return 409, {"error": "final story not complete"}
         prev = self.store.get_report(sid)
         if prev is not None and prev["status"] == "ready":
-            return 202, {"sessionId": sid, "status": "ready"}
+            cached = json.loads(prev["payload_json"] or "{}")
+            if cached.get("portraitVersion") == 2:
+                return 202, {"sessionId": sid, "status": "ready"}
 
-        st = Engine.state_from_json(row["state_json"])
         try:
             report = build_report(
-                ReportInput(st, [], self._report_tracking(sid, st)),
+                ReportInput(st, st.month_log, self._report_tracking(sid, st)),
                 self.engine.reg,
                 self_ratings=self._self_ratings(sid),
                 session_id=sid,
             )
+            report["skippedStoryIds"] = [self._client_label(key) for key in st.events_skipped]
+            report["interactionEvidence"] = self._interaction_trace(self._report_tracking(sid, st))
         except Exception as exc:  # 生成失败要留痕，但不把内部堆栈泄漏给客户端
             self.store.save_report(sid, "failed", type(exc).__name__, "", None)
             sys.stdout.write("[api] report build failed: %r\n" % (exc,))
@@ -799,6 +1117,8 @@ def _as_int(v) -> int | None:
 
 class Handler(BaseHTTPRequestHandler):
     service: Service = None  # type: ignore[assignment]
+    WEB_ORIGIN = "https://careertown.invalid"
+    PUBLIC_MODE = os.getenv("WORKPLACE_PUBLIC_MODE") == "1"
     routes = [
         re.compile(r"^/api/v1/health$"),
         re.compile(r"^/api/v1/sessions$"),
@@ -808,6 +1128,8 @@ class Handler(BaseHTTPRequestHandler):
         re.compile(r"^/api/v1/sessions/([\w-]+)/npcs/([\w-]+)/memories$"),
         re.compile(r"^/api/v1/sessions/([\w-]+)/report$"),
         re.compile(r"^/api/v1/sessions/([\w-]+)/report/status$"),
+        re.compile(r"^/api/v1/sessions/([\w-]+)/assessments/(\d+)$"),
+        re.compile(r"^/api/v1/sessions/([\w-]+)/npcs/([\w-]+)/chat$"),
     ]
 
     def log_message(self, fmt, *args):  # 安静模式由 -v 控制，默认打印一行
@@ -815,7 +1137,12 @@ class Handler(BaseHTTPRequestHandler):
 
     # ---- helpers
     def _body(self) -> dict:
-        length = int(self.headers.get("Content-Length") or 0)
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            return None
+        if length > 16384:
+            return None
         if length <= 0:
             return {}
         try:
@@ -828,14 +1155,29 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(code)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(raw)))
+        if self.headers.get("Origin") == self.WEB_ORIGIN:
+            self.send_header("Access-Control-Allow-Origin", self.WEB_ORIGIN)
+            self.send_header("Vary", "Origin")
         self.end_headers()
         self.wfile.write(raw)
+
+    def do_OPTIONS(self):
+        if self.headers.get("Origin") != self.WEB_ORIGIN:
+            self.send_error(403)
+            return
+        self.send_response(204)
+        self.send_header("Access-Control-Allow-Origin", self.WEB_ORIGIN)
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.send_header("Access-Control-Max-Age", "600")
+        self.send_header("Vary", "Origin")
+        self.end_headers()
 
     def _dispatch(self, method: str) -> None:
         svc = self.service
         path = self.path.split("?")[0]
         query = self.path.split("?")[1] if "?" in self.path else ""
-        m0, m1, m2, m3, m4, m5, m6, m7 = self.routes
+        m0, m1, m2, m3, m4, m5, m6, m7, m8, m9 = self.routes
 
         if method == "GET" and m0.match(path):
             return self._reply(200, {"status": "ok", "time": now_iso()})
@@ -843,8 +1185,29 @@ class Handler(BaseHTTPRequestHandler):
             body = self._body()
             if body is None:
                 return self._reply(400, {"error": "invalid JSON"})
+            claimed_token = None
+            if self.PUBLIC_MODE:
+                resume = str(body.get("resumeSessionId") or "")
+                if resume:
+                    token = str(body.get("sessionToken") or "")
+                    if not token:
+                        claimed_token = svc.store.claim_legacy_session(resume)
+                    if not claimed_token and not svc.store.verify_access_token(resume, token):
+                        return self._reply(403, {"error": "invalid session token"})
             code, resp = svc.create_session(body or {})
+            if self.PUBLIC_MODE and code == 201:
+                token = secrets.token_urlsafe(32)
+                svc.store.set_access_token(resp["sessionId"], token)
+                resp["sessionToken"] = token
+            elif self.PUBLIC_MODE and code == 200 and claimed_token:
+                resp["sessionToken"] = claimed_token
             return self._reply(code, resp)
+        session_path = re.match(r"^/api/v1/sessions/([\w-]+)(?:/|$)", path)
+        if self.PUBLIC_MODE and session_path:
+            authorization = self.headers.get("Authorization", "")
+            token = authorization[7:] if authorization.startswith("Bearer ") else ""
+            if not svc.store.verify_access_token(session_path.group(1), token):
+                return self._reply(403, {"error": "invalid session token"})
         m = m2.match(path)
         if method == "GET" and m:
             return self._reply(*svc.get_session(m.group(1)))
@@ -877,6 +1240,15 @@ class Handler(BaseHTTPRequestHandler):
         m = m7.match(path)
         if method == "GET" and m:
             return self._reply(*svc.report_status(m.group(1)))
+        m = m8.match(path)
+        if method == "POST" and m:
+            return self._reply(*svc.settle_assessment(m.group(1), int(m.group(2))))
+        m = m9.match(path)
+        if method == "POST" and m:
+            body = self._body()
+            if body is None:
+                return self._reply(400, {"error": "invalid JSON"})
+            return self._reply(*svc.npc_chat(m.group(1), m.group(2), body or {}))
         return self._reply(404, {"error": "no route"})
 
     def do_GET(self):
@@ -887,16 +1259,19 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def build_service(db_path: Path | None = None,
-                  mapping_path: Path | None = None) -> Service:
+                  mapping_path: Path | None = None,
+                  story_version: str = "legacy") -> Service:
+    selected_map = mapping_path or (STORY_KEY_MAP_V12_PATH if story_version == "v1.2"
+                                    else STORY_KEY_MAP_PATH)
     return Service(
         Store(db_path or DB_PATH),
-        Engine(),
-        id_map.StoryKeyMap.load_or_empty(mapping_path or STORY_KEY_MAP_PATH),
+        Engine(story_version),
+        id_map.StoryKeyMap.load_or_empty(selected_map),
     )
 
 
 def main() -> None:
-    svc = build_service()
+    svc = build_service(story_version="v1.2")
     Handler.service = svc
     server = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
     cov = svc.mapping.coverage()

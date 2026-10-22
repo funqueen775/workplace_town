@@ -11,7 +11,8 @@
 行为分的缩放假设（算法册 §4 口径说明）：行为分对中点的偏离随该特质载荷等比变化
 ——旧 loading_base C=1.00 时 3.5 → ×0.6 → 4.1，本实现同时复现两个数。
 
-证据不足（n < BIGFIVE_MIN_EVIDENCE）→ 只保留自评条；自评也缺 → 只出行为条。
+证据不足（有效证据量 < BIGFIVE_MIN_EVIDENCE）→ behavior/posterior 留空；
+报告展示分 portrait_score 则向 50 分中性起点收缩，并标注证据状态。
 跨情境一致性：把证据按情境系数分「没人看着(1.0)」与「有人盯着(0.5)」两组，
 两组均值同号 → consistent；异号 → situational（「你的 X 是有条件的」）；
 任一组 n<3 → 无法判定（None）。
@@ -32,8 +33,9 @@ def _behavior_score(evidence: list[dict], base: dict) -> float | None:
     """行为分。evidence 为该特质的加权证据列表（settlement ③ 产出）。"""
     if not evidence:
         return None
-    ratios = [float(e.get("dir", 1)) * float(e.get("coef", 0.75)) for e in evidence]
-    mean_ratio = sum(ratios) / len(ratios)                 # ∈ [-1, 1]
+    weights = [float(e.get("strength", 1.0)) for e in evidence]
+    mean_ratio = sum(float(e.get("dir", 1)) * float(e.get("coef", 0.75)) * weight
+                     for e, weight in zip(evidence, weights)) / sum(weights)
     trait = evidence[0].get("trait")
     loading = float(base.get(trait, 1.0))
     return round(C.BAYES_MID + C.BAYES_DEV_MAX * mean_ratio * loading, 2)
@@ -53,6 +55,8 @@ def _consistency(evidence: list[dict]) -> str | None:
     """跨情境一致性（信度检查）。两组各自按 dir 均值判方向。"""
     groups: dict[str, list[int]] = {"alone": [], "watched": []}
     for e in evidence:
+        if float(e.get("strength", 1.0)) < 1.0:
+            continue
         coef = float(e.get("coef", 0.75))
         if coef >= 0.9:
             groups["alone"].append(int(e.get("dir", 1)))
@@ -75,14 +79,20 @@ def build_posteriors(state: GameState, loading_base: dict,
 
     self_ratings：建档自评（profile_answer 埋点落库后传入），0-10 分制，键为大五字母。
     缺省（未建档/跑批）按 None 处理，对应特质不出后验与矛盾度。
+    portrait_score 只用于报告展示，不参与晋升或岗位匹配。
     """
     self_ratings = self_ratings or {}
     out: list[dict] = []
     for trait in C.BIGFIVE_KEYS:
         evidence = state.bigfive_evidence.get(trait, [])
         n = len(evidence)
-        enough = n >= C.BIGFIVE_MIN_EVIDENCE
+        effective_n = sum(float(item.get("strength", 1.0)) for item in evidence)
+        enough = effective_n >= C.BIGFIVE_MIN_EVIDENCE
         behavior = _behavior_score(evidence, loading_base) if enough else None
+        raw_behavior = _behavior_score(evidence, loading_base)
+        portrait_score = round(
+            50 + (raw_behavior - 5.0) * 10.0 * effective_n / (effective_n + 3.0)
+        ) if raw_behavior is not None else 50
         std = _behavior_std(evidence) if enough else None
         consistency = _consistency(evidence) if enough else None
         self_score = self_ratings.get(trait)
@@ -92,7 +102,7 @@ def build_posteriors(state: GameState, loading_base: dict,
         conflict = None
         conflict_significant = False
         if self_score is not None and behavior is not None:
-            k = n / (n + C.BAYES_K_DENOM)
+            k = effective_n / (effective_n + C.BAYES_K_DENOM)
             posterior = round(self_score + k * (behavior - self_score), 2)
             conflict = round(abs(self_score - posterior), 2)
             conflict_significant = conflict > C.CONFLICT_THRESHOLD
@@ -102,6 +112,8 @@ def build_posteriors(state: GameState, loading_base: dict,
             "trait_cn": C.BIGFIVE_CN[trait],
             "self": self_score,
             "behavior": behavior,
+            "portrait_score": max(0, min(100, portrait_score)),
+            "portrait_evidence": "established" if enough else "limited" if effective_n > 0 else "none",
             "behavior_std": std,
             "posterior": posterior,
             "conflict": conflict,

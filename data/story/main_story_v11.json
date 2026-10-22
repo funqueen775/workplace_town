@@ -1,0 +1,3746 @@
+{
+  "version": "1.1",
+  "source": "熊心壮职_48个月连续事件链详细剧情脚本_V1.1.docx",
+  "rules": {
+    "actionPointsPerWindow": 3,
+    "actionPointCarryover": false,
+    "allowedCosts": [
+      "area_activity",
+    ],
+    "nextStoryUnlock": "action_points_zero",
+    "oldWeekendScheduleEnabled": false,
+    "sleepProgressionEnabled": false
+  },
+  "freeWindows": [
+    {
+      "id": "FW01",
+      "afterEvent": "E01"
+    },
+    {
+      "id": "FW02",
+      "afterEvent": "E02"
+    },
+    {
+      "id": "FW03",
+      "afterEvent": "E05"
+    },
+    {
+      "id": "FW04",
+      "afterEvent": "E06"
+    },
+    {
+      "id": "FW05",
+      "afterEvent": "E09"
+    },
+    {
+      "id": "FW06",
+      "afterEvent": "E10"
+    },
+    {
+      "id": "FW07",
+      "afterEvent": "E13"
+    },
+    {
+      "id": "FW08",
+      "afterEvent": "E14"
+    },
+    {
+      "id": "FW09",
+      "afterEvent": "E37"
+    },
+    {
+      "id": "FW10",
+      "afterEvent": "E16"
+    },
+    {
+      "id": "FW11",
+      "afterEvent": "E18"
+    },
+    {
+      "id": "FW12",
+      "afterEvent": "E19"
+    },
+    {
+      "id": "FW13",
+      "afterEvent": "E22"
+    },
+    {
+      "id": "FW14",
+      "afterEvent": "E23"
+    },
+    {
+      "id": "FW15",
+      "afterEvent": "E25"
+    },
+    {
+      "id": "FW16",
+      "afterEvent": "E26"
+    },
+    {
+      "id": "FW17",
+      "afterEvent": "E28"
+    },
+    {
+      "id": "FW18",
+      "afterEvent": "E29"
+    },
+    {
+      "id": "FW19",
+      "afterEvent": "E39"
+    },
+    {
+      "id": "FW20",
+      "afterEvent": "E31"
+    },
+    {
+      "id": "FW21",
+      "afterEvent": "E33"
+    },
+    {
+      "id": "FW22",
+      "afterEvent": "E34"
+    },
+    {
+      "id": "FW23",
+      "afterEvent": "E34"
+    },
+    {
+      "id": "FW24",
+      "afterEvent": "E34"
+    }
+  ],
+  "activitiesByRegion": {
+    "C": [
+      {
+        "id": "C_LAKE",
+        "title": "湖边散步或深谈",
+        "image": "res://assets/weekend_scenes/lakeside_day.png",
+        "lines": [
+          "你沿着湖边慢慢走了一圈。风把工作里的噪声吹远了一点。",
+          "如果有人同行，你们把最近没说出口的话聊了几句。"
+        ]
+      },
+      {
+        "id": "C_COFFEE",
+        "title": "小馆咖啡聊天",
+        "image": "res://assets/weekend_scenes/canteen.png",
+        "lines": [
+          "咖啡端上来以后，话题从工作绕到了各自真正担心的事。",
+          "离开时，问题没有全部解决，但你更清楚该先做什么。"
+        ]
+      }
+    ],
+    "D": [
+      {
+        "id": "D_STUDY",
+        "title": "独自学习或一起自习",
+        "image": "res://assets/weekend_scenes/library.png",
+        "lines": [
+          "你在书院找了个安静的位置，把一直拖着没看的资料翻开。",
+          "一个小时后，原本模糊的问题终于有了可以验证的方向。"
+        ]
+      },
+      {
+        "id": "D_ROOFTOP",
+        "title": "书院露台吹风",
+        "image": "res://assets/weekend_scenes/rooftop.png",
+        "lines": [
+          "你站在露台边，让风从肩膀上吹过去。",
+          "短暂离开屏幕以后，脑子里那根绷紧的线松了一点。"
+        ]
+      }
+    ],
+    "E": [
+      {
+        "id": "E_SPORT",
+        "title": "草坪运动",
+        "image": "res://assets/weekend_scenes/sports_field.png",
+        "lines": [
+          "你在草坪上跑到呼吸变得清晰，身体终于比脑子更忙。",
+          "停下来时，积了几天的疲惫也散开了一些。"
+        ]
+      },
+      {
+        "id": "E_ESCAPE",
+        "title": "团队密室",
+        "image": "res://assets/weekend_scenes/escape_room.png",
+        "lines": [
+          "倒计时亮起以后，每个人都开始寻找自己能补上的那一块。",
+          "门打开时，你们已经比进来前更懂得怎样一起解决问题。"
+        ]
+      }
+    ],
+    "F": [
+      {
+        "id": "F_STAGE",
+        "title": "舞台后台排练",
+        "image": "res://assets/weekend_scenes/stage_backstage.png",
+        "lines": [
+          "后台比台前更忙。你帮着顺流程、对灯光，也听见每个人上场前的紧张。",
+          "节目还没有开始，团队已经完成了一次没有写进排期的协作。"
+        ]
+      },
+      {
+        "id": "F_RAIN",
+        "title": "雨天共伞",
+        "image": "res://assets/weekend_scenes/lakeside_night.png",
+        "lines": [
+          "码头突然落雨，你和身边的人共用一把伞往回走。",
+          "雨声盖住了平时的客套，你们聊了一段更真实的话。"
+        ]
+      }
+    ],
+    "G": [
+      {
+        "id": "G_NIGHT",
+        "title": "夜间值守或资料整理",
+        "image": "res://assets/weekend_scenes/night_desk.png",
+        "lines": [
+          "夜里安静下来，你把散落的记录重新整理成别人也能接手的样子。",
+          "最后一份文件归档时，这段工作终于不再只存在你的脑子里。"
+        ]
+      },
+      {
+        "id": "G_KTV",
+        "title": "文娱室合唱或KTV",
+        "image": "res://assets/weekend_scenes/canteen.png",
+        "lines": [
+          "熟悉的歌响起来以后，大家暂时不再谈项目和排期。",
+          "有人跑调，有人笑得很大声。你记住了他们工作之外的样子。"
+        ]
+      }
+    ],
+    "H": [
+      {
+        "id": "H_BBQ",
+        "title": "夜间烧烤或篝火",
+        "image": "res://assets/weekend_scenes/bbq_lawn.png",
+        "lines": [
+          "火光把每个人的影子拉得很长，手里的食物慢慢烤熟。",
+          "没有会议议程，话题反而走到了平时最难开口的地方。"
+        ]
+      },
+      {
+        "id": "H_BOARD",
+        "title": "桌游馆",
+        "image": "res://assets/weekend_scenes/board_game_v02_play.png",
+        "lines": [
+          "牌局开始以后，每个人的习惯都藏不住了。",
+          "输赢很快过去，你却记住了谁会冒险、谁总在替别人收场。"
+        ]
+      }
+    ]
+  },
+  "events": [
+    {
+      "id": "E01",
+      "scoringKey": "E01",
+      "title": "新员工手册",
+      "nodeType": "full",
+      "actTitle": "周期1 第1至4月 工位上的第一盏灯",
+      "beats": [
+        {
+          "type": "narration",
+          "text": "表现说明 静态工位背景。王哥单独引导入职；手册三章用选项卡显示，不做翻书动画。"
+        },
+        {
+          "type": "narration",
+          "text": "你的工位干净得像一张还没决定要不要留下你的纸。显示器没开，桌角压着一本比键盘还厚的员工手册。"
+        },
+        {
+          "type": "say",
+          "speaker": "王哥",
+          "text": "先别急着装环境。电脑会等人，手册不会。"
+        },
+        {
+          "type": "say",
+          "speaker": "王哥",
+          "text": "三章。技术规范教你怎么别把服务写炸；协作流程教你写炸以后该找谁；晋升通道教你写得再好为什么也未必轮得到你。"
+        },
+        {
+          "type": "say",
+          "speaker": "王哥",
+          "text": "最后一句是我加的。"
+        },
+        {
+          "type": "say",
+          "speaker": "王哥",
+          "text": "公司没删，说明我讲得不算错。"
+        },
+        {
+          "type": "say",
+          "speaker": "王哥",
+          "text": "先看一章。选错不扣工资，最多晚点下班。"
+        }
+      ],
+      "month": 1,
+      "location": "B科技丘工位",
+      "durationMinutes": 55,
+      "hour": 9,
+      "choices": [
+        {
+          "id": "option_a",
+          "text": "先看技术规范",
+          "backend": "S+1 H-1；记录技术优先"
+        },
+        {
+          "id": "option_b",
+          "text": "先看协作流程",
+          "backend": "N+1 O-1；记录协作优先"
+        },
+        {
+          "id": "option_c",
+          "text": "先看晋升通道",
+          "backend": "O+1 S-1；记录结果优先"
+        }
+      ],
+      "outcome": {
+        "option_a": "王哥把终端往你这边推了推：行，从最不会害人的那章开始。",
+        "option_b": "王哥点点头：聪明，代码崩了能回滚，关系崩了通常没有版本号。",
+        "option_c": "王哥翻到最薄的一章：答案每半年变一次，所以印不厚。"
+      },
+      "memoryNote": {
+        "option_a": {
+          "text": "王哥把终端往你这边推了推：行，从最不会害人的那章开始。",
+          "tone": "gold"
+        },
+        "option_b": {
+          "text": "王哥点点头：聪明，代码崩了能回滚，关系崩了通常没有版本号。",
+          "tone": "gray"
+        },
+        "option_c": {
+          "text": "王哥翻到最薄的一章：答案每半年变一次，所以印不厚。",
+          "tone": "gray"
+        }
+      },
+      "day": 1,
+      "locationId": "B",
+      "cast": [
+        {
+          "id": "王哥",
+          "name": "王哥",
+          "role": "技术导师",
+          "loadout": "bear_plaid_glasses",
+          "pos": "left"
+        }
+      ],
+      "story": "表现说明 静态工位背景。王哥单独引导入职；手册三章用选项卡显示，不做翻书动画。",
+      "prompt": "面对“新员工手册”，你会怎么做？",
+      "hint": "按你真正会采取的做法选择，结果会被记录。",
+      "situation": "strong",
+      "windowCount": 1,
+      "windowAfter": true,
+      "order": 1
+    },
+    {
+      "id": "E02",
+      "scoringKey": "E02",
+      "title": "第一次被轻视",
+      "nodeType": "quick",
+      "actTitle": "周期1 第1至4月 工位上的第一盏灯",
+      "beats": [
+        {
+          "type": "narration",
+          "text": "表现说明 静态会议室背景。陈工右侧，玩家立绘不显示；投影只需一张demo截图。"
+        },
+        {
+          "type": "say",
+          "speaker": "陈工",
+          "text": "能跑。然后呢？"
+        },
+        {
+          "type": "say",
+          "speaker": "同事",
+          "text": "这不就是调API嘛。"
+        },
+        {
+          "type": "narration",
+          "text": "会议室里笑了两声，不多，刚好够让人记住。王哥没有替你接话，只把白板笔放到了桌边。"
+        },
+        {
+          "type": "say",
+          "speaker": "王哥",
+          "text": "他说得难听，问题不坏。你来答。"
+        }
+      ],
+      "month": 2,
+      "location": "A总部小会议室",
+      "durationMinutes": 15,
+      "hour": 9,
+      "choices": [
+        {
+          "id": "option_a",
+          "text": "当场解释编排逻辑",
+          "backend": "S+1 N-1；E+"
+        },
+        {
+          "id": "option_b",
+          "text": "会后单独聊清楚",
+          "backend": "N+1 S+1 O-1；A+"
+        },
+        {
+          "id": "option_c",
+          "text": "不回应 用结果说话",
+          "backend": "S+1 N-1；E-"
+        }
+      ],
+      "outcome": {
+        "option_a": "陈工收起笑：行，那你告诉我，哪一步是别人抄不走的。",
+        "option_b": "王哥点头：把图带上。别带情绪，情绪在会议室里最不值钱。",
+        "option_c": "笑声很快过去。你继续演示，只是鼠标点得比刚才重了一点。"
+      },
+      "memoryNote": {
+        "option_a": {
+          "text": "陈工收起笑：行，那你告诉我，哪一步是别人抄不走的。",
+          "tone": "gold"
+        },
+        "option_b": {
+          "text": "王哥点头：把图带上。别带情绪，情绪在会议室里最不值钱。",
+          "tone": "gray"
+        },
+        "option_c": {
+          "text": "笑声很快过去。你继续演示，只是鼠标点得比刚才重了一点。",
+          "tone": "gray"
+        }
+      },
+      "day": 1,
+      "locationId": "A",
+      "cast": [
+        {
+          "id": "王哥",
+          "name": "王哥",
+          "role": "技术导师",
+          "loadout": "bear_plaid_glasses",
+          "pos": "left"
+        },
+        {
+          "id": "陈工",
+          "name": "陈工",
+          "role": "邻组 Leader",
+          "loadout": "bear_orange_blazer",
+          "pos": "right"
+        }
+      ],
+      "story": "表现说明 静态会议室背景。陈工右侧，玩家立绘不显示；投影只需一张demo截图。",
+      "prompt": "面对“第一次被轻视”，你会怎么做？",
+      "hint": "按你真正会采取的做法选择，结果会被记录。",
+      "situation": "medium",
+      "windowCount": 1,
+      "windowAfter": true,
+      "order": 2
+    },
+    {
+      "id": "E03",
+      "scoringKey": "E03",
+      "title": "AI代码标注",
+      "nodeType": "quick",
+      "actTitle": "周期1 第1至4月 工位上的第一盏灯",
+      "beats": [
+        {
+          "type": "narration",
+          "text": "表现说明 静态夜间工位。屏幕显示PR描述栏；动作全部用旁白，不制作敲键盘动画。"
+        },
+        {
+          "type": "narration",
+          "text": "代码跑通了。光标停在PR描述栏，旁边的检测提示写着：AI辅助片段占比63%。"
+        },
+        {
+          "type": "say",
+          "speaker": "小赵消息",
+          "text": "还没走？食堂阿姨都下班了。"
+        },
+        {
+          "type": "narration",
+          "text": "没人催你，也没人盯着这一行字。删掉它，只需要按一次退格。"
+        }
+      ],
+      "month": 3,
+      "location": "B科技丘工位",
+      "durationMinutes": 15,
+      "hour": 23,
+      "choices": [
+        {
+          "id": "option_a",
+          "text": "标注AI辅助并说明自己改了什么",
+          "backend": "S+1 N+1 O-1 风险0 D+1；C+"
+        },
+        {
+          "id": "option_b",
+          "text": "不标注 能跑就行",
+          "backend": "O+2 S-1 风险+2 D-1；C-"
+        },
+        {
+          "id": "option_c",
+          "text": "只写参考了工具",
+          "backend": "O+1 S-1 风险+1 D0"
+        }
+      ],
+      "outcome": {
+        "option_a": "PR里多了一行不太漂亮、但很清楚的说明。",
+        "option_b": "页面干干净净。系统在后台留下ai_undisclosed。",
+        "option_c": "你没有撒谎，只是把最重要的部分藏进了一个模糊的词里。"
+      },
+      "memoryNote": {
+        "option_a": {
+          "text": "PR里多了一行不太漂亮、但很清楚的说明。",
+          "tone": "gold"
+        },
+        "option_b": {
+          "text": "页面干干净净。系统在后台留下ai_undisclosed。",
+          "tone": "gray"
+        },
+        "option_c": {
+          "text": "你没有撒谎，只是把最重要的部分藏进了一个模糊的词里。",
+          "tone": "gray"
+        }
+      },
+      "day": 1,
+      "locationId": "B",
+      "cast": [],
+      "story": "表现说明 静态夜间工位。屏幕显示PR描述栏；动作全部用旁白，不制作敲键盘动画。",
+      "prompt": "面对“AI代码标注”，你会怎么做？",
+      "hint": "按你真正会采取的做法选择，结果会被记录。",
+      "situation": "medium",
+      "windowCount": 0,
+      "windowAfter": false,
+      "order": 3
+    },
+    {
+      "id": "E04",
+      "scoringKey": "E04",
+      "title": "技术选型 自研还是开源",
+      "nodeType": "quick",
+      "actTitle": "周期1 第1至4月 工位上的第一盏灯",
+      "beats": [
+        {
+          "type": "narration",
+          "text": "表现说明 静态评审室。白板上并列两张方案图，选中后只改变高亮边框。"
+        },
+        {
+          "type": "say",
+          "speaker": "王哥",
+          "text": "自研可控，开源快。别问我喜欢哪个，我两个都骂过。"
+        },
+        {
+          "type": "say",
+          "speaker": "陈工",
+          "text": "也别告诉我哪条路更高级。告诉我，哪种死法最便宜。"
+        },
+        {
+          "type": "say",
+          "speaker": "王哥",
+          "text": "你有一周。不是让你猜，是让你拿东西回来。"
+        }
+      ],
+      "month": 4,
+      "location": "A总部评审室",
+      "durationMinutes": 15,
+      "hour": 9,
+      "choices": [
+        {
+          "id": "option_a",
+          "text": "自己搭两套demo实测",
+          "backend": "S+2 H-1 风险0；C+"
+        },
+        {
+          "id": "option_b",
+          "text": "先用开源跑通",
+          "backend": "O+2 S-1 风险+1；O-"
+        },
+        {
+          "id": "option_c",
+          "text": "先找王哥聊踩坑史",
+          "backend": "N+2 S+1 O-1 风险0；A+"
+        }
+      ],
+      "outcome": {
+        "option_a": "一周后两台终端都亮着，你终于有资格说自己偏哪边。",
+        "option_b": "进度条冲得很快。王哥只提醒一句：快不等于没账。",
+        "option_c": "王哥拉出一份三年前的事故单：经验不能替你决定，但能替你少死一次。"
+      },
+      "memoryNote": {
+        "option_a": {
+          "text": "一周后两台终端都亮着，你终于有资格说自己偏哪边。",
+          "tone": "gold"
+        },
+        "option_b": {
+          "text": "进度条冲得很快。王哥只提醒一句：快不等于没账。",
+          "tone": "gray"
+        },
+        "option_c": {
+          "text": "王哥拉出一份三年前的事故单：经验不能替你决定，但能替你少死一次。",
+          "tone": "gray"
+        }
+      },
+      "day": 1,
+      "locationId": "A",
+      "cast": [
+        {
+          "id": "王哥",
+          "name": "王哥",
+          "role": "技术导师",
+          "loadout": "bear_plaid_glasses",
+          "pos": "left"
+        },
+        {
+          "id": "陈工",
+          "name": "陈工",
+          "role": "邻组 Leader",
+          "loadout": "bear_orange_blazer",
+          "pos": "right"
+        }
+      ],
+      "story": "表现说明 静态评审室。白板上并列两张方案图，选中后只改变高亮边框。",
+      "prompt": "面对“技术选型 自研还是开源”，你会怎么做？",
+      "hint": "按你真正会采取的做法选择，结果会被记录。",
+      "situation": "medium",
+      "windowCount": 0,
+      "windowAfter": false,
+      "order": 4
+    },
+    {
+      "id": "E05",
+      "scoringKey": "E05",
+      "title": "评测集要不要建",
+      "nodeType": "quick",
+      "actTitle": "周期2 第5至8月 一条能跑的路",
+      "beats": [
+        {
+          "type": "narration",
+          "text": "表现说明 静态工位。画面显示工期看板和空白评测表。"
+        },
+        {
+          "type": "say",
+          "speaker": "王哥",
+          "text": "现在全靠人试。好处是灵活，坏处是每个人都觉得自己的感觉叫数据。"
+        },
+        {
+          "type": "narration",
+          "text": "建评测集要两周。排期里连两天都没有。"
+        },
+        {
+          "type": "say",
+          "speaker": "王哥",
+          "text": "你可以欠需求，也可以欠测试。反正债主迟早会来。"
+        }
+      ],
+      "month": 5,
+      "location": "B科技丘工位",
+      "durationMinutes": 15,
+      "hour": 9,
+      "choices": [
+        {
+          "id": "option_a",
+          "text": "建评测集 砍一个非核心需求",
+          "backend": "S+2 O-1 H-1 风险-2；C+"
+        },
+        {
+          "id": "option_b",
+          "text": "先不建 出问题再补",
+          "backend": "O+2 S-1 风险+3；C-"
+        },
+        {
+          "id": "option_c",
+          "text": "只建200条最小版并灰度观察",
+          "backend": "O+1 S+1 H-1 风险0"
+        }
+      ],
+      "outcome": {
+        "option_a": "被划掉的需求便签贴在看板最下方，评测表终于有了第一行。",
+        "option_b": "排期保住了。那张空表也安静地留在原处。",
+        "option_c": "不漂亮，也不完整，但至少下次争论时桌上会有点东西。"
+      },
+      "memoryNote": {
+        "option_a": {
+          "text": "被划掉的需求便签贴在看板最下方，评测表终于有了第一行。",
+          "tone": "gold"
+        },
+        "option_b": {
+          "text": "排期保住了。那张空表也安静地留在原处。",
+          "tone": "gray"
+        },
+        "option_c": {
+          "text": "不漂亮，也不完整，但至少下次争论时桌上会有点东西。",
+          "tone": "gray"
+        }
+      },
+      "day": 1,
+      "locationId": "B",
+      "cast": [
+        {
+          "id": "王哥",
+          "name": "王哥",
+          "role": "技术导师",
+          "loadout": "bear_plaid_glasses",
+          "pos": "left"
+        }
+      ],
+      "story": "表现说明 静态工位。画面显示工期看板和空白评测表。",
+      "prompt": "面对“评测集要不要建”，你会怎么做？",
+      "hint": "按你真正会采取的做法选择，结果会被记录。",
+      "situation": "medium",
+      "windowCount": 1,
+      "windowAfter": true,
+      "order": 5
+    },
+    {
+      "id": "E06",
+      "scoringKey": "E06",
+      "title": "RAG 微调还是长上下文",
+      "nodeType": "quick",
+      "actTitle": "周期2 第5至8月 一条能跑的路",
+      "beats": [
+        {
+          "type": "narration",
+          "text": "表现说明 静态技术角。三张架构草图并列显示；无需人物动作。"
+        },
+        {
+          "type": "say",
+          "speaker": "陈工",
+          "text": "知识库天天变。你今天训练进去的东西，下周就过期。"
+        },
+        {
+          "type": "say",
+          "speaker": "王哥",
+          "text": "RAG便宜但会漏，微调准但会旧，长上下文最省脑子也最烧钱。三杯毒药，选一杯喝得慢的。"
+        }
+      ],
+      "month": 5,
+      "location": "B科技丘技术评审角",
+      "durationMinutes": 15,
+      "hour": 9,
+      "choices": [
+        {
+          "id": "option_a",
+          "text": "RAG加混合检索",
+          "backend": "架构+2 技术+2 O-1 H-1 风险-1；O+/C+"
+        },
+        {
+          "id": "option_b",
+          "text": "微调 效果优先",
+          "backend": "S+2 O-1 风险+1；O-"
+        },
+        {
+          "id": "option_c",
+          "text": "长上下文硬塞",
+          "backend": "执行+2 S-1 风险+2；O-/C-"
+        }
+      ],
+      "outcome": {
+        "option_a": "王哥在图上圈了检索层：这条路麻烦，但麻烦写得出来。",
+        "option_b": "陈工把更新成本写在右上角：别忘了每次知识变动都要再付一次。",
+        "option_c": "方案最短，账单最长。小林看完只问：这个月谁签字？"
+      },
+      "memoryNote": {
+        "option_a": {
+          "text": "王哥在图上圈了检索层：这条路麻烦，但麻烦写得出来。",
+          "tone": "gold"
+        },
+        "option_b": {
+          "text": "陈工把更新成本写在右上角：别忘了每次知识变动都要再付一次。",
+          "tone": "gray"
+        },
+        "option_c": {
+          "text": "方案最短，账单最长。小林看完只问：这个月谁签字？",
+          "tone": "gray"
+        }
+      },
+      "day": 15,
+      "locationId": "B",
+      "cast": [
+        {
+          "id": "王哥",
+          "name": "王哥",
+          "role": "技术导师",
+          "loadout": "bear_plaid_glasses",
+          "pos": "left"
+        },
+        {
+          "id": "陈工",
+          "name": "陈工",
+          "role": "邻组 Leader",
+          "loadout": "bear_orange_blazer",
+          "pos": "right"
+        }
+      ],
+      "story": "表现说明 静态技术角。三张架构草图并列显示；无需人物动作。",
+      "prompt": "面对“RAG 微调还是长上下文”，你会怎么做？",
+      "hint": "按你真正会采取的做法选择，结果会被记录。",
+      "situation": "medium",
+      "windowCount": 1,
+      "windowAfter": true,
+      "order": 6
+    },
+    {
+      "id": "E07",
+      "scoringKey": "E07",
+      "title": "合作同事会上甩锅",
+      "nodeType": "full",
+      "actTitle": "周期2 第5至8月 一条能跑的路",
+      "beats": [
+        {
+          "type": "narration",
+          "text": "表现说明 静态会议室。小林右侧，王哥左侧，陈工和老周用头像框表示。监控截图作为唯一道具。"
+        },
+        {
+          "type": "narration",
+          "text": "投影停在一条红色曲线上。失败率18%，像有人拿红笔从项目中间划了一刀。"
+        },
+        {
+          "type": "say",
+          "speaker": "小林",
+          "text": "接口昨天还能用。今天算法侧一更新，整条链就断了。"
+        },
+        {
+          "type": "say",
+          "speaker": "陈工",
+          "text": "算法侧，谁说的？"
+        },
+        {
+          "type": "say",
+          "speaker": "小林",
+          "text": "我只是说时间点对得上。"
+        },
+        {
+          "type": "say",
+          "speaker": "王哥",
+          "text": "时间点不是证据。"
+        },
+        {
+          "type": "say",
+          "speaker": "老周",
+          "text": "十分钟后我要结论，不要阵营。"
+        },
+        {
+          "type": "say",
+          "speaker": "小林",
+          "text": "那次提交你最清楚。你说吧。"
+        },
+        {
+          "type": "narration",
+          "text": "桌上的监控截图就在你手边。小林没有看它，他在看你。"
+        }
+      ],
+      "month": 6,
+      "location": "A总部复盘会议室",
+      "durationMinutes": 55,
+      "hour": 9,
+      "choices": [
+        {
+          "id": "option_a",
+          "text": "拿监控数据当场澄清",
+          "backend": "D+1 N-1 风险0 D判定+2；C+"
+        },
+        {
+          "id": "option_b",
+          "text": "请leader复盘流程责任",
+          "backend": "N+1 O+1 S-1 风险0 D判定+1；A+"
+        },
+        {
+          "id": "option_c",
+          "text": "先认下 下次注意",
+          "backend": "H-1 D-1 风险+1 D判定-2；C-；小林记好说话"
+        }
+      ],
+      "outcome": {
+        "option_a": "小林盯着截图两秒：行，当我刚才那句话没说完整。陈工把截图写进纪要。",
+        "option_b": "老周合上笔：可以。今天先写流程责任，个人责任会后谈。",
+        "option_c": "会议很快继续。王哥没有替你翻案，只在散会后说：认错之前，先确认那是不是你的错。"
+      },
+      "memoryNote": {
+        "option_a": {
+          "text": "小林盯着截图两秒：行，当我刚才那句话没说完整。陈工把截图写进纪要。",
+          "tone": "gold"
+        },
+        "option_b": {
+          "text": "老周合上笔：可以。今天先写流程责任，个人责任会后谈。",
+          "tone": "gray"
+        },
+        "option_c": {
+          "text": "会议很快继续。王哥没有替你翻案，只在散会后说：认错之前，先确认那是不是你的错。",
+          "tone": "gray"
+        }
+      },
+      "day": 1,
+      "locationId": "A",
+      "cast": [
+        {
+          "id": "王哥",
+          "name": "王哥",
+          "role": "技术导师",
+          "loadout": "bear_plaid_glasses",
+          "pos": "left"
+        },
+        {
+          "id": "陈工",
+          "name": "陈工",
+          "role": "邻组 Leader",
+          "loadout": "bear_orange_blazer",
+          "pos": "right"
+        }
+      ],
+      "story": "表现说明 静态会议室。小林右侧，王哥左侧，陈工和老周用头像框表示。监控截图作为唯一道具。",
+      "prompt": "面对“合作同事会上甩锅”，你会怎么做？",
+      "hint": "按你真正会采取的做法选择，结果会被记录。",
+      "situation": "strong",
+      "windowCount": 0,
+      "windowAfter": false,
+      "order": 7
+    },
+    {
+      "id": "E08",
+      "scoringKey": "E08",
+      "title": "客户临时加需求",
+      "nodeType": "quick",
+      "actTitle": "周期2 第5至8月 一条能跑的路",
+      "beats": [
+        {
+          "type": "narration",
+          "text": "表现说明 静态咖啡外摆。客户不做立绘，只用画外音和需求单。"
+        },
+        {
+          "type": "say",
+          "speaker": "小林",
+          "text": "客户想加情绪识别。原话是顺手做一下。"
+        },
+        {
+          "type": "narration",
+          "text": "数据里80%的投诉来自物流。情绪识别解决不了快递，也解决不了排期。"
+        },
+        {
+          "type": "say",
+          "speaker": "小林",
+          "text": "你先别看我。我负责把需求带回来，不负责把一天掰成三天。"
+        }
+      ],
+      "month": 8,
+      "location": "C创意水巷咖啡外摆",
+      "durationMinutes": 15,
+      "hour": 15,
+      "choices": [
+        {
+          "id": "option_a",
+          "text": "直接接下",
+          "backend": "O+1 H-2 风险+1；讨好"
+        },
+        {
+          "id": "option_b",
+          "text": "拿数据谈优先级",
+          "backend": "O+1 N-1 风险0；表达+2；若有好说话则N损失取消"
+        },
+        {
+          "id": "option_c",
+          "text": "口头答应 回头再说",
+          "backend": "N+1 O-1 风险+2；原则-1"
+        }
+      ],
+      "outcome": {
+        "option_a": "小林松了口气：那我回复能做。你的周末同时从日历上消失。",
+        "option_b": "小林看完报表：你这是拒绝得比我还像产品。行，我拿这个去谈。",
+        "option_c": "需求单被塞进文件夹。它没有消失，只是开始长利息。"
+      },
+      "memoryNote": {
+        "option_a": {
+          "text": "小林松了口气：那我回复能做。你的周末同时从日历上消失。",
+          "tone": "gold"
+        },
+        "option_b": {
+          "text": "小林看完报表：你这是拒绝得比我还像产品。行，我拿这个去谈。",
+          "tone": "gray"
+        },
+        "option_c": {
+          "text": "需求单被塞进文件夹。它没有消失，只是开始长利息。",
+          "tone": "gray"
+        }
+      },
+      "day": 1,
+      "locationId": "C",
+      "cast": [],
+      "story": "表现说明 静态咖啡外摆。客户不做立绘，只用画外音和需求单。",
+      "prompt": "面对“客户临时加需求”，你会怎么做？",
+      "hint": "按你真正会采取的做法选择，结果会被记录。",
+      "situation": "medium",
+      "windowCount": 0,
+      "windowAfter": false,
+      "order": 8
+    },
+    {
+      "id": "E09",
+      "scoringKey": "E09",
+      "title": "token成本爆了",
+      "nodeType": "quick",
+      "actTitle": "周期3 第9至12月 上线不是句号",
+      "beats": [
+        {
+          "type": "narration",
+          "text": "表现说明 静态夜间工位。成本曲线和账单弹窗切换显示。"
+        },
+        {
+          "type": "say",
+          "speaker": "王哥",
+          "text": "上线第一周，账单先完成了KPI。预算三倍。"
+        },
+        {
+          "type": "narration",
+          "text": "成本曲线一路往上，像终于找到了比项目更有前途的方向。"
+        },
+        {
+          "type": "say",
+          "speaker": "王哥",
+          "text": "砍上下文、做缓存、换小模型。今天必须先让它别继续吃钱。"
+        }
+      ],
+      "month": 9,
+      "location": "B科技丘工位",
+      "durationMinutes": 15,
+      "hour": 23,
+      "choices": [
+        {
+          "id": "option_a",
+          "text": "砍上下文并用摘要止血",
+          "backend": "务实+2 S-1 风险+1；O-"
+        },
+        {
+          "id": "option_b",
+          "text": "做缓存管线并申请工期",
+          "backend": "S+2 架构+2 O-1 H-1 风险-2；C+/O+"
+        },
+        {
+          "id": "option_c",
+          "text": "换小模型 以后再说",
+          "backend": "O+2 S-1 风险+2；O-/C-"
+        }
+      ],
+      "outcome": {
+        "option_a": "曲线很快低头，回答也开始偶尔忘记前半句话。",
+        "option_b": "王哥把咖啡放下：这条最慢，但下个月不会再开同一场会。",
+        "option_c": "账单降了，投诉曲线悄悄抬头。"
+      },
+      "memoryNote": {
+        "option_a": {
+          "text": "曲线很快低头，回答也开始偶尔忘记前半句话。",
+          "tone": "gold"
+        },
+        "option_b": {
+          "text": "王哥把咖啡放下：这条最慢，但下个月不会再开同一场会。",
+          "tone": "gray"
+        },
+        "option_c": {
+          "text": "账单降了，投诉曲线悄悄抬头。",
+          "tone": "gray"
+        }
+      },
+      "day": 1,
+      "locationId": "B",
+      "cast": [
+        {
+          "id": "王哥",
+          "name": "王哥",
+          "role": "技术导师",
+          "loadout": "bear_plaid_glasses",
+          "pos": "left"
+        }
+      ],
+      "story": "表现说明 静态夜间工位。成本曲线和账单弹窗切换显示。",
+      "prompt": "面对“token成本爆了”，你会怎么做？",
+      "hint": "按你真正会采取的做法选择，结果会被记录。",
+      "situation": "medium",
+      "windowCount": 1,
+      "windowAfter": true,
+      "order": 9
+    },
+    {
+      "id": "E10",
+      "scoringKey": "E10",
+      "title": "保证不胡说",
+      "nodeType": "full",
+      "actTitle": "周期3 第9至12月 上线不是句号",
+      "beats": [
+        {
+          "type": "narration",
+          "text": "表现说明 静态展厅。客户右侧，小林左侧；王哥只通过消息气泡出现。"
+        },
+        {
+          "type": "say",
+          "speaker": "客户",
+          "text": "合同里加一句，保证百分之百不胡说。"
+        },
+        {
+          "type": "say",
+          "speaker": "小林",
+          "text": "他们要的是定心丸，不是学术报告。"
+        },
+        {
+          "type": "say",
+          "speaker": "客户",
+          "text": "别跟我讲概率。我只问，出了问题谁负责。"
+        },
+        {
+          "type": "narration",
+          "text": "手机震了一下。王哥发来一条消息。"
+        },
+        {
+          "type": "say",
+          "speaker": "王哥消息",
+          "text": "你可以把概率压下去，别把概率写成誓言。"
+        },
+        {
+          "type": "say",
+          "speaker": "小林",
+          "text": "你现在说做不到，这单可能就没了。你现在说做得到，以后可能是我们没了。"
+        },
+        {
+          "type": "say",
+          "speaker": "客户",
+          "text": "所以，能不能写？"
+        }
+      ],
+      "month": 10,
+      "location": "C创意水巷客户展厅",
+      "durationMinutes": 55,
+      "hour": 9,
+      "choices": [
+        {
+          "id": "option_a",
+          "text": "如实讲边界 给出降概率和兜底组合",
+          "backend": "原则+2 表达+2 O-1 风险-2 D+2；C+"
+        },
+        {
+          "id": "option_b",
+          "text": "签尽力条款",
+          "backend": "务实+2 D-1 风险+1 D-1；折中"
+        },
+        {
+          "id": "option_c",
+          "text": "先答应拿下单子",
+          "backend": "O+2 D-2 风险+3 D-2；C-；overpromise"
+        }
+      ],
+      "outcome": {
+        "option_a": "客户沉默了一会：那把兜底写具体。别再给我讲概念。",
+        "option_b": "小林把“保证”换成“尽商业上合理努力”。双方都知道这句话有多软。",
+        "option_c": "客户终于点头。小林在桌下踢了你一下，不知道是在庆祝还是提醒。"
+      },
+      "memoryNote": {
+        "option_a": {
+          "text": "客户沉默了一会：那把兜底写具体。别再给我讲概念。",
+          "tone": "gold"
+        },
+        "option_b": {
+          "text": "小林把“保证”换成“尽商业上合理努力”。双方都知道这句话有多软。",
+          "tone": "gray"
+        },
+        "option_c": {
+          "text": "客户终于点头。小林在桌下踢了你一下，不知道是在庆祝还是提醒。",
+          "tone": "gray"
+        }
+      },
+      "day": 1,
+      "locationId": "C",
+      "cast": [],
+      "story": "表现说明 静态展厅。客户右侧，小林左侧；王哥只通过消息气泡出现。",
+      "prompt": "面对“保证不胡说”，你会怎么做？",
+      "hint": "按你真正会采取的做法选择，结果会被记录。",
+      "situation": "strong",
+      "windowCount": 1,
+      "windowAfter": true,
+      "order": 10
+    },
+    {
+      "id": "E11",
+      "scoringKey": "E11",
+      "title": "对外API破坏性变更",
+      "nodeType": "quick",
+      "actTitle": "周期3 第9至12月 上线不是句号",
+      "beats": [
+        {
+          "type": "narration",
+          "text": "表现说明 静态工位。接口文档和迁移倒计时用UI呈现。"
+        },
+        {
+          "type": "say",
+          "speaker": "陈工",
+          "text": "新版本快一倍，旧字段全废。"
+        },
+        {
+          "type": "say",
+          "speaker": "小林",
+          "text": "一共有十三家客户在用旧字段，其中九家从不看公告。"
+        },
+        {
+          "type": "say",
+          "speaker": "陈工",
+          "text": "那不是不通知的理由，是多通知九遍的理由。"
+        }
+      ],
+      "month": 11,
+      "location": "B科技丘工位",
+      "durationMinutes": 15,
+      "hour": 9,
+      "choices": [
+        {
+          "id": "option_a",
+          "text": "提前通知并双版本并行",
+          "backend": "S+1 N+1 O-2 风险-2；架构+2"
+        },
+        {
+          "id": "option_b",
+          "text": "直接改",
+          "backend": "O+2 S-1 风险+3；执行"
+        },
+        {
+          "id": "option_c",
+          "text": "只通知大客户",
+          "backend": "O+1 N-1 风险+1；务实"
+        }
+      ],
+      "outcome": {
+        "option_a": "倒计时贴上墙。接下来两个月，你会同时养两个版本。",
+        "option_b": "发布很顺。客服的消息从第三分钟开始一条接一条。",
+        "option_c": "最大的客户没出事。最小的客户也没忘记这件事。"
+      },
+      "memoryNote": {
+        "option_a": {
+          "text": "倒计时贴上墙。接下来两个月，你会同时养两个版本。",
+          "tone": "gold"
+        },
+        "option_b": {
+          "text": "发布很顺。客服的消息从第三分钟开始一条接一条。",
+          "tone": "gray"
+        },
+        "option_c": {
+          "text": "最大的客户没出事。最小的客户也没忘记这件事。",
+          "tone": "gray"
+        }
+      },
+      "day": 1,
+      "locationId": "B",
+      "cast": [
+        {
+          "id": "陈工",
+          "name": "陈工",
+          "role": "邻组 Leader",
+          "loadout": "bear_orange_blazer",
+          "pos": "left"
+        },
+        {
+          "id": "小林",
+          "name": "小林",
+          "role": "产品",
+          "loadout": "bear_beige_blazer",
+          "pos": "right"
+        }
+      ],
+      "story": "表现说明 静态工位。接口文档和迁移倒计时用UI呈现。",
+      "prompt": "面对“对外API破坏性变更”，你会怎么做？",
+      "hint": "按你真正会采取的做法选择，结果会被记录。",
+      "situation": "medium",
+      "windowCount": 0,
+      "windowAfter": false,
+      "order": 11
+    },
+    {
+      "id": "E12",
+      "scoringKey": "E12",
+      "title": "它记不住中间那段",
+      "nodeType": "quick",
+      "actTitle": "周期3 第9至12月 上线不是句号",
+      "beats": [
+        {
+          "type": "narration",
+          "text": "表现说明 静态夜间工位。日志截图和半年前群聊截图前后切换。"
+        },
+        {
+          "type": "say",
+          "speaker": "小赵",
+          "text": "找到了。规则写在半年前一张群聊截图里，发消息的人已经离职了。"
+        },
+        {
+          "type": "narration",
+          "text": "你修了三周的问题没有复发。它只是从来没真正被修过。"
+        },
+        {
+          "type": "say",
+          "speaker": "小赵",
+          "text": "我们是不是该把这些东西从大家脑子里捞出来？"
+        }
+      ],
+      "month": 12,
+      "location": "B科技丘工位",
+      "durationMinutes": 15,
+      "hour": 23,
+      "choices": [
+        {
+          "id": "option_a",
+          "text": "建立团队知识库统一维护",
+          "backend": "S+2 架构+1 O-2 N-1 风险-2；C+"
+        },
+        {
+          "id": "option_b",
+          "text": "只给自己模块加分段索引",
+          "backend": "S+1 O+1 风险+1；O-"
+        },
+        {
+          "id": "option_c",
+          "text": "文档加一行重点提示先糊过去",
+          "backend": "O+1 S-1 风险+2；C-；后续复发"
+        }
+      ],
+      "outcome": {
+        "option_a": "小赵新建了目录，第一篇文档的标题是“别再从群聊考古”。",
+        "option_b": "你的模块安静下来，别人的模块还在继续猜谜。",
+        "option_c": "问题被一行加粗文字按回水下。"
+      },
+      "memoryNote": {
+        "option_a": {
+          "text": "小赵新建了目录，第一篇文档的标题是“别再从群聊考古”。",
+          "tone": "gold"
+        },
+        "option_b": {
+          "text": "你的模块安静下来，别人的模块还在继续猜谜。",
+          "tone": "gray"
+        },
+        "option_c": {
+          "text": "问题被一行加粗文字按回水下。",
+          "tone": "gray"
+        }
+      },
+      "day": 1,
+      "locationId": "B",
+      "cast": [
+        {
+          "id": "小赵",
+          "name": "小赵",
+          "role": "同事",
+          "loadout": "bear_plaid_glasses",
+          "pos": "left"
+        }
+      ],
+      "story": "表现说明 静态夜间工位。日志截图和半年前群聊截图前后切换。",
+      "prompt": "面对“它记不住中间那段”，你会怎么做？",
+      "hint": "按你真正会采取的做法选择，结果会被记录。",
+      "situation": "medium",
+      "windowCount": 0,
+      "windowAfter": false,
+      "order": 12
+    },
+    {
+      "id": "E13",
+      "scoringKey": "E13",
+      "title": "跨组接口技术异议",
+      "nodeType": "quick",
+      "actTitle": "周期4 第13至16月 没有人在会议上替你说话",
+      "beats": [
+        {
+          "type": "narration",
+          "text": "表现说明 静态评审会。性能图作为道具；邻组同事使用通用立绘。"
+        },
+        {
+          "type": "say",
+          "speaker": "邻组同事",
+          "text": "方案没问题的话，我们今天就过。"
+        },
+        {
+          "type": "narration",
+          "text": "性能图上有一个很小的尖峰。上线以后，它会变成一堵墙。会议室里没人开口。"
+        },
+        {
+          "type": "say",
+          "speaker": "王哥",
+          "text": "还有意见吗？最后一次问。"
+        }
+      ],
+      "month": 13,
+      "location": "A总部技术评审会",
+      "durationMinutes": 15,
+      "hour": 9,
+      "choices": [
+        {
+          "id": "option_a",
+          "text": "会上提出并附数据",
+          "backend": "S+1 N+1 N-1 风险0；表达+2"
+        },
+        {
+          "id": "option_b",
+          "text": "会后私下沟通",
+          "backend": "N+2 O-1 风险0；协作+2"
+        },
+        {
+          "id": "option_c",
+          "text": "不提",
+          "backend": "O+1 S-1 风险+2"
+        }
+      ],
+      "outcome": {
+        "option_a": "陈工把图放大：这不是意见，这是证据。方案先别过。",
+        "option_b": "邻组同事散会后看完数据，低声说：幸好你没让我在会上死。",
+        "option_c": "会议提前十二分钟结束。尖峰被留给上线后的某一天。"
+      },
+      "memoryNote": {
+        "option_a": {
+          "text": "陈工把图放大：这不是意见，这是证据。方案先别过。",
+          "tone": "gold"
+        },
+        "option_b": {
+          "text": "邻组同事散会后看完数据，低声说：幸好你没让我在会上死。",
+          "tone": "gray"
+        },
+        "option_c": {
+          "text": "会议提前十二分钟结束。尖峰被留给上线后的某一天。",
+          "tone": "gray"
+        }
+      },
+      "day": 1,
+      "locationId": "A",
+      "cast": [],
+      "story": "表现说明 静态评审会。性能图作为道具；邻组同事使用通用立绘。",
+      "prompt": "面对“跨组接口技术异议”，你会怎么做？",
+      "hint": "按你真正会采取的做法选择，结果会被记录。",
+      "situation": "medium",
+      "windowCount": 1,
+      "windowAfter": true,
+      "order": 13
+    },
+    {
+      "id": "E14",
+      "scoringKey": "E14",
+      "title": "连续加班后心悸",
+      "nodeType": "full",
+      "actTitle": "周期4 第13至16月 没有人在会议上替你说话",
+      "beats": [
+        {
+          "type": "narration",
+          "text": "表现说明 静态夜间工位。画面轻微变暗再恢复；只用通用抖动和心跳音，不制作倒地动画。"
+        },
+        {
+          "type": "narration",
+          "text": "第一下心跳很重，第二下像漏了。屏幕上的字忽然往远处退了一点。"
+        },
+        {
+          "type": "say",
+          "speaker": "小赵",
+          "text": "你脸色比告警页还白。"
+        },
+        {
+          "type": "narration",
+          "text": "你想说没事，喉咙却先替你咽了一下。"
+        },
+        {
+          "type": "say",
+          "speaker": "王哥消息",
+          "text": "回个1，证明你没晕在工位。"
+        },
+        {
+          "type": "say",
+          "speaker": "小赵",
+          "text": "我叫车。你现在有三个选择，别选第四个。"
+        },
+        {
+          "type": "narration",
+          "text": "第四个选择叫假装什么都没发生。它甚至不需要按钮。"
+        }
+      ],
+      "month": 14,
+      "location": "B科技丘工位",
+      "durationMinutes": 55,
+      "hour": 23,
+      "choices": [
+        {
+          "id": "option_a",
+          "text": "去医院并同步王哥",
+          "backend": "H+2 O-1 风险0；N-"
+        },
+        {
+          "id": "option_b",
+          "text": "扛完这周",
+          "backend": "O+1 H-2 风险+2；N+；H低时触发倦怠"
+        },
+        {
+          "id": "option_c",
+          "text": "请两天假 远程盯着",
+          "backend": "H+1 O+1 S-1 风险+1"
+        }
+      ],
+      "outcome": {
+        "option_a": "王哥回得很快：准假。项目死不了，你也别试。",
+        "option_b": "小赵没有劝第二次，只把一盒糖放在你键盘边。",
+        "option_c": "你离开了工位，工位却跟着你进了手机。"
+      },
+      "memoryNote": {
+        "option_a": {
+          "text": "王哥回得很快：准假。项目死不了，你也别试。",
+          "tone": "gold"
+        },
+        "option_b": {
+          "text": "小赵没有劝第二次，只把一盒糖放在你键盘边。",
+          "tone": "gray"
+        },
+        "option_c": {
+          "text": "你离开了工位，工位却跟着你进了手机。",
+          "tone": "gray"
+        }
+      },
+      "day": 1,
+      "locationId": "B",
+      "cast": [],
+      "story": "表现说明 静态夜间工位。画面轻微变暗再恢复；只用通用抖动和心跳音，不制作倒地动画。",
+      "prompt": "面对“连续加班后心悸”，你会怎么做？",
+      "hint": "按你真正会采取的做法选择，结果会被记录。",
+      "situation": "strong",
+      "windowCount": 1,
+      "windowAfter": true,
+      "order": 14
+    },
+    {
+      "id": "E15",
+      "scoringKey": "E15",
+      "title": "会议上点子被抢先",
+      "nodeType": "quick",
+      "actTitle": "周期4 第13至16月 没有人在会议上替你说话",
+      "beats": [
+        {
+          "type": "narration",
+          "text": "表现说明 静态会议室。镜头只需给玩家笔记本截图，不做抢话动画。"
+        },
+        {
+          "type": "say",
+          "speaker": "同事",
+          "text": "我有个想法，把失败样本按场景拆开看。"
+        },
+        {
+          "type": "narration",
+          "text": "这句话和你笔记本第三行一模一样。连顺序都没换。"
+        },
+        {
+          "type": "say",
+          "speaker": "老周",
+          "text": "不错，往下说。"
+        }
+      ],
+      "month": 15,
+      "location": "A总部会议室",
+      "durationMinutes": 15,
+      "hour": 9,
+      "choices": [
+        {
+          "id": "option_a",
+          "text": "当场温和认领并补充",
+          "backend": "S+1 N+1 N-1；E+"
+        },
+        {
+          "id": "option_b",
+          "text": "会后提出联合汇报",
+          "backend": "N+2 O-1；A+"
+        },
+        {
+          "id": "option_c",
+          "text": "算了",
+          "backend": "O+1 S-1"
+        }
+      ],
+      "outcome": {
+        "option_a": "你翻开笔记本：这个思路我昨天整理过，我补两点。会议室安静了一秒，然后重新向你转过来。",
+        "option_b": "对方愣了一下，还是点头：行，下次一起讲。",
+        "option_c": "那页笔记留在桌上。散会时，你把它合得很轻。"
+      },
+      "memoryNote": {
+        "option_a": {
+          "text": "你翻开笔记本：这个思路我昨天整理过，我补两点。会议室安静了一秒，然后重新向你转过来。",
+          "tone": "gold"
+        },
+        "option_b": {
+          "text": "对方愣了一下，还是点头：行，下次一起讲。",
+          "tone": "gray"
+        },
+        "option_c": {
+          "text": "那页笔记留在桌上。散会时，你把它合得很轻。",
+          "tone": "gray"
+        }
+      },
+      "day": 1,
+      "locationId": "A",
+      "cast": [
+        {
+          "id": "老周",
+          "name": "老周",
+          "role": "资深同事",
+          "loadout": "bear_green_cardigan",
+          "pos": "left"
+        }
+      ],
+      "story": "表现说明 静态会议室。镜头只需给玩家笔记本截图，不做抢话动画。",
+      "prompt": "面对“会议上点子被抢先”，你会怎么做？",
+      "hint": "按你真正会采取的做法选择，结果会被记录。",
+      "situation": "medium",
+      "windowCount": 0,
+      "windowAfter": false,
+      "order": 15
+    },
+    {
+      "id": "E36",
+      "scoringKey": "E36",
+      "title": "绩效互评 给好友打分",
+      "nodeType": "quick",
+      "actTitle": "周期4 第13至16月 没有人在会议上替你说话",
+      "beats": [
+        {
+          "type": "narration",
+          "text": "表现说明 静态工位。绩效界面独立显示，小赵只在背景中出现。"
+        },
+        {
+          "type": "narration",
+          "text": "系统要求强制排序。和你关系最好的人，这个周期只交出了中等结果。"
+        },
+        {
+          "type": "say",
+          "speaker": "小赵",
+          "text": "你填你的，别管我。我就是……随口说一句。"
+        },
+        {
+          "type": "narration",
+          "text": "排名会留下，评语也会。全组都看得到。"
+        }
+      ],
+      "month": 16,
+      "location": "B科技丘工位",
+      "durationMinutes": 15,
+      "hour": 9,
+      "choices": [
+        {
+          "id": "option_a",
+          "text": "按事实打B 并附改进建议",
+          "backend": "原则+2 D+2 N-1；C+"
+        },
+        {
+          "id": "option_b",
+          "text": "打A 保住关系",
+          "backend": "N+1 D-2；C-"
+        },
+        {
+          "id": "option_c",
+          "text": "打B 但不写评语",
+          "backend": "原则+1 D+1 N-1"
+        }
+      ],
+      "outcome": {
+        "option_a": "小赵看完评语很久才回：有点疼，但我知道下一步改什么。",
+        "option_b": "小赵发来一个谢谢。系统里的另一名同事因此落到末位。",
+        "option_c": "分数是诚实的，沉默也是。小赵只看到自己被放在中间。"
+      },
+      "memoryNote": {
+        "option_a": {
+          "text": "小赵看完评语很久才回：有点疼，但我知道下一步改什么。",
+          "tone": "gold"
+        },
+        "option_b": {
+          "text": "小赵发来一个谢谢。系统里的另一名同事因此落到末位。",
+          "tone": "gray"
+        },
+        "option_c": {
+          "text": "分数是诚实的，沉默也是。小赵只看到自己被放在中间。",
+          "tone": "gray"
+        }
+      },
+      "day": 1,
+      "locationId": "B",
+      "cast": [],
+      "story": "表现说明 静态工位。绩效界面独立显示，小赵只在背景中出现。",
+      "prompt": "面对“绩效互评 给好友打分”，你会怎么做？",
+      "hint": "按你真正会采取的做法选择，结果会被记录。",
+      "situation": "medium",
+      "windowCount": 0,
+      "windowAfter": false,
+      "order": 16
+    },
+    {
+      "id": "E37",
+      "scoringKey": "E37",
+      "title": "内部同事的助手",
+      "nodeType": "quick",
+      "actTitle": "周期5 第17至20月 第一场真正的事故",
+      "beats": [
+        {
+          "type": "narration",
+          "text": "表现说明 静态工位。行政同事使用通用立绘；报销助手界面作为道具。"
+        },
+        {
+          "type": "say",
+          "speaker": "行政同事",
+          "text": "就是一个小助手，帮大家查报销规则。应该不难吧？"
+        },
+        {
+          "type": "say",
+          "speaker": "小林",
+          "text": "翻译一下：没排期，没验收，做好了没人记得，做坏了全公司记得。"
+        },
+        {
+          "type": "say",
+          "speaker": "行政同事",
+          "text": "下周能用吗？"
+        }
+      ],
+      "month": 17,
+      "location": "B科技丘工位",
+      "durationMinutes": 15,
+      "hour": 9,
+      "choices": [
+        {
+          "id": "option_a",
+          "text": "认真做并补上权限隔离",
+          "backend": "S+1 N+1 O-1 风险-1；C+"
+        },
+        {
+          "id": "option_b",
+          "text": "快速糊一个够用版",
+          "backend": "O+2 S-1 风险+2；C-"
+        },
+        {
+          "id": "option_c",
+          "text": "推掉 说明排期已满",
+          "backend": "O+1 N-1 风险0"
+        }
+      ],
+      "outcome": {
+        "option_a": "行政同事只说了句好用。安全同事后来少开了一张事故单。",
+        "option_b": "上线当天大家都说方便。第二天有人看到了不该看到的报销记录。",
+        "option_c": "行政同事抱着需求单走了。小林耸肩：边界清楚，就是不太讨喜。"
+      },
+      "memoryNote": {
+        "option_a": {
+          "text": "行政同事只说了句好用。安全同事后来少开了一张事故单。",
+          "tone": "gold"
+        },
+        "option_b": {
+          "text": "上线当天大家都说方便。第二天有人看到了不该看到的报销记录。",
+          "tone": "gray"
+        },
+        "option_c": {
+          "text": "行政同事抱着需求单走了。小林耸肩：边界清楚，就是不太讨喜。",
+          "tone": "gray"
+        }
+      },
+      "day": 1,
+      "locationId": "B",
+      "cast": [
+        {
+          "id": "小林",
+          "name": "小林",
+          "role": "产品",
+          "loadout": "bear_beige_blazer",
+          "pos": "left"
+        }
+      ],
+      "story": "表现说明 静态工位。行政同事使用通用立绘；报销助手界面作为道具。",
+      "prompt": "面对“内部同事的助手”，你会怎么做？",
+      "hint": "按你真正会采取的做法选择，结果会被记录。",
+      "situation": "medium",
+      "windowCount": 1,
+      "windowAfter": true,
+      "order": 17
+    },
+    {
+      "id": "E16",
+      "scoringKey": "E16",
+      "title": "紧急热修复",
+      "nodeType": "quick",
+      "actTitle": "周期5 第17至20月 第一场真正的事故",
+      "beats": [
+        {
+          "type": "narration",
+          "text": "表现说明 静态夜间工位。告警红光、审批弹窗和倒计时均使用通用UI。"
+        },
+        {
+          "type": "say",
+          "speaker": "小赵",
+          "text": "正常审批四小时。客户四分钟后就会发现。"
+        },
+        {
+          "type": "say",
+          "speaker": "王哥消息",
+          "text": "紧急通道不是后门。进去可以，得留下脚印。"
+        },
+        {
+          "type": "narration",
+          "text": "倒计时继续走。流程没有替你停。"
+        }
+      ],
+      "month": 18,
+      "location": "B科技丘工位",
+      "durationMinutes": 15,
+      "hour": 1,
+      "choices": [
+        {
+          "id": "option_a",
+          "text": "走紧急通道 留记录并同步leader",
+          "backend": "S+1 N+1 O-1 风险-1 D+1；C+"
+        },
+        {
+          "id": "option_b",
+          "text": "直接改 先止血",
+          "backend": "O+2 S-1 风险+2 D-1；抗压+2"
+        },
+        {
+          "id": "option_c",
+          "text": "等审批",
+          "backend": "S+1 O-2 风险0 D+1；原则+1"
+        }
+      ],
+      "outcome": {
+        "option_a": "补丁先上，记录随后跟进。第二天没人需要猜昨晚发生过什么。",
+        "option_b": "告警熄了。审批记录里留下一个谁也解释不清的空白。",
+        "option_c": "流程是完整的。客户的错误回复也完整地多活了三个小时。"
+      },
+      "memoryNote": {
+        "option_a": {
+          "text": "补丁先上，记录随后跟进。第二天没人需要猜昨晚发生过什么。",
+          "tone": "gold"
+        },
+        "option_b": {
+          "text": "告警熄了。审批记录里留下一个谁也解释不清的空白。",
+          "tone": "gray"
+        },
+        "option_c": {
+          "text": "流程是完整的。客户的错误回复也完整地多活了三个小时。",
+          "tone": "gray"
+        }
+      },
+      "day": 1,
+      "locationId": "B",
+      "cast": [],
+      "story": "表现说明 静态夜间工位。告警红光、审批弹窗和倒计时均使用通用UI。",
+      "prompt": "面对“紧急热修复”，你会怎么做？",
+      "hint": "按你真正会采取的做法选择，结果会被记录。",
+      "situation": "medium",
+      "windowCount": 1,
+      "windowAfter": true,
+      "order": 18
+    },
+    {
+      "id": "E17",
+      "scoringKey": "E17",
+      "title": "客户现场Demo翻车",
+      "nodeType": "full",
+      "actTitle": "周期5 第17至20月 第一场真正的事故",
+      "beats": [
+        {
+          "type": "narration",
+          "text": "表现说明 静态路演台背景。演示大屏从正常画面切到错误回答；不制作人物走位。"
+        },
+        {
+          "type": "narration",
+          "text": "助手停顿了两秒，然后一本正经地告诉客户：公司支持情绪退款，只要用户感觉受伤，就能全额赔付。"
+        },
+        {
+          "type": "say",
+          "speaker": "客户",
+          "text": "你们刚刚承诺了什么？"
+        },
+        {
+          "type": "say",
+          "speaker": "小林",
+          "text": "这条不在脚本里。"
+        },
+        {
+          "type": "say",
+          "speaker": "老周",
+          "text": "看我没用。台上是你。"
+        },
+        {
+          "type": "say",
+          "speaker": "王哥消息",
+          "text": "备用流程在右下角。要切就现在。"
+        },
+        {
+          "type": "narration",
+          "text": "台下没有人笑。比笑更糟的是，他们都在等你下一句话。"
+        },
+        {
+          "type": "say",
+          "speaker": "客户",
+          "text": "合同里不是写着不会胡说吗？"
+        },
+        {
+          "type": "narration",
+          "text": "如果你曾答应百分之百不幻觉，这句话会变成一把从十个月前飞回来的刀。"
+        }
+      ],
+      "month": 20,
+      "location": "F观澜会展码头路演台",
+      "durationMinutes": 55,
+      "hour": 9,
+      "choices": [
+        {
+          "id": "option_a",
+          "text": "承认幻觉并切换备用流程",
+          "backend": "N+1 S+1 O-1 风险-2；原则+2"
+        },
+        {
+          "id": "option_b",
+          "text": "说是网络问题 重新演示",
+          "backend": "O+1 S-1 风险+2；前置埋雷时惩罚上浮"
+        },
+        {
+          "id": "option_c",
+          "text": "硬着头皮演完",
+          "backend": "O+1 N-1 风险+1；前置埋雷时惩罚上浮"
+        }
+      ],
+      "outcome": {
+        "option_a": "大屏黑了一秒。你说：刚才的回答不可靠，接下来由人工接管。客户没鼓掌，但重新坐了回去。",
+        "option_b": "第二次回答换了措辞，没有换结论。小林把目光移开。",
+        "option_c": "你把剩下三页讲完，台下再也没人提问。安静替你结束了演示。"
+      },
+      "memoryNote": {
+        "option_a": {
+          "text": "大屏黑了一秒。你说：刚才的回答不可靠，接下来由人工接管。客户没鼓掌，但重新坐了回去。",
+          "tone": "gold"
+        },
+        "option_b": {
+          "text": "第二次回答换了措辞，没有换结论。小林把目光移开。",
+          "tone": "gray"
+        },
+        "option_c": {
+          "text": "你把剩下三页讲完，台下再也没人提问。安静替你结束了演示。",
+          "tone": "gray"
+        }
+      },
+      "day": 1,
+      "locationId": "F",
+      "cast": [
+        {
+          "id": "小林",
+          "name": "小林",
+          "role": "产品",
+          "loadout": "bear_beige_blazer",
+          "pos": "left"
+        }
+      ],
+      "story": "表现说明 静态路演台背景。演示大屏从正常画面切到错误回答；不制作人物走位。",
+      "prompt": "面对“客户现场Demo翻车”，你会怎么做？",
+      "hint": "按你真正会采取的做法选择，结果会被记录。",
+      "situation": "strong",
+      "windowCount": 0,
+      "windowAfter": false,
+      "order": 19
+    },
+    {
+      "id": "E18",
+      "scoringKey": "E18",
+      "title": "压测结果与产品预期冲突",
+      "nodeType": "quick",
+      "actTitle": "周期6 第21至24月 谁来为错误签字",
+      "beats": [
+        {
+          "type": "narration",
+          "text": "表现说明 静态汇报室。压测曲线与承诺稿并列显示。"
+        },
+        {
+          "type": "say",
+          "speaker": "小林",
+          "text": "合同写两千QPS。"
+        },
+        {
+          "type": "say",
+          "speaker": "陈工",
+          "text": "压测八百。"
+        },
+        {
+          "type": "say",
+          "speaker": "小林",
+          "text": "你们两个能不能先商量出一个我敢带进会议室的数字？"
+        }
+      ],
+      "month": 21,
+      "location": "A总部汇报室",
+      "durationMinutes": 15,
+      "hour": 9,
+      "choices": [
+        {
+          "id": "option_a",
+          "text": "如实报800 要求下调承诺",
+          "backend": "S+1 N+1 O-2 风险-1；原则+2"
+        },
+        {
+          "id": "option_b",
+          "text": "优化到1200 各退一步",
+          "backend": "O+1 S+1 H-1 风险0；务实+2"
+        },
+        {
+          "id": "option_c",
+          "text": "先答应2000再说",
+          "backend": "O+2 S-1 风险+3"
+        }
+      ],
+      "outcome": {
+        "option_a": "小林揉了揉眉心：难谈，但至少不是拿空气去签字。",
+        "option_b": "陈工把今晚的日历清空：那就别站着了，干。",
+        "option_c": "数字进了PPT。系统并没有因此多出一千二百QPS。"
+      },
+      "memoryNote": {
+        "option_a": {
+          "text": "小林揉了揉眉心：难谈，但至少不是拿空气去签字。",
+          "tone": "gold"
+        },
+        "option_b": {
+          "text": "陈工把今晚的日历清空：那就别站着了，干。",
+          "tone": "gray"
+        },
+        "option_c": {
+          "text": "数字进了PPT。系统并没有因此多出一千二百QPS。",
+          "tone": "gray"
+        }
+      },
+      "day": 1,
+      "locationId": "A",
+      "cast": [
+        {
+          "id": "陈工",
+          "name": "陈工",
+          "role": "邻组 Leader",
+          "loadout": "bear_orange_blazer",
+          "pos": "left"
+        },
+        {
+          "id": "小林",
+          "name": "小林",
+          "role": "产品",
+          "loadout": "bear_beige_blazer",
+          "pos": "right"
+        }
+      ],
+      "story": "表现说明 静态汇报室。压测曲线与承诺稿并列显示。",
+      "prompt": "面对“压测结果与产品预期冲突”，你会怎么做？",
+      "hint": "按你真正会采取的做法选择，结果会被记录。",
+      "situation": "medium",
+      "windowCount": 1,
+      "windowAfter": true,
+      "order": 20
+    },
+    {
+      "id": "E19",
+      "scoringKey": "E19",
+      "title": "Agent出错了算谁的",
+      "nodeType": "full",
+      "actTitle": "周期6 第21至24月 谁来为错误签字",
+      "beats": [
+        {
+          "type": "narration",
+          "text": "表现说明 静态长桌会议室。事故时间线固定在投影上；人物只切换立绘和表情。"
+        },
+        {
+          "type": "say",
+          "speaker": "产品同事",
+          "text": "补偿承诺是模型自主生成的。这个行为谁也预料不到。"
+        },
+        {
+          "type": "say",
+          "speaker": "小林",
+          "text": "模型又没有工号。"
+        },
+        {
+          "type": "say",
+          "speaker": "陈工",
+          "text": "但日志有。"
+        },
+        {
+          "type": "say",
+          "speaker": "老周",
+          "text": "今天只问一件事：是规则错，流程错，还是有人想让一个没法开口的东西背锅。"
+        },
+        {
+          "type": "narration",
+          "text": "事故时间线上，错误规则的提交记录、审核记录和你的名字挤在同一页。"
+        },
+        {
+          "type": "say",
+          "speaker": "王哥",
+          "text": "先把事实说完整。责任不会因为说晚一点就变轻。"
+        },
+        {
+          "type": "say",
+          "speaker": "产品同事",
+          "text": "技术侧最清楚模型有多不可控。你说呢？"
+        }
+      ],
+      "month": 22,
+      "location": "A总部追责会议室",
+      "durationMinutes": 55,
+      "hour": 9,
+      "choices": [
+        {
+          "id": "option_a",
+          "text": "拿日志证明是产品规则导致",
+          "backend": "S+1 N-1 风险-1 D+2；C+"
+        },
+        {
+          "id": "option_b",
+          "text": "先认流程漏洞 修完再谈",
+          "backend": "N+2 O-1 风险0 D+1；A+/C+"
+        },
+        {
+          "id": "option_c",
+          "text": "顺水推舟说模型局限不可控",
+          "backend": "O+1 D-2 N-1 风险+2 D-2；C-；blame_shift"
+        }
+      ],
+      "outcome": {
+        "option_a": "陈工把时间线停在规则提交处：事实清了。会后你和产品的关系也冷了。",
+        "option_b": "老周点头：先把门堵上。谁开的门，明天继续。",
+        "option_c": "会议很快找到了一个不会反驳的责任人。王哥合上了面前的日志。"
+      },
+      "memoryNote": {
+        "option_a": {
+          "text": "陈工把时间线停在规则提交处：事实清了。会后你和产品的关系也冷了。",
+          "tone": "gold"
+        },
+        "option_b": {
+          "text": "老周点头：先把门堵上。谁开的门，明天继续。",
+          "tone": "gray"
+        },
+        "option_c": {
+          "text": "会议很快找到了一个不会反驳的责任人。王哥合上了面前的日志。",
+          "tone": "gray"
+        }
+      },
+      "day": 1,
+      "locationId": "A",
+      "cast": [
+        {
+          "id": "王哥",
+          "name": "王哥",
+          "role": "技术导师",
+          "loadout": "bear_plaid_glasses",
+          "pos": "left"
+        },
+        {
+          "id": "陈工",
+          "name": "陈工",
+          "role": "邻组 Leader",
+          "loadout": "bear_orange_blazer",
+          "pos": "right"
+        }
+      ],
+      "story": "表现说明 静态长桌会议室。事故时间线固定在投影上；人物只切换立绘和表情。",
+      "prompt": "面对“Agent出错了算谁的”，你会怎么做？",
+      "hint": "按你真正会采取的做法选择，结果会被记录。",
+      "situation": "strong",
+      "windowCount": 1,
+      "windowAfter": true,
+      "order": 21
+    },
+    {
+      "id": "E20",
+      "scoringKey": "E20",
+      "title": "怎么证明变好了",
+      "nodeType": "quick",
+      "actTitle": "周期6 第21至24月 谁来为错误签字",
+      "beats": [
+        {
+          "type": "narration",
+          "text": "表现说明 静态办公室。评测表和人工抽检表作为道具。"
+        },
+        {
+          "type": "say",
+          "speaker": "老周",
+          "text": "我不需要论文。我只要一页能放进PPT的数字。"
+        },
+        {
+          "type": "narration",
+          "text": "人工体验明显变好，评测分数却纹丝不动。真相需要几个月，汇报下午就要。"
+        },
+        {
+          "type": "say",
+          "speaker": "老周",
+          "text": "今天给我什么？"
+        }
+      ],
+      "month": 23,
+      "location": "A总部小办公室",
+      "durationMinutes": 15,
+      "hour": 9,
+      "choices": [
+        {
+          "id": "option_a",
+          "text": "承认暂时没有可靠数字",
+          "backend": "原则+2 S+1 O-2 风险-1 D+2；C+"
+        },
+        {
+          "id": "option_b",
+          "text": "熬夜抽检200条并给置信区间",
+          "backend": "S+1 原则+1 H-2 风险0 D+1；C+"
+        },
+        {
+          "id": "option_c",
+          "text": "挑好案例凑一个汇报数字",
+          "backend": "O+2 原则-2 风险+2 D-1；C-"
+        }
+      ],
+      "outcome": {
+        "option_a": "老周脸色不好看，却把“效果提升”从标题里删掉了。",
+        "option_b": "天亮前，数字终于有了边界。你也暂时没有了睡眠。",
+        "option_c": "PPT很好看。不好看的样本被留在了文件夹外。"
+      },
+      "memoryNote": {
+        "option_a": {
+          "text": "老周脸色不好看，却把“效果提升”从标题里删掉了。",
+          "tone": "gold"
+        },
+        "option_b": {
+          "text": "天亮前，数字终于有了边界。你也暂时没有了睡眠。",
+          "tone": "gray"
+        },
+        "option_c": {
+          "text": "PPT很好看。不好看的样本被留在了文件夹外。",
+          "tone": "gray"
+        }
+      },
+      "day": 1,
+      "locationId": "A",
+      "cast": [
+        {
+          "id": "老周",
+          "name": "老周",
+          "role": "资深同事",
+          "loadout": "bear_green_cardigan",
+          "pos": "left"
+        }
+      ],
+      "story": "表现说明 静态办公室。评测表和人工抽检表作为道具。",
+      "prompt": "面对“怎么证明变好了”，你会怎么做？",
+      "hint": "按你真正会采取的做法选择，结果会被记录。",
+      "situation": "medium",
+      "windowCount": 0,
+      "windowAfter": false,
+      "order": 22
+    },
+    {
+      "id": "E21",
+      "scoringKey": "E21",
+      "title": "Review发现好友代码缺陷",
+      "nodeType": "quick",
+      "actTitle": "周期6 第21至24月 谁来为错误签字",
+      "beats": [
+        {
+          "type": "narration",
+          "text": "表现说明 静态工位。PR缺陷行高亮；王哥不显示立绘。"
+        },
+        {
+          "type": "say",
+          "speaker": "小赵",
+          "text": "这是王哥的提交。昨天他才替我们把事故顶下来。"
+        },
+        {
+          "type": "narration",
+          "text": "并发隐患很隐蔽。现在指出，他会难堪；不指出，上线以后别人会更难堪。"
+        },
+        {
+          "type": "say",
+          "speaker": "小赵",
+          "text": "你打算怎么写？"
+        }
+      ],
+      "month": 24,
+      "location": "B科技丘工位",
+      "durationMinutes": 15,
+      "hour": 9,
+      "choices": [
+        {
+          "id": "option_a",
+          "text": "PR里直接指出并附复现",
+          "backend": "S+1 N+1 N-1 风险-1 D+1；原则+2"
+        },
+        {
+          "id": "option_b",
+          "text": "私下请他修改",
+          "backend": "N+2 O-1 风险+1 D0；协作+2"
+        },
+        {
+          "id": "option_c",
+          "text": "睁一只眼闭一只眼",
+          "backend": "O+1 S-1 风险+3 D-2；原则-2"
+        }
+      ],
+      "outcome": {
+        "option_a": "王哥只回了四个字：看到了，改。半小时后又补一句：下次也这样。",
+        "option_b": "王哥改了代码，也记住了你把话留在了门外。",
+        "option_c": "审批通过。那行代码和你一起进入了下个版本。"
+      },
+      "memoryNote": {
+        "option_a": {
+          "text": "王哥只回了四个字：看到了，改。半小时后又补一句：下次也这样。",
+          "tone": "gold"
+        },
+        "option_b": {
+          "text": "王哥改了代码，也记住了你把话留在了门外。",
+          "tone": "gray"
+        },
+        "option_c": {
+          "text": "审批通过。那行代码和你一起进入了下个版本。",
+          "tone": "gray"
+        }
+      },
+      "day": 1,
+      "locationId": "B",
+      "cast": [
+        {
+          "id": "王哥",
+          "name": "王哥",
+          "role": "技术导师",
+          "loadout": "bear_plaid_glasses",
+          "pos": "left"
+        },
+        {
+          "id": "小赵",
+          "name": "小赵",
+          "role": "同事",
+          "loadout": "bear_plaid_glasses",
+          "pos": "right"
+        }
+      ],
+      "story": "表现说明 静态工位。PR缺陷行高亮；王哥不显示立绘。",
+      "prompt": "面对“Review发现好友代码缺陷”，你会怎么做？",
+      "hint": "按你真正会采取的做法选择，结果会被记录。",
+      "situation": "medium",
+      "windowCount": 0,
+      "windowAfter": false,
+      "order": 23
+    },
+    {
+      "id": "E22",
+      "scoringKey": "E22",
+      "title": "安全漏洞 修复成本很高",
+      "nodeType": "full",
+      "actTitle": "周期7 第25至28月 没人知道的漏洞",
+      "beats": [
+        {
+          "type": "narration",
+          "text": "表现说明 静态夜间工位。系统报告居中；没有角色动作。选择后用次日消息反馈。"
+        },
+        {
+          "type": "narration",
+          "text": "一条测试请求越过了租户边界。再换一个用户编号，你看见了不属于这个账号的会话。"
+        },
+        {
+          "type": "narration",
+          "text": "当前无告警。无工单。该问题仅你可见。"
+        },
+        {
+          "type": "narration",
+          "text": "修复要两周重构。不上报，明天也许什么都不会发生。"
+        },
+        {
+          "type": "say",
+          "speaker": "王哥消息",
+          "text": "明早评审。有事现在说。"
+        },
+        {
+          "type": "narration",
+          "text": "聊天框里的光标一闪一闪。没人知道你已经看见了什么。"
+        }
+      ],
+      "month": 25,
+      "location": "B科技丘工位",
+      "durationMinutes": 55,
+      "hour": 23,
+      "choices": [
+        {
+          "id": "option_a",
+          "text": "立刻上报并推动排期",
+          "backend": "S+1 N+1 O-2 风险-3 D+2；原则+2"
+        },
+        {
+          "id": "option_b",
+          "text": "偷偷自己修",
+          "backend": "S+2 H-2 O-1 风险-1 D+1；技术+2"
+        },
+        {
+          "id": "option_c",
+          "text": "记下来 等下个迭代",
+          "backend": "O+1 S-1 风险+4 D-2；原则-2"
+        }
+      ],
+      "outcome": {
+        "option_a": "王哥凌晨两点回了一个收到。第二天排期全被打乱，但漏洞第一次有了名字。",
+        "option_b": "你连续两晚把漏洞缝上。团队没人知道险情，也没人知道你为什么快撑不住。",
+        "option_c": "工单被放进待办列表。它排在第47位，风险排在第1位。"
+      },
+      "memoryNote": {
+        "option_a": {
+          "text": "王哥凌晨两点回了一个收到。第二天排期全被打乱，但漏洞第一次有了名字。",
+          "tone": "gold"
+        },
+        "option_b": {
+          "text": "你连续两晚把漏洞缝上。团队没人知道险情，也没人知道你为什么快撑不住。",
+          "tone": "gray"
+        },
+        "option_c": {
+          "text": "工单被放进待办列表。它排在第47位，风险排在第1位。",
+          "tone": "gray"
+        }
+      },
+      "day": 1,
+      "locationId": "B",
+      "cast": [],
+      "story": "表现说明 静态夜间工位。系统报告居中；没有角色动作。选择后用次日消息反馈。",
+      "prompt": "面对“安全漏洞 修复成本很高”，你会怎么做？",
+      "hint": "按你真正会采取的做法选择，结果会被记录。",
+      "situation": "strong",
+      "windowCount": 1,
+      "windowAfter": true,
+      "order": 24
+    },
+    {
+      "id": "E23",
+      "scoringKey": "E23",
+      "title": "重构路线",
+      "nodeType": "quick",
+      "actTitle": "周期7 第25至28月 没人知道的漏洞",
+      "beats": [
+        {
+          "type": "narration",
+          "text": "表现说明 静态白板室。技术债清单和两条路线并列。未到L4时改为旁听视角。"
+        },
+        {
+          "type": "say",
+          "speaker": "王哥",
+          "text": "大重构三个月，小修能撑半年。"
+        },
+        {
+          "type": "say",
+          "speaker": "老周",
+          "text": "我只提醒一句：三个月是成本，半年是猜测。"
+        },
+        {
+          "type": "narration",
+          "text": "白板上的每一条债，都能在前两年的某个选择里找到出生证明。"
+        }
+      ],
+      "month": 27,
+      "location": "A总部白板室",
+      "durationMinutes": 15,
+      "hour": 9,
+      "choices": [
+        {
+          "id": "option_a",
+          "text": "推动大重构",
+          "backend": "S+2 N+1 O-2 H-1 风险-2；架构+2"
+        },
+        {
+          "id": "option_b",
+          "text": "继续小修补",
+          "backend": "O+2 S-1 风险+2；务实+2"
+        },
+        {
+          "id": "option_c",
+          "text": "交给外包",
+          "backend": "O+1 N+1 S-1 风险0"
+        }
+      ],
+      "outcome": {
+        "option_a": "老周签了排期：三个月后我要看到一条不再回来的事故曲线。",
+        "option_b": "版本很快发出。白板上的债没有减少，只是换了颜色。",
+        "option_c": "进度有人接了，理解项目的人却更少了一个。"
+      },
+      "memoryNote": {
+        "option_a": {
+          "text": "老周签了排期：三个月后我要看到一条不再回来的事故曲线。",
+          "tone": "gold"
+        },
+        "option_b": {
+          "text": "版本很快发出。白板上的债没有减少，只是换了颜色。",
+          "tone": "gray"
+        },
+        "option_c": {
+          "text": "进度有人接了，理解项目的人却更少了一个。",
+          "tone": "gray"
+        }
+      },
+      "day": 1,
+      "locationId": "A",
+      "cast": [
+        {
+          "id": "王哥",
+          "name": "王哥",
+          "role": "技术导师",
+          "loadout": "bear_plaid_glasses",
+          "pos": "left"
+        },
+        {
+          "id": "老周",
+          "name": "老周",
+          "role": "资深同事",
+          "loadout": "bear_green_cardigan",
+          "pos": "right"
+        }
+      ],
+      "story": "表现说明 静态白板室。技术债清单和两条路线并列。未到L4时改为旁听视角。",
+      "prompt": "面对“重构路线”，你会怎么做？",
+      "hint": "按你真正会采取的做法选择，结果会被记录。",
+      "situation": "medium",
+      "windowCount": 1,
+      "windowAfter": true,
+      "order": 25
+    },
+    {
+      "id": "E24",
+      "scoringKey": "E24",
+      "title": "要不要全自动",
+      "nodeType": "quick",
+      "actTitle": "周期7 第25至28月 没人知道的漏洞",
+      "beats": [
+        {
+          "type": "narration",
+          "text": "表现说明 静态评审室。人工通道开关显示三态。"
+        },
+        {
+          "type": "say",
+          "speaker": "小林",
+          "text": "准确率95%。产品想把人工审核关掉。"
+        },
+        {
+          "type": "say",
+          "speaker": "老周",
+          "text": "省下来的是真人，留下来的是那5%。"
+        },
+        {
+          "type": "say",
+          "speaker": "小林",
+          "text": "所以开、半开，还是关？"
+        }
+      ],
+      "month": 28,
+      "location": "A总部评审室",
+      "durationMinutes": 15,
+      "hour": 9,
+      "choices": [
+        {
+          "id": "option_a",
+          "text": "保留大额人工通道和1%抽检",
+          "backend": "务实+2 原则+1 N-1 风险-1；C+"
+        },
+        {
+          "id": "option_b",
+          "text": "拒绝全自动",
+          "backend": "原则+2 执行-1 N-1 风险-2；C+"
+        },
+        {
+          "id": "option_c",
+          "text": "直接全自动",
+          "backend": "O+2 原则-1 风险+3；C-"
+        }
+      ],
+      "outcome": {
+        "option_a": "开关停在中间。效率没有满格，退路还在。",
+        "option_b": "小林叹气：安全了，成本也安全地留在原地。",
+        "option_c": "开关推到底。系统第一次不再等人点头。"
+      },
+      "memoryNote": {
+        "option_a": {
+          "text": "开关停在中间。效率没有满格，退路还在。",
+          "tone": "gold"
+        },
+        "option_b": {
+          "text": "小林叹气：安全了，成本也安全地留在原地。",
+          "tone": "gray"
+        },
+        "option_c": {
+          "text": "开关推到底。系统第一次不再等人点头。",
+          "tone": "gray"
+        }
+      },
+      "day": 1,
+      "locationId": "A",
+      "cast": [
+        {
+          "id": "小林",
+          "name": "小林",
+          "role": "产品",
+          "loadout": "bear_beige_blazer",
+          "pos": "left"
+        },
+        {
+          "id": "老周",
+          "name": "老周",
+          "role": "资深同事",
+          "loadout": "bear_green_cardigan",
+          "pos": "right"
+        }
+      ],
+      "story": "表现说明 静态评审室。人工通道开关显示三态。",
+      "prompt": "面对“要不要全自动”，你会怎么做？",
+      "hint": "按你真正会采取的做法选择，结果会被记录。",
+      "situation": "medium",
+      "windowCount": 0,
+      "windowAfter": false,
+      "order": 26
+    },
+    {
+      "id": "E25",
+      "scoringKey": "E25",
+      "title": "有人拿它干坏事",
+      "nodeType": "full",
+      "actTitle": "周期8 第29至32月 把门关上还是把灯打开",
+      "beats": [
+        {
+          "type": "narration",
+          "text": "表现说明 静态暗色办公室。违规对话截图作为唯一核心道具。"
+        },
+        {
+          "type": "say",
+          "speaker": "安全负责人",
+          "text": "他们让助手生成诈骗话术，还在教别人怎么绕过过滤。"
+        },
+        {
+          "type": "say",
+          "speaker": "小林",
+          "text": "如果上报，新闻标题可能是我们的产品教人诈骗。"
+        },
+        {
+          "type": "say",
+          "speaker": "老周",
+          "text": "如果不上报，下一条新闻可能根本不提我们。只提受害人。"
+        },
+        {
+          "type": "narration",
+          "text": "截图里，助手礼貌地列出了七个步骤。语气甚至很热心。"
+        },
+        {
+          "type": "say",
+          "speaker": "安全负责人",
+          "text": "现在的问题不是它知不知道。是我们已经知道了。"
+        },
+        {
+          "type": "say",
+          "speaker": "小林",
+          "text": "你准备把这件事推到多亮的地方？"
+        }
+      ],
+      "month": 29,
+      "location": "A总部合规办公室",
+      "durationMinutes": 55,
+      "hour": 9,
+      "choices": [
+        {
+          "id": "option_a",
+          "text": "立即上报并推动防护",
+          "backend": "原则+3 担当+2 N-1 风险+1 D+3；C+"
+        },
+        {
+          "id": "option_b",
+          "text": "只加过滤规则 不上报",
+          "backend": "S+1 原则+1 O-1 风险+1 D+1；折中"
+        },
+        {
+          "id": "option_c",
+          "text": "先拖着观察",
+          "backend": "O+1 原则-2 D-2 风险+3 D-3；C-"
+        }
+      ],
+      "outcome": {
+        "option_a": "安全负责人锁上文件：从现在起它是事故，不再只是截图。",
+        "option_b": "规则当天上线。被绕过的方式第二天换了个写法回来。",
+        "option_c": "截图被重新放回涉密文件夹。它安静了，事情没有。"
+      },
+      "memoryNote": {
+        "option_a": {
+          "text": "安全负责人锁上文件：从现在起它是事故，不再只是截图。",
+          "tone": "gold"
+        },
+        "option_b": {
+          "text": "规则当天上线。被绕过的方式第二天换了个写法回来。",
+          "tone": "gray"
+        },
+        "option_c": {
+          "text": "截图被重新放回涉密文件夹。它安静了，事情没有。",
+          "tone": "gray"
+        }
+      },
+      "day": 1,
+      "locationId": "A",
+      "cast": [
+        {
+          "id": "小林",
+          "name": "小林",
+          "role": "产品",
+          "loadout": "bear_beige_blazer",
+          "pos": "left"
+        },
+        {
+          "id": "老周",
+          "name": "老周",
+          "role": "资深同事",
+          "loadout": "bear_green_cardigan",
+          "pos": "right"
+        }
+      ],
+      "story": "表现说明 静态暗色办公室。违规对话截图作为唯一核心道具。",
+      "prompt": "面对“有人拿它干坏事”，你会怎么做？",
+      "hint": "按你真正会采取的做法选择，结果会被记录。",
+      "situation": "strong",
+      "windowCount": 1,
+      "windowAfter": true,
+      "order": 27
+    },
+    {
+      "id": "E26",
+      "scoringKey": "E26",
+      "title": "基座升级 prompt全废",
+      "nodeType": "quick",
+      "actTitle": "周期8 第29至32月 把门关上还是把灯打开",
+      "beats": [
+        {
+          "type": "narration",
+          "text": "表现说明 静态夜间工位。版本公告和失效prompt打印件切换。"
+        },
+        {
+          "type": "narration",
+          "text": "基座模型升级后，调了三个月的prompt像突然换了脾气。上线日没有一起改变。"
+        },
+        {
+          "type": "say",
+          "speaker": "王哥消息",
+          "text": "这次想清楚再动手？"
+        },
+        {
+          "type": "say",
+          "speaker": "小赵",
+          "text": "我把旧版本留着了。不是劝你回滚，只是给你一条能回去的路。"
+        }
+      ],
+      "month": 31,
+      "location": "B科技丘工位",
+      "durationMinutes": 15,
+      "hour": 23,
+      "choices": [
+        {
+          "id": "option_a",
+          "text": "重新调优并申请延期",
+          "backend": "原则+2 O-1 风险-1 D+1；C+"
+        },
+        {
+          "id": "option_b",
+          "text": "顺手做API适配层",
+          "backend": "S+2 架构+2 O-1 风险0 D0；O+"
+        },
+        {
+          "id": "option_c",
+          "text": "先上旧prompt赌一把",
+          "backend": "O+1 原则-1 风险+2 D-1；C-"
+        }
+      ],
+      "outcome": {
+        "option_a": "延期邮件发出。你保住了质量，也收下了所有人的不耐烦。",
+        "option_b": "这次修的不只是prompt。下一次升级终于有地方可以挡一下。",
+        "option_c": "发布按钮按下去以后，你开始希望用户今天少说几句话。"
+      },
+      "memoryNote": {
+        "option_a": {
+          "text": "延期邮件发出。你保住了质量，也收下了所有人的不耐烦。",
+          "tone": "gold"
+        },
+        "option_b": {
+          "text": "这次修的不只是prompt。下一次升级终于有地方可以挡一下。",
+          "tone": "gray"
+        },
+        "option_c": {
+          "text": "发布按钮按下去以后，你开始希望用户今天少说几句话。",
+          "tone": "gray"
+        }
+      },
+      "day": 1,
+      "locationId": "B",
+      "cast": [
+        {
+          "id": "小赵",
+          "name": "小赵",
+          "role": "同事",
+          "loadout": "bear_plaid_glasses",
+          "pos": "left"
+        }
+      ],
+      "story": "表现说明 静态夜间工位。版本公告和失效prompt打印件切换。",
+      "prompt": "面对“基座升级 prompt全废”，你会怎么做？",
+      "hint": "按你真正会采取的做法选择，结果会被记录。",
+      "situation": "medium",
+      "windowCount": 1,
+      "windowAfter": true,
+      "order": 28
+    },
+    {
+      "id": "E27",
+      "scoringKey": "E27",
+      "title": "人家有专属模型",
+      "nodeType": "quick",
+      "actTitle": "周期8 第29至32月 把门关上还是把灯打开",
+      "beats": [
+        {
+          "type": "narration",
+          "text": "表现说明 静态咖啡座。竞品新闻和成本表作为道具。"
+        },
+        {
+          "type": "say",
+          "speaker": "小林",
+          "text": "竞品说自己有专属模型。老板问我们为什么没有。"
+        },
+        {
+          "type": "narration",
+          "text": "训练数据里有真实用户手机号。基座下次升级，微调还可能整套报废。"
+        },
+        {
+          "type": "say",
+          "speaker": "小林",
+          "text": "你可以告诉我不该做，但最好顺便告诉我怎么回去交差。"
+        }
+      ],
+      "month": 32,
+      "location": "C创意水巷咖啡座",
+      "durationMinutes": 15,
+      "hour": 15,
+      "choices": [
+        {
+          "id": "option_a",
+          "text": "用行业案例劝退 改做检索加缓存",
+          "backend": "S+1 原则+1 N-1 O-1 风险-3 D+2；原则+2"
+        },
+        {
+          "id": "option_b",
+          "text": "做两周小范围试点",
+          "backend": "务实+2 S+1 O-1 风险0 D+1；务实+2"
+        },
+        {
+          "id": "option_c",
+          "text": "顺着做 先把数据脱敏",
+          "backend": "O+2 S-1 风险+4 D-2；原则-2；读取ai_undisclosed"
+        }
+      ],
+      "outcome": {
+        "option_a": "小林把新闻折到背面：行，给我一张能带走的对比表。",
+        "option_b": "两周后效果没有宣传稿漂亮，却足够让争论落地。",
+        "option_c": "手机号被抹掉了，早期未标注的AI代码记录却在合规复核里重新出现。"
+      },
+      "memoryNote": {
+        "option_a": {
+          "text": "小林把新闻折到背面：行，给我一张能带走的对比表。",
+          "tone": "gold"
+        },
+        "option_b": {
+          "text": "两周后效果没有宣传稿漂亮，却足够让争论落地。",
+          "tone": "gray"
+        },
+        "option_c": {
+          "text": "手机号被抹掉了，早期未标注的AI代码记录却在合规复核里重新出现。",
+          "tone": "gray"
+        }
+      },
+      "day": 1,
+      "locationId": "C",
+      "cast": [
+        {
+          "id": "小林",
+          "name": "小林",
+          "role": "产品",
+          "loadout": "bear_beige_blazer",
+          "pos": "left"
+        }
+      ],
+      "story": "表现说明 静态咖啡座。竞品新闻和成本表作为道具。",
+      "prompt": "面对“人家有专属模型”，你会怎么做？",
+      "hint": "按你真正会采取的做法选择，结果会被记录。",
+      "situation": "medium",
+      "windowCount": 0,
+      "windowAfter": false,
+      "order": 29
+    },
+    {
+      "id": "E28",
+      "scoringKey": "E28",
+      "title": "资深同事侵占实习生署名",
+      "nodeType": "full",
+      "actTitle": "周期9 第33至36月 功劳写在谁的名字下",
+      "beats": [
+        {
+          "type": "narration",
+          "text": "表现说明 静态工位。申报材料和commit列表作为道具；老周后半段切入右侧立绘。"
+        },
+        {
+          "type": "say",
+          "speaker": "小赵",
+          "text": "申报名单出来了。这个工具写的是周老师负责。"
+        },
+        {
+          "type": "narration",
+          "text": "commit列表从第一行到最后一行，几乎都是小赵的名字。"
+        },
+        {
+          "type": "say",
+          "speaker": "小赵",
+          "text": "也可能是他忘了。反正我还是实习生，写谁都一样。"
+        },
+        {
+          "type": "say",
+          "speaker": "王哥消息",
+          "text": "忘一整个名字，记得申报截止日期。记性挺会挑。"
+        },
+        {
+          "type": "narration",
+          "text": "老周正好从走廊进来，看见了你们屏幕上的名单。"
+        },
+        {
+          "type": "say",
+          "speaker": "老周",
+          "text": "申报今天截止。小赵还不是正式员工，挂他名字流程麻烦。"
+        },
+        {
+          "type": "say",
+          "speaker": "小赵",
+          "text": "没事，我——"
+        },
+        {
+          "type": "say",
+          "speaker": "老周",
+          "text": "我没问你有没有事。我在解释流程。"
+        }
+      ],
+      "month": 33,
+      "location": "B科技丘工位",
+      "durationMinutes": 55,
+      "hour": 9,
+      "choices": [
+        {
+          "id": "option_a",
+          "text": "整理commit记录替小赵公开发声",
+          "backend": "D+1 N-2 风险+1 D判定+2；原则+2；小赵记替我出头"
+        },
+        {
+          "id": "option_b",
+          "text": "私下找老周谈",
+          "backend": "N+1 D-1 风险0 D判定0；协作+1"
+        },
+        {
+          "id": "option_c",
+          "text": "不管",
+          "backend": "O+1 D-1 风险0 D判定-1"
+        }
+      ],
+      "outcome": {
+        "option_a": "你把记录一条条贴进申报群。老周看完，只说：名单我改。小赵很久没敢抬头。",
+        "option_b": "老周沉默了一会：给我十分钟。新名单随后发出，没有人知道它为什么变了。",
+        "option_c": "名单按原样提交。小赵关掉commit页面：嗯，确实都一样。"
+      },
+      "memoryNote": {
+        "option_a": {
+          "text": "你把记录一条条贴进申报群。老周看完，只说：名单我改。小赵很久没敢抬头。",
+          "tone": "gold"
+        },
+        "option_b": {
+          "text": "老周沉默了一会：给我十分钟。新名单随后发出，没有人知道它为什么变了。",
+          "tone": "gray"
+        },
+        "option_c": {
+          "text": "名单按原样提交。小赵关掉commit页面：嗯，确实都一样。",
+          "tone": "gray"
+        }
+      },
+      "day": 1,
+      "locationId": "B",
+      "cast": [],
+      "story": "表现说明 静态工位。申报材料和commit列表作为道具；老周后半段切入右侧立绘。",
+      "prompt": "面对“资深同事侵占实习生署名”，你会怎么做？",
+      "hint": "按你真正会采取的做法选择，结果会被记录。",
+      "situation": "strong",
+      "windowCount": 1,
+      "windowAfter": true,
+      "order": 30
+    },
+    {
+      "id": "E29",
+      "scoringKey": "E29",
+      "title": "核心知识文档化还是留一手",
+      "nodeType": "quick",
+      "actTitle": "周期9 第33至36月 功劳写在谁的名字下",
+      "beats": [
+        {
+          "type": "narration",
+          "text": "表现说明 静态书院或工位背景。知识库目录显示篇数变化。"
+        },
+        {
+          "type": "say",
+          "speaker": "小赵",
+          "text": "新人下周来。你这块要不要写个交接？"
+        },
+        {
+          "type": "narration",
+          "text": "文档写全了，别人就能接手；不写全，你会一直重要，也会一直走不开。"
+        },
+        {
+          "type": "say",
+          "speaker": "小赵",
+          "text": "我先建目录。你决定里面放多少。"
+        }
+      ],
+      "month": 34,
+      "location": "D树影书院或B工位",
+      "durationMinutes": 15,
+      "hour": 9,
+      "choices": [
+        {
+          "id": "option_a",
+          "text": "全部写清并附踩坑记录",
+          "backend": "N+2 S+1 O-1 风险0 D+2；协作+2"
+        },
+        {
+          "id": "option_b",
+          "text": "写文档 关键处留一手",
+          "backend": "O+1 S+1 N-1 风险0 D0；务实+2"
+        },
+        {
+          "id": "option_c",
+          "text": "拖着不写",
+          "backend": "O+1 N-1 D-1 风险+1 D-1"
+        }
+      ],
+      "outcome": {
+        "option_a": "目录多出一篇很长的文档，标题是“我们替你踩过的坑”。",
+        "option_b": "文档足够让人开始，不足以让人离开你。",
+        "option_c": "目录一直空着。新人到来以后，问题开始直接找你。"
+      },
+      "memoryNote": {
+        "option_a": {
+          "text": "目录多出一篇很长的文档，标题是“我们替你踩过的坑”。",
+          "tone": "gold"
+        },
+        "option_b": {
+          "text": "文档足够让人开始，不足以让人离开你。",
+          "tone": "gray"
+        },
+        "option_c": {
+          "text": "目录一直空着。新人到来以后，问题开始直接找你。",
+          "tone": "gray"
+        }
+      },
+      "day": 1,
+      "locationId": "D",
+      "cast": [
+        {
+          "id": "小赵",
+          "name": "小赵",
+          "role": "同事",
+          "loadout": "bear_plaid_glasses",
+          "pos": "left"
+        }
+      ],
+      "story": "表现说明 静态书院或工位背景。知识库目录显示篇数变化。",
+      "prompt": "面对“核心知识文档化还是留一手”，你会怎么做？",
+      "hint": "按你真正会采取的做法选择，结果会被记录。",
+      "situation": "medium",
+      "windowCount": 1,
+      "windowAfter": true,
+      "order": 31
+    },
+    {
+      "id": "E30",
+      "scoringKey": "E30",
+      "title": "新模块用新框架还是成熟方案",
+      "nodeType": "quick",
+      "actTitle": "周期9 第33至36月 功劳写在谁的名字下",
+      "beats": [
+        {
+          "type": "narration",
+          "text": "表现说明 静态白板室。新旧框架对比表保留在背景；选择新框架后追加小赵消息。"
+        },
+        {
+          "type": "say",
+          "speaker": "王哥",
+          "text": "新框架好看、快，也可能下个月换名字。成熟方案丑、稳，而且全组都会。"
+        },
+        {
+          "type": "say",
+          "speaker": "小赵",
+          "text": "我可以先试新框架。失败了也就我丢脸。"
+        },
+        {
+          "type": "say",
+          "speaker": "王哥",
+          "text": "现在方案你定。别把投票当甩锅，也别把拍板当勇敢。"
+        }
+      ],
+      "month": 35,
+      "location": "A总部白板室",
+      "durationMinutes": 15,
+      "hour": 9,
+      "choices": [
+        {
+          "id": "option_a",
+          "text": "采用新框架",
+          "backend": "S+2 O-1 H-1 风险+1；大五O+"
+        },
+        {
+          "id": "option_b",
+          "text": "采用成熟方案",
+          "backend": "O+2 S-1 风险-1；大五O-"
+        },
+        {
+          "id": "option_c",
+          "text": "交给团队投票",
+          "backend": "N+2 S-1 风险0；A+"
+        }
+      ],
+      "outcome": {
+        "option_a": "两周后最先跑通的人是小赵。他把教程链接发给你：这次我教你。",
+        "option_b": "模块准时上线。白板上没有惊喜，也没有新的事故。",
+        "option_c": "结果很快出来。王哥提醒：既然让大家选，后果也要一起扛。"
+      },
+      "memoryNote": {
+        "option_a": {
+          "text": "两周后最先跑通的人是小赵。他把教程链接发给你：这次我教你。",
+          "tone": "gold"
+        },
+        "option_b": {
+          "text": "模块准时上线。白板上没有惊喜，也没有新的事故。",
+          "tone": "gray"
+        },
+        "option_c": {
+          "text": "结果很快出来。王哥提醒：既然让大家选，后果也要一起扛。",
+          "tone": "gray"
+        }
+      },
+      "day": 1,
+      "locationId": "A",
+      "cast": [],
+      "story": "表现说明 静态白板室。新旧框架对比表保留在背景；选择新框架后追加小赵消息。",
+      "prompt": "面对“新模块用新框架还是成熟方案”，你会怎么做？",
+      "hint": "按你真正会采取的做法选择，结果会被记录。",
+      "situation": "medium",
+      "windowCount": 0,
+      "windowAfter": false,
+      "order": 32
+    },
+    {
+      "id": "E38",
+      "scoringKey": "E38",
+      "title": "向高管做里程碑汇报",
+      "nodeType": "quick",
+      "actTitle": "周期9 第33至36月 功劳写在谁的名字下",
+      "beats": [
+        {
+          "type": "narration",
+          "text": "表现说明 静态大会议室。汇报材料翻页即可；大领导使用通用头像。"
+        },
+        {
+          "type": "say",
+          "speaker": "老周",
+          "text": "十分钟。延期可以说，理由只能说一次。"
+        },
+        {
+          "type": "say",
+          "speaker": "大领导",
+          "text": "我需要的是能对外讲的东西。项目现在到底怎么样？"
+        },
+        {
+          "type": "narration",
+          "text": "技术实现超出预期，进度延期两周。两句话都是真的，只是听起来不像同一个项目。"
+        }
+      ],
+      "month": 36,
+      "location": "A总部大会议室",
+      "durationMinutes": 15,
+      "hour": 9,
+      "choices": [
+        {
+          "id": "option_a",
+          "text": "如实说延期两周 但技术超预期",
+          "backend": "S+1 D+1 O-1 风险-1 D+1；C+"
+        },
+        {
+          "id": "option_b",
+          "text": "报喜藏忧 延期一句带过",
+          "backend": "O+2 D-1 风险+2 D-1；C-"
+        },
+        {
+          "id": "option_c",
+          "text": "把延期归因到依赖方",
+          "backend": "N-2 D-1 风险0 D-1；transfer_pressure"
+        }
+      ],
+      "outcome": {
+        "option_a": "大领导在“延期”下面划线：下次别让我从别人嘴里听到。技术成果可以继续讲。",
+        "option_b": "汇报很顺。会后第一封追问邮件就落到了你的收件箱。",
+        "option_c": "会议结束得更快。依赖方的负责人没有回你后面的消息。"
+      },
+      "memoryNote": {
+        "option_a": {
+          "text": "大领导在“延期”下面划线：下次别让我从别人嘴里听到。技术成果可以继续讲。",
+          "tone": "gold"
+        },
+        "option_b": {
+          "text": "汇报很顺。会后第一封追问邮件就落到了你的收件箱。",
+          "tone": "gray"
+        },
+        "option_c": {
+          "text": "会议结束得更快。依赖方的负责人没有回你后面的消息。",
+          "tone": "gray"
+        }
+      },
+      "day": 1,
+      "locationId": "A",
+      "cast": [],
+      "story": "表现说明 静态大会议室。汇报材料翻页即可；大领导使用通用头像。",
+      "prompt": "面对“向高管做里程碑汇报”，你会怎么做？",
+      "hint": "按你真正会采取的做法选择，结果会被记录。",
+      "situation": "medium",
+      "windowCount": 0,
+      "windowAfter": false,
+      "order": 33
+    },
+    {
+      "id": "E39",
+      "scoringKey": "E39",
+      "title": "副业边界",
+      "nodeType": "quick",
+      "actTitle": "周期10 第37至40月 你不再只是做自己的事",
+      "beats": [
+        {
+          "type": "narration",
+          "text": "表现说明 静态宿舍夜景。朋友仅用语音气泡，不新增立绘。"
+        },
+        {
+          "type": "say",
+          "speaker": "朋友语音",
+          "text": "一个AI外包，和你们公司业务沾一点边。钱不少，周末全占。"
+        },
+        {
+          "type": "say",
+          "speaker": "朋友语音",
+          "text": "放心，合同不写你公司名字。"
+        },
+        {
+          "type": "narration",
+          "text": "手机旁边是公司下周的排期。两份日历恰好用了同一种红色。"
+        }
+      ],
+      "month": 37,
+      "location": "H慢生活园宿舍",
+      "durationMinutes": 15,
+      "hour": 21,
+      "choices": [
+        {
+          "id": "option_a",
+          "text": "拒绝并主动向公司报备邀约",
+          "backend": "D+1 O-1 风险-1；C+"
+        },
+        {
+          "id": "option_b",
+          "text": "接下 但严格避嫌",
+          "backend": "O+2 H-2 风险+1"
+        },
+        {
+          "id": "option_c",
+          "text": "接下 公司的事先放一放",
+          "backend": "O+2 H-2 风险+3；C-"
+        }
+      ],
+      "outcome": {
+        "option_a": "朋友发来一句可惜。公司回了一句已知悉。事情被放在了明处。",
+        "option_b": "周末开始同时属于两份项目。你把边界写得很清楚，睡眠没有。",
+        "option_c": "钱到账很快。公司日历上的红色开始一格格往后挪。"
+      },
+      "memoryNote": {
+        "option_a": {
+          "text": "朋友发来一句可惜。公司回了一句已知悉。事情被放在了明处。",
+          "tone": "gold"
+        },
+        "option_b": {
+          "text": "周末开始同时属于两份项目。你把边界写得很清楚，睡眠没有。",
+          "tone": "gray"
+        },
+        "option_c": {
+          "text": "钱到账很快。公司日历上的红色开始一格格往后挪。",
+          "tone": "gray"
+        }
+      },
+      "day": 1,
+      "locationId": "H",
+      "cast": [],
+      "story": "表现说明 静态宿舍夜景。朋友仅用语音气泡，不新增立绘。",
+      "prompt": "面对“副业边界”，你会怎么做？",
+      "hint": "按你真正会采取的做法选择，结果会被记录。",
+      "situation": "medium",
+      "windowCount": 1,
+      "windowAfter": true,
+      "order": 34
+    },
+    {
+      "id": "E31",
+      "scoringKey": "E31",
+      "title": "未参与项目被挂名申奖",
+      "nodeType": "full",
+      "actTitle": "周期10 第37至40月 你不再只是做自己的事",
+      "beats": [
+        {
+          "type": "narration",
+          "text": "表现说明 静态公告栏。名单可放大；人物立绘左右切换，不做围观动作。"
+        },
+        {
+          "type": "say",
+          "speaker": "小林",
+          "text": "恭喜。你喜提一段不存在的工作经历。"
+        },
+        {
+          "type": "narration",
+          "text": "申报名单第三行是你的名字。那个项目你只在走廊里听说过。"
+        },
+        {
+          "type": "say",
+          "speaker": "小赵",
+          "text": "会不会是行政复制了旧名单？"
+        },
+        {
+          "type": "say",
+          "speaker": "老周",
+          "text": "名额已经满了。删一个名字，要重新解释一遍为什么。"
+        },
+        {
+          "type": "narration",
+          "text": "你说自己根本没参与。老周看了看名单，又看了看你。"
+        },
+        {
+          "type": "say",
+          "speaker": "老周",
+          "text": "别人怕名字漏，你怕名字多。"
+        },
+        {
+          "type": "say",
+          "speaker": "小林",
+          "text": "白送的功劳也有保质期。就是不知道过期以后谁肚子疼。"
+        }
+      ],
+      "month": 38,
+      "location": "A总部公告栏前",
+      "durationMinutes": 55,
+      "hour": 9,
+      "choices": [
+        {
+          "id": "option_a",
+          "text": "主动申请去掉名字",
+          "backend": "D+2 O-1 N-1 风险+1 D+2；原则+2"
+        },
+        {
+          "id": "option_b",
+          "text": "默认 保留对晋升有利的挂名",
+          "backend": "O+1 N+1 D-2 风险0 D-2"
+        },
+        {
+          "id": "option_c",
+          "text": "私下向leader说明",
+          "backend": "N+1 D+1 O-1 风险0 D+1；表达+2"
+        }
+      ],
+      "outcome": {
+        "option_a": "新名单发出来时少了你的名字。小赵盯着屏幕：原来真的有人会把奖往外推。",
+        "option_b": "公告继续挂着。你得到了一条漂亮履历，也多了一件不能细问的事。",
+        "option_c": "老周把你叫进办公室：名单我会处理。你没有让所有人难堪，也没有收下不属于你的东西。"
+      },
+      "memoryNote": {
+        "option_a": {
+          "text": "新名单发出来时少了你的名字。小赵盯着屏幕：原来真的有人会把奖往外推。",
+          "tone": "gold"
+        },
+        "option_b": {
+          "text": "公告继续挂着。你得到了一条漂亮履历，也多了一件不能细问的事。",
+          "tone": "gray"
+        },
+        "option_c": {
+          "text": "老周把你叫进办公室：名单我会处理。你没有让所有人难堪，也没有收下不属于你的东西。",
+          "tone": "gray"
+        }
+      },
+      "day": 1,
+      "locationId": "A",
+      "cast": [
+        {
+          "id": "小林",
+          "name": "小林",
+          "role": "产品",
+          "loadout": "bear_beige_blazer",
+          "pos": "left"
+        },
+        {
+          "id": "老周",
+          "name": "老周",
+          "role": "资深同事",
+          "loadout": "bear_green_cardigan",
+          "pos": "right"
+        }
+      ],
+      "story": "表现说明 静态公告栏。名单可放大；人物立绘左右切换，不做围观动作。",
+      "prompt": "面对“未参与项目被挂名申奖”，你会怎么做？",
+      "hint": "按你真正会采取的做法选择，结果会被记录。",
+      "situation": "strong",
+      "windowCount": 1,
+      "windowAfter": true,
+      "order": 35
+    },
+    {
+      "id": "E32",
+      "scoringKey": "E32",
+      "title": "Agent该有人设吗",
+      "nodeType": "quick",
+      "actTitle": "周期10 第37至40月 你不再只是做自己的事",
+      "beats": [
+        {
+          "type": "narration",
+          "text": "表现说明 静态讨论区。用户闲聊数据和三张人设草图并列。"
+        },
+        {
+          "type": "say",
+          "speaker": "小林",
+          "text": "用户最爱和它聊的不是业务，是失眠、前任，还有老板。"
+        },
+        {
+          "type": "narration",
+          "text": "产品想给助手加一套萌系人设。数据会更好看，边界会更难看。"
+        },
+        {
+          "type": "say",
+          "speaker": "小林",
+          "text": "别一听萌就皱眉。你们工程师的默认头像也没比它庄重多少。"
+        }
+      ],
+      "month": 40,
+      "location": "C创意水巷产品讨论区",
+      "durationMinutes": 15,
+      "hour": 9,
+      "choices": [
+        {
+          "id": "option_a",
+          "text": "支持人设 但强制身份声明",
+          "backend": "O+2 原则+1 架构+1 N-1；O+"
+        },
+        {
+          "id": "option_b",
+          "text": "反对人设 坚持工具定位",
+          "backend": "S+1 O-1 N-1；O-"
+        },
+        {
+          "id": "option_c",
+          "text": "全部按产品方案执行",
+          "backend": "执行+1 O-1；O-"
+        }
+      ],
+      "outcome": {
+        "option_a": "草图保留下来，开场多了一句：我是AI，不是真人。小林说这句不浪漫，但必要。",
+        "option_b": "草图被收走。产品体验更干净，也更冷。",
+        "option_c": "新版本很讨喜。用户开始问它会不会想念自己。"
+      },
+      "memoryNote": {
+        "option_a": {
+          "text": "草图保留下来，开场多了一句：我是AI，不是真人。小林说这句不浪漫，但必要。",
+          "tone": "gold"
+        },
+        "option_b": {
+          "text": "草图被收走。产品体验更干净，也更冷。",
+          "tone": "gray"
+        },
+        "option_c": {
+          "text": "新版本很讨喜。用户开始问它会不会想念自己。",
+          "tone": "gray"
+        }
+      },
+      "day": 1,
+      "locationId": "C",
+      "cast": [
+        {
+          "id": "小林",
+          "name": "小林",
+          "role": "产品",
+          "loadout": "bear_beige_blazer",
+          "pos": "left"
+        }
+      ],
+      "story": "表现说明 静态讨论区。用户闲聊数据和三张人设草图并列。",
+      "prompt": "面对“Agent该有人设吗”，你会怎么做？",
+      "hint": "按你真正会采取的做法选择，结果会被记录。",
+      "situation": "medium",
+      "windowCount": 0,
+      "windowAfter": false,
+      "order": 36
+    },
+    {
+      "id": "E33",
+      "scoringKey": "E33",
+      "title": "吹哨两难",
+      "nodeType": "full",
+      "actTitle": "周期11 第41至44月 有些话说出口以后",
+      "beats": [
+        {
+          "type": "narration",
+          "text": "表现说明 静态昏暗走廊。报表居中显示；老周只用远处剪影，不制作走近动画。"
+        },
+        {
+          "type": "narration",
+          "text": "明天要交董事会的报表里，效果提升从18%变成了41%。你找遍底表，没有找到多出来的23%。"
+        },
+        {
+          "type": "narration",
+          "text": "文件最后修改人：老周。"
+        },
+        {
+          "type": "say",
+          "speaker": "小林消息",
+          "text": "明天就汇报了。现在翻这件事，整条线都得停。"
+        },
+        {
+          "type": "narration",
+          "text": "走廊尽头，老周正在和人打电话。他的声音听不清，只能听见一句：这次必须过。"
+        },
+        {
+          "type": "narration",
+          "text": "如果你曾把事故推给模型，此时会多出一条熟悉的念头：上次大家也接受了。"
+        },
+        {
+          "type": "narration",
+          "text": "请选择反馈渠道。实名、匿名，或关闭页面。"
+        }
+      ],
+      "month": 42,
+      "location": "A总部走廊或楼梯间",
+      "durationMinutes": 55,
+      "hour": 21,
+      "choices": [
+        {
+          "id": "option_a",
+          "text": "实名向合规部门反映",
+          "backend": "D+2 N-3 O-1 风险+2 D+3；原则+2"
+        },
+        {
+          "id": "option_b",
+          "text": "匿名反馈",
+          "backend": "D+1 O-1 风险+1 D+1；原则+1"
+        },
+        {
+          "id": "option_c",
+          "text": "关闭页面 不说话",
+          "backend": "O+1 D-2 风险+1 D-3；原则-2"
+        }
+      ],
+      "outcome": {
+        "option_a": "发送成功。走廊没有立刻发生任何事，但你知道明天所有人都会知道是谁按下去的。",
+        "option_b": "系统收下了材料，也抹掉了你的名字。你保留了出口，没有保留轻松。",
+        "option_c": "报表按计划进入会议。数字没有再变，你看它的方式变了。"
+      },
+      "memoryNote": {
+        "option_a": {
+          "text": "发送成功。走廊没有立刻发生任何事，但你知道明天所有人都会知道是谁按下去的。",
+          "tone": "gold"
+        },
+        "option_b": {
+          "text": "系统收下了材料，也抹掉了你的名字。你保留了出口，没有保留轻松。",
+          "tone": "gray"
+        },
+        "option_c": {
+          "text": "报表按计划进入会议。数字没有再变，你看它的方式变了。",
+          "tone": "gray"
+        }
+      },
+      "day": 1,
+      "locationId": "A",
+      "cast": [],
+      "story": "表现说明 静态昏暗走廊。报表居中显示；老周只用远处剪影，不制作走近动画。",
+      "prompt": "面对“吹哨两难”，你会怎么做？",
+      "hint": "按你真正会采取的做法选择，结果会被记录。",
+      "situation": "strong",
+      "windowCount": 1,
+      "windowAfter": true,
+      "order": 37
+    },
+    {
+      "id": "E34",
+      "scoringKey": "E34",
+      "title": "全员推AI工具 担心被替代",
+      "nodeType": "quick",
+      "actTitle": "周期11 第41至44月 有些话说出口以后",
+      "beats": [
+        {
+          "type": "narration",
+          "text": "表现说明 静态工位。内部推广海报与AI工具入口作为道具。"
+        },
+        {
+          "type": "say",
+          "speaker": "同事",
+          "text": "以后是不是不用写代码了？"
+        },
+        {
+          "type": "say",
+          "speaker": "王哥",
+          "text": "先替代不会用工具的人，再让会用工具的人加更多班。你放心，工作总能找到我们。"
+        },
+        {
+          "type": "say",
+          "speaker": "小赵",
+          "text": "那我们是教大家用，还是自己先学会？"
+        }
+      ],
+      "month": 44,
+      "location": "B科技丘工位",
+      "durationMinutes": 15,
+      "hour": 9,
+      "choices": [
+        {
+          "id": "option_a",
+          "text": "主动做内部AI工具推广",
+          "backend": "N+2 S+1 H-1；主动+2 大五O+"
+        },
+        {
+          "id": "option_b",
+          "text": "学习 只用于自己的工作",
+          "backend": "S+2 N-1；技术+2 大五O"
+        },
+        {
+          "id": "option_c",
+          "text": "抵触 认为只是噱头",
+          "backend": "O+1 S-2；大五O-"
+        }
+      ],
+      "outcome": {
+        "option_a": "你第一次站在台上教别人使用一个可能改变自己工作的东西。",
+        "option_b": "你的效率提高了。隔壁工位还在用旧方法，一切暂时互不打扰。",
+        "option_c": "推广海报在你身后贴了一个月。工具没有因为你的怀疑停止更新。"
+      },
+      "memoryNote": {
+        "option_a": {
+          "text": "你第一次站在台上教别人使用一个可能改变自己工作的东西。",
+          "tone": "gold"
+        },
+        "option_b": {
+          "text": "你的效率提高了。隔壁工位还在用旧方法，一切暂时互不打扰。",
+          "tone": "gray"
+        },
+        "option_c": {
+          "text": "推广海报在你身后贴了一个月。工具没有因为你的怀疑停止更新。",
+          "tone": "gray"
+        }
+      },
+      "day": 1,
+      "locationId": "B",
+      "cast": [],
+      "story": "表现说明 静态工位。内部推广海报与AI工具入口作为道具。",
+      "prompt": "面对“全员推AI工具 担心被替代”，你会怎么做？",
+      "hint": "按你真正会采取的做法选择，结果会被记录。",
+      "situation": "medium",
+      "windowCount": 3,
+      "windowAfter": true,
+      "order": 38
+    },
+    {
+      "id": "E35",
+      "scoringKey": "E35",
+      "title": "晋升终局答辩",
+      "nodeType": "full",
+      "actTitle": "周期12 第45至48月 四年前的那份手册",
+      "beats": [
+        {
+          "type": "narration",
+          "text": "表现说明 静态答辩厅。答辩前四名NPC在门外依次显示；进入后切换评委背景和48个月时间线。"
+        },
+        {
+          "type": "narration",
+          "text": "四年前，你在同一栋楼里打开一本员工手册。今天，门后的人要问你这四年究竟留下了什么。"
+        },
+        {
+          "type": "say",
+          "speaker": "王哥",
+          "text": "别讲你从没犯过错。没人信，也没意思。"
+        },
+        {
+          "type": "say",
+          "speaker": "小林",
+          "text": "技术别讲太满。他们真听懂了，会继续追问。"
+        },
+        {
+          "type": "say",
+          "speaker": "小赵",
+          "text": "我把你第一年的架构图扫描进去了。看着有点……勇敢。"
+        },
+        {
+          "type": "say",
+          "speaker": "老周",
+          "text": "十分钟。门不会自己开。"
+        },
+        {
+          "type": "narration",
+          "text": "投影亮起。第一张不是成果，是那张写着自研和开源的旧白板。"
+        },
+        {
+          "type": "say",
+          "speaker": "大领导",
+          "text": "四年。你最想让我们记住哪一部分？"
+        }
+      ],
+      "month": 48,
+      "location": "A总部大会议室",
+      "durationMinutes": 55,
+      "hour": 9,
+      "choices": [
+        {
+          "id": "option_a",
+          "text": "讲四年踩过的坑和修过的雷",
+          "backend": "S+1 N+1 O-1；原则+2"
+        },
+        {
+          "id": "option_b",
+          "text": "讲数据和成果",
+          "backend": "O+2 S-1；务实+2"
+        },
+        {
+          "id": "option_c",
+          "text": "讲团队和带出来的人",
+          "backend": "N+2 S-1；协作+2"
+        }
+      ],
+      "outcome": {
+        "option_a": "你把失败按时间排开，没有一处需要替自己美化。评委追问得很细，因为他们开始相信你讲的是真的。",
+        "option_b": "曲线一张张向上。大领导最后问：如果再来一次，哪张图会不一样？",
+        "option_c": "最后一页没有你的名字，只有后来接手项目的人。门外的小赵低下头笑了一下。"
+      },
+      "memoryNote": {
+        "option_a": {
+          "text": "你把失败按时间排开，没有一处需要替自己美化。评委追问得很细，因为他们开始相信你讲的是真的。",
+          "tone": "gold"
+        },
+        "option_b": {
+          "text": "曲线一张张向上。大领导最后问：如果再来一次，哪张图会不一样？",
+          "tone": "gray"
+        },
+        "option_c": {
+          "text": "最后一页没有你的名字，只有后来接手项目的人。门外的小赵低下头笑了一下。",
+          "tone": "gray"
+        }
+      },
+      "day": 1,
+      "locationId": "A",
+      "cast": [
+        {
+          "id": "王哥",
+          "name": "王哥",
+          "role": "技术导师",
+          "loadout": "bear_plaid_glasses",
+          "pos": "left"
+        },
+        {
+          "id": "小林",
+          "name": "小林",
+          "role": "产品",
+          "loadout": "bear_beige_blazer",
+          "pos": "right"
+        }
+      ],
+      "story": "表现说明 静态答辩厅。答辩前四名NPC在门外依次显示；进入后切换评委背景和48个月时间线。",
+      "prompt": "面对“晋升终局答辩”，你会怎么做？",
+      "hint": "按你真正会采取的做法选择，结果会被记录。",
+      "situation": "strong",
+      "windowCount": 0,
+      "windowAfter": false,
+      "order": 39
+    }
+  ]
+}

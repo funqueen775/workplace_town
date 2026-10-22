@@ -12,7 +12,7 @@ struct Index {
     const response = new WebResourceResponse();
     const prefix: string = 'https://careertown.invalid/game/';
     const name: string = url.startsWith(prefix) ? url.substring(prefix.length).split('?')[0] : '';
-    const allowed: string[] = ['index.html', 'index.js', 'render-compat.js', 'index.wasm', 'index.pck', 'index.png',
+    const allowed: string[] = ['index.html', 'index.js', 'render-compat.js', 'mobile-web.css', 'mobile-web.js', 'harmony-audio.js', 'bgm.mp3', 'index.wasm', 'index.pck', 'index.png',
       'index.icon.png', 'index.apple-touch-icon.png', 'index.audio.worklet.js', 'index.audio.position.worklet.js'];
     if (!allowed.includes(name)) {
       response.setResponseCode(404);
@@ -25,6 +25,7 @@ struct Index {
       const data: Uint8Array = this.getUIContext().getHostContext()!.resourceManager.getRawFileContentSync('game/' + name);
       const mime: string = name.endsWith('.wasm') ? 'application/wasm' :
         name.endsWith('.html') ? 'text/html' : name.endsWith('.js') ? 'application/javascript' :
+        name.endsWith('.css') ? 'text/css' :
         name.endsWith('.png') ? 'image/png' : 'application/octet-stream';
       response.setResponseData(data.buffer);
       response.setResponseMimeType(mime);

@@ -11,10 +11,14 @@
 output/
 tmp-godot-templates/
 test_artifacts/
+/artifacts/
+tools/startup_home_preview.png*
+tools/startup_home_hover_preview.png*
 *.hap
 .env
 .env.*
 !.env.example
+/backend/local_llm_config.json
 .cxx
 /.clangd
 /.clang-format

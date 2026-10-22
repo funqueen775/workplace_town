@@ -1,0 +1,6 @@
+{
+  "provider": "deepseek",
+  "apiKey": "replace-with-your-own-key",
+  "model": "deepseek-chat",
+  "apiUrl": "https://api.deepseek.com/chat/completions"
+}

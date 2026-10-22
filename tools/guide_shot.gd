@@ -18,10 +18,6 @@ func _ready() -> void:
 	add_child(_town)
 	await _wait(1.3)
 
-	# 开局在黑屏宿舍里，先按真实流程出门，否则拍到的是一块遮罩。
-	_town._on_dorm_leave()
-	await _wait(0.4)
-
 	# 冻结小镇逻辑：NPC 停住、相机不再跟着玩家，方便逐格取景。
 	# 只停物理帧；GroundGuideLine 的虚线流动在它自己的 _process 上，照常跑。
 	_town.set_physics_process(false)
@@ -33,8 +29,7 @@ func _ready() -> void:
 	_camera.position_smoothing_enabled = false
 
 	# 1) 未到点：卡片报出下一件事和时间，但**地面上一条线都不画**。
-	#    开局"出门"这个动作会点火触发 E01（见 _on_dorm_leave），时钟随即停在事件上，
-	#    所以默认是救火态。这里先把时钟放回去，专门拍"还没到点"的样子 ——
+	#    开局默认停在 E01。这里先把时钟放回去，专门拍"还没到点"的样子 ——
 	#    这张图是拿来对照的：两个月后的安排不该在地上拖一条线。
 	WorldClock.set_running(true)
 	_town._refresh_objective_hint()

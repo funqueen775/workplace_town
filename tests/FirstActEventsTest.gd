@@ -1,6 +1,6 @@
 extends Node
 
-## 第一幕主线事件的 Godot 集成测试（v2.3：M1-E02B 复活后第一幕 5 件）。
+## V1.2第一个工作周期的Godot集成测试。
 ##
 ## 驱动的是真实链路：小镇节点 → _enter_nearby_zone() → StoryEventPanel 演出。
 ## 面板是 beats 分镜版（无旧版 "intro" 页）：入场拍（entry，2.3s 动画，玩家点击可跳过）
@@ -13,11 +13,10 @@ const OUTPUT_DIR := "res://test_artifacts"
 func _ready() -> void:
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUTPUT_DIR))
 	var expected := [
-		{"id": "M1-E01", "month": 1, "day": 1, "hour": 9, "zone": "B", "title": "新员工手册"},
-		{"id": "M1-E02B", "month": 2, "day": 1, "hour": 9, "zone": "A", "title": "第一次被轻视"},
-		{"id": "M1-E02", "month": 3, "day": 1, "hour": 9, "zone": "A", "title": "技术选型"},
-		{"id": "M1-E03", "month": 5, "day": 1, "hour": 9, "zone": "B", "title": "评测集要不要建"},
-		{"id": "M1-E04", "month": 7, "day": 1, "hour": 23, "zone": "B", "title": "AI 代码标注"},
+		{"id": "E01", "month": 1, "day": 1, "hour": 9, "zone": "B", "title": "新员工手册"},
+		{"id": "E02", "month": 2, "day": 1, "hour": 9, "zone": "A", "title": "第一次被轻视"},
+		{"id": "E03", "month": 3, "day": 1, "hour": 23, "zone": "B", "title": "AI代码标注"},
+		{"id": "E04", "month": 4, "day": 1, "hour": 9, "zone": "A", "title": "技术选型 自研还是开源"},
 	]
 	for index in expected.size():
 		var spec: Dictionary = expected[index]
@@ -39,6 +38,12 @@ func _ready() -> void:
 		if panel == null or not panel.is_open():
 			_fail("%s 进入 %s 区后未显示事件面板" % [spec["id"], spec["zone"]])
 			return
+		var raw_event := WorldClock.next_main_event()
+		for beat in raw_event.get("beats", []):
+			if beat is Dictionary and String((beat as Dictionary).get("text", "")).begins_with("表现说明") \
+					and panel._player_visible_beats(raw_event.get("beats", []) as Array).has(beat):
+				_fail("%s 把开发表现说明传给了玩家分镜" % spec["id"])
+				return
 		if panel.current_stage() != "entry":
 			_fail("%s 事件面板未先进入入场拍（stage=%s）" % [spec["id"], panel.current_stage()])
 			return
@@ -84,15 +89,14 @@ func _ready() -> void:
 			_fail("%s 完成后没有切换到下一事件" % spec["id"])
 			return
 		if index == expected.size() - 1:
-			# 第一幕五件全做完后，主线继续到第二幕第一件（M2-E05）
-			if String(next_event.get("id", "")) != "M2-E05":
-				_fail("第一幕五件完成后应轮到 M2-E05，实际=%s" % String(next_event.get("id", "?")))
+			if String(next_event.get("id", "")) != "E05":
+				_fail("第一周期完成后应轮到E05，实际=%s" % String(next_event.get("id", "?")))
 				return
 		town.free()
 		await get_tree().process_frame
 	if not _test_time_gates(expected):
 		return
-	print("FIRST_ACT_EVENTS_PASS events=5 entries=5 choices_each=3 locations=B,A,A,B,B event4_hour=23")
+	print("FIRST_ACT_EVENTS_PASS events=4 entries=4 choices_each=3")
 	get_tree().quit(0)
 
 

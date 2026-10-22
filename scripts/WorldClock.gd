@@ -19,11 +19,7 @@ const PHASES := [
 	{"id": "offwork", "name": "下班", "start": 18 * 60, "end": 23 * 60},
 	{"id": "night", "name": "夜晚", "start": 23 * 60, "end": 7 * 60},
 ]
-## 夜晚段起点：过这个点就该回宿舍了（宿舍宵禁与 HUD 提醒共用同一条线）。
-const NIGHT_START_MINUTE := 23 * 60
-## 一觉醒来出门的钟点。
-const WAKE_UP_MINUTE := 7 * 60
-const MAIN_EVENTS := [
+const LEGACY_MAIN_EVENTS := [
 	{
 		"id": "M1-E01", "scoringKey": "E01", "month": 1, "day": 1, "hour": 9,
 		"title": "新员工手册", "locationId": "B", "location": "B 科技丘 · 你的工位", "durationMinutes": 45,
@@ -306,14 +302,83 @@ const MAIN_EVENTS := [
 	},
 ]
 
+const STORY_PATH := "res://data/story/main_story_v12.json"
+
+var MAIN_EVENTS: Array = []
 var world_minute := 9 * 60
 var running := true
 var _last_phase := ""
 var _minute_remainder := 0.0
 var _completed_main_event_ids: Array[String] = []
+var _skipped_main_event_ids: Array[String] = []
 
 func _ready() -> void:
+	_load_story_schedule()
+	if not MAIN_EVENTS.is_empty():
+		world_minute = _event_minute(MAIN_EVENTS[0])
+	running = false
 	_emit_time_changed()
+
+
+func _load_story_schedule() -> void:
+	var text := FileAccess.get_file_as_string(STORY_PATH)
+	var parsed = JSON.parse_string(text)
+	if not (parsed is Dictionary):
+		push_error("无法读取当前主线数据：" + STORY_PATH)
+		MAIN_EVENTS = []
+		return
+	var events = (parsed as Dictionary).get("events", [])
+	if not (events is Array) or (events as Array).is_empty():
+		push_error("当前主线数据没有事件，已阻止启动")
+		MAIN_EVENTS = []
+		return
+	for raw_event in events as Array:
+		if not (raw_event is Dictionary):
+			push_error("主线数据包含无效事件，已阻止启动")
+			MAIN_EVENTS = []
+			return
+		var event := raw_event as Dictionary
+		var choices: Array = event.get("choices", [])
+		if choices.size() < 3:
+			push_error("主线事件缺少三个玩家选项：" + String(event.get("id", "未知事件")))
+			MAIN_EVENTS = []
+			return
+		var outcomes: Dictionary = event.get("outcome", {})
+		for choice in choices:
+			var choice_id := String(Dictionary(choice).get("id", ""))
+			if choice_id.is_empty() or not outcomes.has(choice_id):
+				push_error("主线事件选项后果不完整：" + String(event.get("id", "未知事件")))
+				MAIN_EVENTS = []
+				return
+	MAIN_EVENTS = (events as Array).duplicate(true)
+
+
+func story_events() -> Array:
+	return MAIN_EVENTS.duplicate(true)
+
+
+func reset_story() -> void:
+	_completed_main_event_ids.clear()
+	_skipped_main_event_ids.clear()
+	if MAIN_EVENTS.is_empty():
+		_load_story_schedule()
+	if not MAIN_EVENTS.is_empty():
+		world_minute = _event_minute(MAIN_EVENTS[0])
+	_minute_remainder = 0.0
+	running = false
+	_emit_time_changed()
+
+
+func jump_to_next_main_event() -> bool:
+	var next := next_main_event()
+	if next.is_empty():
+		return false
+	world_minute = _event_minute(next)
+	_minute_remainder = 0.0
+	running = false
+	_emit_time_changed()
+	main_event_reached.emit(next.duplicate(true))
+	return true
 
 func _process(delta: float) -> void:
 	if not AUTO_FLOW or not running:
@@ -337,64 +402,77 @@ func advance_minutes(minutes: float) -> void:
 	world_minute = target_minute
 	_emit_time_changed()
 
-func advance_days(days: int = 5) -> void:
-	if not running:
-		return
-	advance_minutes(float(maxi(1, days) * MINUTES_PER_DAY))
-
-## 以「一个月」为单位推进：把时间拨到下一个未完成主线事件的时点。
-## 主线事件都挂在每月 1 日（月初即剧情），所以这一跳正好落在下一个月的开头；
-## 事件结算后本月剩余的时间留给自由活动（小镇里自己安排）。
-## 全部主线完成后退化为直接推进一个月，游戏继续自由漫游。
-func advance_month() -> void:
-	if not running:
-		return
-	var next := next_main_event()
-	if next.is_empty():
-		advance_days(DAYS_PER_MONTH)
-		return
-	var target := _event_minute(next)
-	if target > world_minute:
-		advance_minutes(float(target - world_minute))
-		return
-	# 目标事件时点已过（理论上被睡觉守卫挡住，不会走到这）：直接停在那件事上，绝不吞剧情。
-	world_minute = target
-	running = false
-	_emit_time_changed()
-	main_event_reached.emit(next)
-
-## 睡觉：把时间拨到第二天早上，跨过午夜。
-## 有主线事件守卫：如果这一觉会跨过某个未完成主线事件的时点（比如月初 23:00 的事件），
-## 时间停在事件上而不是把它睡过去 —— 事件只在月初 1 日出现后，被睡掉一次就永远触不到了。
-## 事件都在 9:00 / 23:00；停在 23:00 的事件上结算完，再睡一次就是次日早上。
-func sleep_until_next_morning(hour: int) -> void:
-	var day_index := world_minute / MINUTES_PER_DAY
-	var target_minute := (day_index + 1) * MINUTES_PER_DAY + clampi(hour, 0, 23) * 60
-	var blocker := _first_blocking_event_between(world_minute, target_minute)
-	if not blocker.is_empty():
-		world_minute = _event_minute(blocker)
-		running = false
-		_minute_remainder = 0.0
-		_emit_time_changed()
-		main_event_reached.emit(blocker)
-		return
-	world_minute = target_minute
-	_minute_remainder = 0.0
-	running = true
-	_emit_time_changed()
-
 func next_main_event() -> Dictionary:
 	for event in MAIN_EVENTS:
-		if not _completed_main_event_ids.has(String(event["id"])):
+		if not _completed_main_event_ids.has(String(event["id"])) and not _skipped_main_event_ids.has(String(event["id"])):
 			return event.duplicate(true)
 	return {}
+
+
+## 员工档案等展示层只能读取完成清单，不参与改写剧情状态。
+func completed_main_event_ids() -> Array[String]:
+	return _completed_main_event_ids.duplicate()
+
+func skipped_main_event_ids() -> Array[String]:
+	return _skipped_main_event_ids.duplicate()
+
+
+func save_progress() -> Dictionary:
+	return {"worldMinute": world_minute, "completed": _completed_main_event_ids.duplicate(), "skipped": _skipped_main_event_ids.duplicate()}
+
+
+func load_progress(data: Dictionary) -> void:
+	if MAIN_EVENTS.is_empty():
+		_load_story_schedule()
+	_completed_main_event_ids.clear()
+	_skipped_main_event_ids.clear()
+	for event in MAIN_EVENTS:
+		var event_id := String(event.get("id", ""))
+		if (data.get("completed", []) as Array).has(event_id):
+			_completed_main_event_ids.append(event_id)
+		elif (data.get("skipped", []) as Array).has(event_id):
+			_skipped_main_event_ids.append(event_id)
+	world_minute = maxi(0, int(data.get("worldMinute", world_minute)))
+	_minute_remainder = 0.0
+	running = false
+	_emit_time_changed()
+
+
+func jump_to_month(target_month: int) -> void:
+	if target_month < 1 or target_month > 48 or has_overdue_event():
+		return
+	var target_minute := (target_month - 1) * DAYS_PER_MONTH * MINUTES_PER_DAY + 9 * 60
+	var next := next_main_event()
+	if not next.is_empty() and _event_minute(next) <= target_minute:
+		jump_to_next_main_event()
+		return
+	if target_minute > world_minute:
+		world_minute = target_minute
+		_minute_remainder = 0.0
+		running = false
+		_emit_time_changed()
+
+func skip_to_month(target_month: int) -> Array[String]:
+	if target_month <= int(snapshot().get("month", 1)) or target_month > 48:
+		return []
+	var skipped: Array[String] = []
+	for event in MAIN_EVENTS:
+		var event_id := String(event.get("id", ""))
+		if int(event.get("month", 49)) < target_month and not _completed_main_event_ids.has(event_id) and not _skipped_main_event_ids.has(event_id):
+			_skipped_main_event_ids.append(event_id)
+			skipped.append(event_id)
+	world_minute = (target_month - 1) * DAYS_PER_MONTH * MINUTES_PER_DAY + 9 * 60
+	_minute_remainder = 0.0
+	running = false
+	_emit_time_changed()
+	return skipped
 
 func complete_main_event(event_id: String) -> bool:
 	if not MAIN_EVENTS.any(func(event): return String(event["id"]) == event_id):
 		return false
 	if not _completed_main_event_ids.has(event_id):
 		_completed_main_event_ids.append(event_id)
-	running = true
+	running = false
 	_emit_time_changed()
 	return true
 
@@ -424,7 +502,7 @@ func trigger_event_at_now() -> bool:
 
 func _first_blocking_event_between(from_minute: int, to_minute: int) -> Dictionary:
 	for event in MAIN_EVENTS:
-		if _completed_main_event_ids.has(String(event["id"])):
+		if _completed_main_event_ids.has(String(event["id"])) or _skipped_main_event_ids.has(String(event["id"])):
 			continue
 		var event_minute := _event_minute(event)
 		if event_minute >= from_minute and event_minute <= to_minute:
@@ -449,7 +527,7 @@ func snapshot() -> Dictionary:
 		"worldMinute": world_minute,
 		"month": month,
 		"day": day,
-		## 开局至今的总天数（从 0 起）。MonthlyLife 靠它判断「跨天了 → 体力回满」。
+		## 开局至今的总天数（从 0 起），供展示与埋点使用。
 		"dayIndex": total_days,
 		"hour": hour,
 		"minute": minute,
@@ -486,81 +564,6 @@ func current_phase_index() -> int:
 func current_phase() -> Dictionary:
 	return phase_for_minute(posmod(world_minute, MINUTES_PER_DAY))
 
-
-## 时段驱动的推进：把时间拨到「当前时段结束、下一个时段开始」的那一刻。
-## 刻意走 advance_minutes —— 主线守卫在那一层，跨过事件时点会停住并触发剧情，
-## 所以时段推进永远不会把剧情划过去。
-func advance_phase() -> void:
-	var next_start := _next_phase_start(posmod(world_minute, MINUTES_PER_DAY))
-	var target := (world_minute / MINUTES_PER_DAY) * MINUTES_PER_DAY + next_start
-	if target <= world_minute:
-		target += MINUTES_PER_DAY
-	advance_minutes(float(target - world_minute))
-
-
-## 下一个时段的起点分钟数。已经是今天最后一个时段时，返回次日「早上」的起点。
-func _next_phase_start(minute_of_day: int) -> int:
-	for phase in PHASES:
-		var start := int(phase["start"])
-		if start > minute_of_day:
-			return start
-	return int(PHASES[0]["start"])
-
-
-## 睡觉 = 结束本月（2026-09-17 晚用户拍板）：时间直接拨到下一个月 1 日早上。
-## 月度口径下「一个月 ≈ 一天」的节奏：睡醒 → 主线 → 白天养成 → 睡 → 下月；
-## 不再跳「空白日/下个内容日」——每个月都完整留给玩家（精力 3 点/月才花得完）。
-## 守卫与 sleep_until_next_morning 相同：这一觉会跨过未完成主线的时点时，
-## 时间停在事件上把剧情演完，绝不把故事睡过去。
-func sleep_to_next_month(hour: int) -> void:
-	var month_index := world_minute / (DAYS_PER_MONTH * MINUTES_PER_DAY)
-	var day_start := (month_index + 1) * DAYS_PER_MONTH * MINUTES_PER_DAY
-	# 守卫区间放到「下月 1 日全天」而不是只到 7:00：当天挂着的主线（多在 9:00 / 23:00）
-	# 直接停在事件时点上，绝不落到 7:00 让玩家干等（剧情挂起的根因之一）。
-	# 区间只覆盖下月 1 日 —— 更晚的月份由下一次睡觉处理，不越权吞月。
-	var blocker := _first_blocking_event_between(world_minute, day_start + MINUTES_PER_DAY - 1)
-	if not blocker.is_empty():
-		world_minute = _event_minute(blocker)
-		running = false
-		_minute_remainder = 0.0
-		_emit_time_changed()
-		main_event_reached.emit(blocker)
-		return
-	world_minute = day_start + clampi(hour, 0, 23) * 60
-	_minute_remainder = 0.0
-	running = true
-	_emit_time_changed()
-
-
-## 睡醒当天挂着未结算主线事件时，把时间拨到事件时点并就地「点亮」它。
-## 睡觉跨月落在下月 1 日 07:00，而事件多挂在当天 9:00 —— 停钟世界里没人把钟推过去，
-## 不补这一枪，事件门永远不亮、剧情永远不弹（「跳月后剧情挂起」的修复点）。
-## 已压在事件时点上（睡觉守卫拦下的情况）不重复点火。返回是否点了火。
-func fire_due_event_today() -> bool:
-	var day_index := world_minute / MINUTES_PER_DAY
-	for event in MAIN_EVENTS:
-		if _completed_main_event_ids.has(String(event["id"])):
-			continue
-		var event_minute := _event_minute(event)
-		if event_minute / MINUTES_PER_DAY == day_index and event_minute > world_minute:
-			world_minute = event_minute
-			running = false
-			_minute_remainder = 0.0
-			_emit_time_changed()
-			main_event_reached.emit(event)
-			return true
-	return false
-
-
-## 精力门禁判定（2026-09-17 晚用户拍板：当月主线没做完，不能花精力升级）。
-## 口径：下一个未完成主线的时点 ≤ 今天结束 → 锁。
-## 用「今天结束」而不是「本月结束」：月 32 同时挂着 1 日与 18 日两件主线，
-## 18 日的 E17 不该把 1 日做完 E16 之后的精力也锁死。
-func main_event_due() -> bool:
-	var next := next_main_event()
-	if next.is_empty():
-		return false
-	return _event_minute(next) < (world_minute / MINUTES_PER_DAY + 1) * MINUTES_PER_DAY
 
 func _emit_time_changed() -> void:
 	var state := snapshot()

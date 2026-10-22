@@ -16,11 +16,6 @@ func _ready() -> void:
 	add_child(_town)
 	await _wait(1.3)
 
-	# 开场先落在「宿舍」遮罩里（layer 110），不关掉的话什么都拍不到
-	if _town._dorm != null:
-		_town._dorm.dismiss()
-	await _wait(0.3)
-
 	# 冻结小镇逻辑：NPC 停住、相机不再跟着玩家，方便逐格取景
 	_town.set_physics_process(false)
 	_camera = _town._camera

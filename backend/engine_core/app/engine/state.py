@@ -96,6 +96,7 @@ class GameState:
 
     # ---------------- 进度
     events_done: list[str] = field(default_factory=list)
+    events_skipped: list[str] = field(default_factory=list)
     decisions: list[DecisionRecord] = field(default_factory=list)
     promotion_windows: list[dict] = field(default_factory=list)
     consecutive_promotion_failures: int = 0
@@ -103,6 +104,7 @@ class GameState:
     # 已做过「月末尾巴」结算的月份（跑批逐月自然覆盖；服务层逐事件跳跃，靠它补）。
     # 幂等锚：关卡/生存轨都只允许同一月结算一次，重放或重复上报不会翻倍。
     settled_months: list[int] = field(default_factory=list)
+    month_log: list[dict] = field(default_factory=list)
 
     # ---------------- 生存轨
     survival_state: str = "stable"
@@ -114,6 +116,8 @@ class GameState:
     rest_points_used_this_month: int = 0
     window_cumulative: int = 0        # 本考核窗六维净累积
     window_flags: list[str] = field(default_factory=list)
+    window_action_spends: dict[str, list[int]] = field(default_factory=dict)
+    window_action_bonus_granted: bool = False
     monthly_allocations: list[dict] = field(default_factory=list)
     burnout_active: bool = False      # H 归零进入倦怠期；恢复后（H>0）才允许再次触发
 

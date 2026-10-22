@@ -8,6 +8,8 @@
     "completedActivityIds": [],
     "unlockedRegionIds": ["A", "H"],
     "energy": 100,
+    "currentMonth": 0,
+    "assessmentHistory": [],
     "npcAffinity": {},
     "flags": {},
     "scoreSummary": {},

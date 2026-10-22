@@ -1,0 +1,25 @@
+[Unit]
+Description=Workplace Town API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=workplace-town
+Group=workplace-town
+UMask=0077
+WorkingDirectory=/opt/workplace-town
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=WORKPLACE_PUBLIC_MODE=1
+Environment=WORKPLACE_TOWN_DB_PATH=/var/lib/workplace-town/game.sqlite3
+EnvironmentFile=-/etc/workplace-town.env
+ExecStart=/usr/bin/python3 -u /opt/workplace-town/backend/api/server.py
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/workplace-town
+
+[Install]
+WantedBy=multi-user.target

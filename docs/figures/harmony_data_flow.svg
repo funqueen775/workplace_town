@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="480" viewBox="0 0 1080 480">
+  <defs>
+    <style>
+      text { font-family: 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif; fill: #263b3c; }
+      .head { font-size: 18px; font-weight: 700; }
+      .body { font-size: 16px; }
+      .lane { font-size: 18px; font-weight: 700; fill: #537a75; }
+      .arrow { stroke: #537a75; stroke-width: 3; fill: none; marker-end: url(#head); }
+    </style>
+    <marker id="head" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M1 1 L9 5 L1 9 Z" fill="#537a75"/></marker>
+  </defs>
+  <rect width="1080" height="480" fill="#fff"/>
+  <text x="35" y="43" class="lane">剧情与测评主链</text>
+  <rect x="24" y="66" width="193" height="116" rx="7" fill="#e9eee6" stroke="#91a98a" stroke-width="2"/>
+  <text x="120" y="110" class="head" text-anchor="middle">玩家选择与活动</text>
+  <text x="120" y="141" class="body" text-anchor="middle">产生交互事件</text>
+  <rect x="237" y="66" width="193" height="116" rx="7" fill="#dceee9" stroke="#70a39a" stroke-width="2"/>
+  <text x="333" y="110" class="head" text-anchor="middle">客户端队列</text>
+  <text x="333" y="141" class="body" text-anchor="middle">网络失败时待重传</text>
+  <rect x="450" y="66" width="193" height="116" rx="7" fill="#e9edf3" stroke="#8a9eb4" stroke-width="2"/>
+  <text x="546" y="110" class="head" text-anchor="middle">会话与事件记录</text>
+  <text x="546" y="141" class="body" text-anchor="middle">后端持久化</text>
+  <rect x="663" y="66" width="193" height="116" rx="7" fill="#fff4db" stroke="#d4ad54" stroke-width="2"/>
+  <text x="760" y="110" class="head" text-anchor="middle">确定性结算</text>
+  <text x="760" y="141" class="body" text-anchor="middle">晋升与职业测评</text>
+  <rect x="876" y="66" width="180" height="116" rx="7" fill="#e9eee6" stroke="#91a98a" stroke-width="2"/>
+  <text x="966" y="110" class="head" text-anchor="middle">游戏 UI 更新</text>
+  <text x="966" y="141" class="body" text-anchor="middle">展示权威结果</text>
+  <path class="arrow" d="M217 125 H229"/><path class="arrow" d="M430 125 H442"/><path class="arrow" d="M643 125 H655"/><path class="arrow" d="M856 125 H868"/>
+  <text x="35" y="251" class="lane">NPC 自由交流支链</text>
+  <rect x="24" y="273" width="238" height="116" rx="7" fill="#e9eee6" stroke="#91a98a" stroke-width="2"/>
+  <text x="143" y="317" class="head" text-anchor="middle">玩家发言</text>
+  <text x="143" y="347" class="body" text-anchor="middle">形成对话事件</text>
+  <rect x="319" y="273" width="238" height="116" rx="7" fill="#e9edf3" stroke="#8a9eb4" stroke-width="2"/>
+  <text x="438" y="317" class="head" text-anchor="middle">NPC 人设与记忆</text>
+  <text x="438" y="347" class="body" text-anchor="middle">后端提取相关上下文</text>
+  <rect x="614" y="273" width="238" height="116" rx="7" fill="#fff4db" stroke="#d4ad54" stroke-width="2"/>
+  <text x="733" y="317" class="head" text-anchor="middle">可选的大模型</text>
+  <text x="733" y="347" class="body" text-anchor="middle">仅生成回复措辞</text>
+  <rect x="909" y="273" width="147" height="116" rx="7" fill="#dceee9" stroke="#70a39a" stroke-width="2"/>
+  <text x="982" y="317" class="head" text-anchor="middle">NPC 回复</text>
+  <text x="982" y="347" class="body" text-anchor="middle">返回游戏</text>
+  <path class="arrow" d="M262 331 H311"/><path class="arrow" d="M557 331 H606"/><path class="arrow" d="M852 331 H901"/>
+  <text x="540" y="448" class="body" text-anchor="middle">大模型不决定晋升；未配置或请求失败时可回退模板文本</text>
+</svg>

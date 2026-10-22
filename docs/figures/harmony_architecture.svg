@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="480" viewBox="0 0 1080 480">
+  <defs>
+    <style>
+      text { font-family: 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif; fill: #263b3c; }
+      .label { font-size: 21px; font-weight: 700; }
+      .detail { font-size: 17px; }
+      .tag { font-size: 16px; font-weight: 700; }
+      .arrow { fill: none; stroke: #446b69; stroke-width: 3; marker-end: url(#head); }
+    </style>
+    <marker id="head" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M1 1 L9 5 L1 9 Z" fill="#446b69"/></marker>
+  </defs>
+  <rect width="1080" height="480" fill="#ffffff"/>
+  <rect x="20" y="18" width="1040" height="306" rx="8" fill="#f2f7f6" stroke="#c6d8d4" stroke-width="2"/>
+  <text x="46" y="54" class="tag" fill="#34746c">HARMONYOS 应用内</text>
+  <rect x="52" y="82" width="280" height="92" rx="7" fill="#dceee9" stroke="#70a39a" stroke-width="2"/>
+  <text x="192" y="119" class="label" text-anchor="middle">ArkTS 应用外壳</text>
+  <text x="192" y="149" class="detail" text-anchor="middle">横屏 · 全屏 · 触控焦点</text>
+  <rect x="400" y="82" width="280" height="92" rx="7" fill="#dceee9" stroke="#70a39a" stroke-width="2"/>
+  <text x="540" y="119" class="label" text-anchor="middle">ArkWeb 容器</text>
+  <text x="540" y="149" class="detail" text-anchor="middle">资源拦截 · 图形兼容</text>
+  <rect x="748" y="82" width="280" height="92" rx="7" fill="#e9eee6" stroke="#91a98a" stroke-width="2"/>
+  <text x="888" y="119" class="label" text-anchor="middle">Godot Web 游戏</text>
+  <text x="888" y="149" class="detail" text-anchor="middle">地图 · 剧情 · 交互界面</text>
+  <path class="arrow" d="M332 128 H390"/>
+  <path class="arrow" d="M680 128 H738"/>
+  <rect x="216" y="212" width="648" height="76" rx="7" fill="#fff4db" stroke="#d4ad54" stroke-width="2"/>
+  <text x="540" y="244" class="label" text-anchor="middle">HAP 内置游戏资源</text>
+  <text x="540" y="269" class="detail" text-anchor="middle">页面 · JavaScript · WebAssembly · 游戏素材包</text>
+  <path class="arrow" d="M540 212 V184"/>
+  <path class="arrow" d="M888 174 V342 H540 V357"/>
+  <text x="805" y="332" class="detail" text-anchor="middle">HTTP API</text>
+  <rect x="380" y="365" width="320" height="88" rx="7" fill="#e9edf3" stroke="#8a9eb4" stroke-width="2"/>
+  <text x="540" y="400" class="label" text-anchor="middle">独立 Python 后端</text>
+  <text x="540" y="429" class="detail" text-anchor="middle">会话 · 晋升 · 测评报告</text>
+  <text x="710" y="410" class="detail">开发阶段运行于电脑</text>
+</svg>

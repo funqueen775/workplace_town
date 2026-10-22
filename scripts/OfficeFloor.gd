@@ -8,6 +8,7 @@ const WALL_LIGHT := Color("617185")
 const FLOOR := Color("d9d9cb")
 const GRID := Color("bec5bd")
 const INK := Color("1e293b")
+const FONT := preload("res://assets/fonts/NotoSansCJKsc-Regular.otf")
 
 
 func _ready() -> void:
@@ -62,7 +63,7 @@ func _draw_rooms() -> void:
 func _room(rect: Rect2, color: Color, title: String) -> void:
 	draw_rect(rect, color)
 	draw_rect(rect, Color("ffffff"), false, 3.0)
-	draw_string(ThemeDB.fallback_font, rect.position + Vector2(18, 38), title, HORIZONTAL_ALIGNMENT_LEFT, -1, 26, INK)
+	draw_string(FONT, rect.position + Vector2(18, 38), title, HORIZONTAL_ALIGNMENT_LEFT, -1, 26, INK)
 
 
 func _wall(start: Vector2, finish: Vector2) -> void:
@@ -76,7 +77,7 @@ func _draw_reception() -> void:
 	_plant(Vector2(140, 391))
 	_plant(Vector2(432, 391))
 	draw_rect(Rect2(170, 205, 220, 42), Color("eff7ed"))
-	draw_string(ThemeDB.fallback_font, Vector2(210, 235), "WORKPLACE", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color("276c66"))
+	draw_string(FONT, Vector2(210, 235), "WORKPLACE", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color("276c66"))
 
 
 func _draw_desks() -> void:
@@ -121,4 +122,4 @@ func _plant(position: Vector2) -> void:
 
 
 func _draw_corridor_signs() -> void:
-	draw_string(ThemeDB.fallback_font, Vector2(830, 535), "主走廊", HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color("64748b"))
+	draw_string(FONT, Vector2(830, 535), "主走廊", HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color("64748b"))

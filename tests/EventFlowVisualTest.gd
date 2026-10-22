@@ -12,10 +12,6 @@ func _ready() -> void:
 	add_child(town)
 	await get_tree().process_frame
 	await get_tree().process_frame
-	# PR #3 增加了宿舍开场遮罩；先离开宿舍，后续才是在可见的小镇/室内流程上验收。
-	if bool(town.get("_in_dorm")):
-		town.call("_on_dorm_leave")
-		await get_tree().process_frame
 	var zone_b: Dictionary = {}
 	for zone in town.ZONES:
 		if String(zone.get("code", "")) == "B":

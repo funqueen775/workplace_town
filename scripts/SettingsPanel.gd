@@ -31,7 +31,7 @@ const CARD_SIZE := Vector2(560, 500)
 ## 操作说明四行（键位 chip + 说明文字）。
 const KEY_ROWS := [
 	{"chip": "走", "text": "移动：WASD / 方向键 / 左下摇杆"},
-	{"chip": "E", "text": "互动：交谈 · 进出区域 · 宿舍门口与床边"},
+	{"chip": "E", "text": "互动：交谈 · 进出区域 · 开始当前剧情"},
 	{"chip": "Q", "text": "返回小镇（在建筑里时）"},
 	{"chip": "滚", "text": "地图缩放：滚轮 / ± / 双指捏合 · 按住拖动平移"},
 ]
@@ -120,14 +120,14 @@ func _build_content() -> void:
 	title_font.variation_embolden = 0.5
 
 	var title := _label("设置", 30, COLOR_TITLE)
-	title.position = Vector2(32, 24)
+	title.position = Vector2(42, 25)
 	title.size = Vector2(220, 44)
 	title.add_theme_font_override("font", title_font)
 	_card.add_child(title)
 
 	# 标题下的金色小短条：一眼把「标题区」和「内容区」分开。
 	var underline := Panel.new()
-	underline.position = Vector2(34, 74)
+	underline.position = Vector2(44, 74)
 	underline.size = Vector2(56, 4)
 	var underline_style := StyleBoxFlat.new()
 	underline_style.bg_color = COLOR_CHIP
@@ -137,7 +137,7 @@ func _build_content() -> void:
 	_card.add_child(underline)
 
 	var subtitle := _label("熊心壮职 · 职业测评小镇", 14, COLOR_SUB)
-	subtitle.position = Vector2(104, 66)
+	subtitle.position = Vector2(114, 66)
 	subtitle.size = Vector2(300, 24)
 	_card.add_child(subtitle)
 
@@ -214,12 +214,10 @@ func _build_content() -> void:
 	quit_button.pressed.connect(func(): quit_requested.emit())
 	_card.add_child(quit_button)
 
-	var footer := _label("精力每月初发 3 点、不可结转；23:00 宵禁，记得回宿舍。", 13, COLOR_SUB)
+	var footer := _label("每个自由活动窗口有 3 点行动力，耗尽后开放下一主线。", 13, COLOR_SUB)
 	footer.position = Vector2(32, 458)
 	footer.size = Vector2(CARD_SIZE.x - 64.0, 24)
 	_card.add_child(footer)
-
-
 func _make_circle_close_button() -> Button:
 	var button := Button.new()
 	button.size = Vector2(40, 40)

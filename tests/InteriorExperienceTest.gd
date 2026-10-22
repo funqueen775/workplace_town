@@ -8,10 +8,6 @@ func _ready() -> void:
 	add_child(town)
 	await get_tree().process_frame
 	await get_tree().process_frame
-	# 宿舍是正常开场页，不应遮挡对 8 个室内场景的视觉验收。
-	if bool(town.get("_in_dorm")):
-		town.call("_on_dorm_leave")
-		await get_tree().process_frame
 	var camera := town.get("_camera") as Camera2D
 	var expected_outdoor_zoom: float = float(town.get("_cover_zoom")) * float(town.OUTDOOR_EXPLORATION_ZOOM)
 	if camera == null or absf(camera.zoom.x - expected_outdoor_zoom) > 0.01:

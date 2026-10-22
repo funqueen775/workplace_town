@@ -4,31 +4,34 @@ extends Node2D
 const PAPER_DOLL := preload("res://scripts/PaperDoll64Sprite.gd")
 const OFFICE_SET := preload("res://scripts/OfficeSet.gd")
 const OFFICE_NPC := preload("res://scripts/OfficeNpcWalker.gd")
+const TOWN_PORTAL := preload("res://scripts/TownPortal.gd")
 const MAP_DEBUG_OVERLAY := preload("res://scripts/MapDebugOverlay.gd")
 const TIME_HUD := preload("res://scripts/WorldTimeHud.gd")
 const INTERIOR_PREVIEW := preload("res://scripts/InteriorPreview.gd")
-const DORM_ROOM := preload("res://scripts/DormRoom.gd")
 const STORY_EVENT_PANEL := preload("res://scripts/StoryEventPanel.gd")
+const ACTION_WINDOW := preload("res://scripts/ActionWindow.gd")
+const ASSESSMENT_PANEL := preload("res://scripts/AssessmentPanel.gd")
+const ACHIEVEMENT_PANEL := preload("res://scripts/AchievementPanel.gd")
+const ACHIEVEMENT_PATH := "res://data/story/achievements_v12.json"
+const TRAINING_SCENE := preload("res://training_valley/main.tscn")
+const ASSESSMENT_MONTHS := [6, 12, 18, 24, 30, 36, 42]
+const AREA_ACTIVITY_PANEL := preload("res://scripts/AreaActivityPanel.gd")
 const MEMORY_WALL := preload("res://scripts/MemoryWallPanel.gd")
-## 消息匣（Batch 5）：NPC 主动消息的收件箱 —— 「有人记得我」的落点。
-const MESSAGE_INBOX := preload("res://scripts/MessageInboxPanel.gd")
 ## 「你的处境」常驻页（Batch 6 / V5.27 §2.4 明示原则，最高优先级红线）。
 ## 数值全由服务端下发，本地只渲染。
 const STANDING_PANEL := preload("res://scripts/StandingPanel.gd")
 const FINALE_PANEL := preload("res://scripts/FinalePanel.gd")
-const LEDGER_BOOK := preload("res://scripts/WeekendLedgerBook.gd")
 ## 设置弹窗（2026-09-17 UI 打磨）：操作说明 + 退出游戏收编在这里。
 const SETTINGS_PANEL := preload("res://scripts/SettingsPanel.gd")
-const MONTHLY_LIFE := preload("res://scripts/MonthlyLife.gd")
-const LIFE_PANEL := preload("res://scripts/LifePanel.gd")
 ## 圆钮矢量图标（2026-09-17 晚：单字圆钮换图形，用户嫌字丑）。
 const HUD_GLYPH := preload("res://scripts/ui/HudGlyph.gd")
-const FREE_TIME_PANEL := preload("res://scripts/FreeTimePanel.gd")
-## 周末到达演出（2026-09-18 晚新链路）：目的区进门后全屏场景图 + 底部逐字文字。
+## 区域活动演出：全屏场景图 + 底部逐字文字。
 const WEEKEND_SCENE_PANEL := preload("res://scripts/WeekendScenePanel.gd")
-const TRAINING_PANEL := preload("res://scripts/TrainingValleyPanel.gd")
+const TOWN_UI_V2 := preload("res://scripts/TownUiV2.gd")
 const GROUND_GUIDE := preload("res://scripts/ui/GroundGuideLine.gd")
 const CHINESE_FONT := preload("res://assets/fonts/NotoSansCJKsc-Regular.otf")
+const JOYSTICK_BASE := preload("res://assets/ui/rework_v1/hud/revisions/01_摇杆底图.png")
+const JOYSTICK_KNOB := preload("res://assets/ui/rework_v1/hud/revisions/02_摇杆爪子按钮.png")
 const TOWN_MAP_PATH := "res://assets/town/workplace_town_no_labels.png"
 const TOWN_MAP_TEXTURE: Texture2D = preload("res://assets/town/workplace_town_no_labels.png")
 const SOURCE_MAP_SIZE := Vector2(1678, 937)
@@ -43,6 +46,7 @@ const LOCATION_MARKER_RECTS := {
 	"H": Rect2(50, 210, 230, 100),
 }
 const WALKABILITY_MASK_PATH := "res://assets/town/walkability_mask.png"
+const WALKABILITY_MASK: Texture2D = preload(WALKABILITY_MASK_PATH)
 const REGIONS_PATH := "res://data/town/regions.json"
 const NPCS_PATH := "res://data/town/npcs.json"
 const COLLISION_DATA_PATH := "res://data/town/collision.json"
@@ -59,7 +63,7 @@ const MOVE_RIGHT_KEYS := [KEY_D, KEY_RIGHT]
 const MOVE_UP_KEYS := [KEY_W, KEY_UP]
 const MOVE_DOWN_KEYS := [KEY_S, KEY_DOWN]
 const INTERACTION_DISTANCE := 230.0
-const ENTRANCE_DISTANCE := 58.0
+const ENTRANCE_DISTANCE := 64.0
 const ZONE_ZOOM := 3.15
 const OUTDOOR_EXPLORATION_ZOOM := 1.55
 const CAMERA_FOLLOW_SPEED := 5.4
@@ -84,18 +88,8 @@ const INTERIOR_ASSETS := {
 	"G": "res://assets/场景内部图/暖邻康护院.png",
 	"H": "res://assets/场景内部图/慢生活园.png",
 }
-## 宿舍门口（H 区 · 慢生活园入口外）。出生、以及每天出门都落在这里。
-## 坐标来自 data/town/regions.json 里 H 区的 entrance (375,465) 再往外让开一点，
-## 免得一出宿舍就被"进入 H 区"的按钮糊脸；已用通行遮罩确认可走。
-const DORM_DOOR_POSITION := Vector2(375, 500)
-## 宵禁：到了这个钟点玩家会被强制送回宿舍，只能睡觉，第二天 WAKE_UP_HOUR 点才出门。
-## 现在它只是兜底：正常节奏下精力耗尽时时间会先被拨到 ENERGY_CURFEW_JUMP_HOUR 点
-## 并提醒回宿舍（见 _on_energy_exhausted），玩家自己走回去；磨蹭到 23 点才被这里收走。
-const CURFEW_HOUR := 23
-## 精力耗尽时把当天时间拨到的钟点（「下班」时段的晚上）。
-## 不直接拨到 23:00：给玩家留一点自己走回宿舍的余地，宵禁仍然兜底。
-const ENERGY_CURFEW_JUMP_HOUR := 22
-const WAKE_UP_HOUR := 7
+## 小镇出生点，位于 H 区入口外的可通行道路，避开自动传送门感应范围。
+const PLAYER_START_POSITION := Vector2(455, 500)
 var WALKABLE_AREAS := [
 	# Five destination forecourts / plazas.
 	Rect2(70, 230, 330, 160), Rect2(760, 190, 330, 150), Rect2(1240, 420, 300, 200),
@@ -150,113 +144,83 @@ var _nearby_npc: Dictionary = {}
 var _npc_instances: Array[Dictionary] = []
 var _zone_status: Control
 var _interaction_button: Button
-var _zone_button: Button
 ## 右上角功能圆钮（2026-09-17 UI 打磨）：记忆墙 / 周末手账 / 设置，横排一行。
 ## 旧的 190×56 长条按钮（退出游戏/记忆墙/周末手账）已删 —— 退出游戏收进设置弹窗。
 ## 原来 y=215 的「退出游戏」和精力条（同 y）整块叠在一起，这就是右上角「乱」的根源。
 var _memory_wall_button: Button
-var _ledger_book_button: Button
-var _settings_button: Button
 ## 圆钮行下方那条悬停名称提示（鼠标划过圆钮时显示两三个字）。
 var _hud_button_caption: Label
 ## 设置弹窗与它的停钟还原（同记忆墙的待遇：开着时世界时钟停住）。
 var _settings_panel
 var _settings_resume_clock := false
-## 顶部提醒横幅（精力耗尽 → 回宿舍等）。整条横幅在超时后自毁。
+## 顶部提醒横幅。整条横幅在超时后自毁。
 var _toast_layer: CanvasLayer
 var _toast_panel: Panel
 var _toast_tween: Tween
 var _dialog_label: Label
 var _dialog_timer: Timer
 var _last_walkable_position := Vector2.ZERO
+## 进入室内前预先选好的主世界安全落点，避免退出时落进建筑碰撞或传送门感应区。
+var _portal_return_position := Vector2.ZERO
 var _debug_overlay
 var _collision_debug_polygons: Array = []
 var _coordinate_label: Label
 var _walkability_image: Image
 var _walkability_debug_sprite: Sprite2D
 var _location_markers: Array[Sprite2D] = []
-var _entrance_markers: Array[Polygon2D] = []
+var _entrance_markers: Array = []
 var _highlighted_zone_id := ""
+var _portal_editor_active := false
+var _dragged_portal_index := -1
+var _portal_editor_save_button: Button
+var _portal_editor_hint: Label
 var _time_hud: WorldTimeHud
+var _town_ui_v2: TownUiV2
+var _phone_chat_history: Dictionary = {}
 var _interior_preview: InteriorPreview
 var _environment_tint: ColorRect
 var _story_event_panel: StoryEventPanel
 var _story_event: Dictionary = {}
+var _action_window: ActionWindow
+var _assessment_panel: AssessmentPanel
+var _assessment_seen_months: Array[int] = []
+var _achievement_panel
+var _achievement_nodes: Array = []
+var _achievement_seen_ids: Array[String] = []
+var _training_first_cleared := false
+var _training_overlay: CanvasLayer
+var _activity_panel: AreaActivityPanel
+var _pending_action_activity: Dictionary = {}
+var _activity_busy := false
+var _tutorial_step := 0
+var _tutorial_complete := false
 ## 心湖记忆墙：读 user://workplace_town_memos.jsonl，把一路攒下的便签贴成一墙。
 ## 故意不写静态类型（也不给它 class_name）：免得依赖 .godot 里的全局类缓存，
 ## 那个缓存是编辑器扫描时才刷新的，切分支/新加类名时最容易在这里翻车。
 var _memory_wall
 ## 开墙前世界时钟是不是在跑。关上要还原，否则玩家会莫名发现时间不走了。
 var _wall_resume_clock := false
-## 消息匣面板 + 「信」钮上的未读红点。
-var _message_inbox
-var _unread_dot: Panel
 ## 「你的处境」常驻页（Batch 6）+ 「处」钮上的处境警示点。
 ## 页面内容全来自服务端下发（ApiClient.server_state），本地不估算。
 var _standing_panel
 var _standing_dot: Panel
-## 「生活」钮本体 + 自由周末红点（本月的周末就绪未安排时亮，见 _weekend_ready_month）。
-var _life_button: Button
-var _weekend_dot: Panel
 var _finale
-## 开页前世界时钟是不是在跑。这一页是「随时能翻」的，翻的时候别让宵禁把人拽走。
+## 开页前世界时钟是不是在跑。
 var _standing_resume_clock := false
-## 周末手账册（§6.2）：16 页，读 user://workplace_town_weekends.jsonl。同一个停钟待遇。
-var _ledger_book
-var _ledger_resume_clock := false
-## 周末回声（§6.1）语料缓存：res://data/story/weekend_echo.json，懒加载一次。
-var _echo_config := {}
-## 周日（§13.1）= 周末收束的次日。-1 = 从没收束过周末，永不触发周日态。
-var _sunday_day_index := -1
-## 这个周日有没有坐下过（湖边/天台二选一，一个周日一次）。
-var _sunday_sit_done := false
-var _dorm: DormRoom
-## 玩家在宿舍里（黑屏盖住地图）：此时人物不能动、地图不能缩放拖动。
-var _in_dorm := false
-## 已经处理过宵禁的那一天（"月-日"），避免同一天被反复拽回宿舍。
-var _curfew_day_key := ""
 var _zone_entered_msec := 0
 var _decision_opened_msec := 0
 var _choice_hover_count := 0
 var _last_hovered_choice_id := ""
-## 训练谷 · 熊熊有招（Batch 4）：M2-E08 邀约进入，按需实例化。
-var _training_panel
-## 月度生活系统：每月 3 点精力 / 公开数值 / 月底结算 / 好感度（见 scripts/MonthlyLife.gd）。
-var _monthly_life
-## 「生活」面板（居中模态，点「生」圆钮打开：精力 / 周末 / 熊友三 Tab）与自由周末面板。
-var _life_panel
-## 生活面板开着时世界时钟是否在跑（同设置弹窗的停钟待遇，关上还原）。
-var _life_resume_clock := false
-var _free_time_panel
-## 已经开过自由周末的月份（每 3 个月一次：第 3/6/9…月）。
-var _weekend_done_months: Array[int] = []
-## 自由周末已就绪的月份：提示 toast 已弹、生活钮红点挂着；
-## 结算完（_on_weekend_closed）或跨月作废时清掉。2026-09-18 拍板：不再自动弹周末面板。
-var _weekend_ready_month := -1
-## 2026-09-18 晚改版：周末月进月自动弹一次规划面板（= 玩家口中的「周五晚上」；
-## 时间系统没有星期，周末月的开始就是「忙完这个月的活」那一刻）。防重弹。
-var _weekend_auto_prompted_month := -1
-## 出发模式下的周末计划 {month:int, pending:Array[String](区域字母), current:String}。
-## 玩家选完活动点「出发」→ 逐站走到目的区进门演到达演出（WeekendScenePanel），
-## 全部演完才回面板结算。
-var _weekend_visit := {}
-## 到达演出面板（弹丸论外式：全屏场景图 + 底部对话框，见 scripts/WeekendScenePanel.gd）。
+## 区域活动演出面板。
 var _weekend_scene_panel
 ## 地面引导线（见 scripts/ui/GroundGuideLine.gd）。写弱类型：理由同 _memory_wall。
 var _guide_line
-## 自由活动选定的区域 code（空 = 本周末没有目的地）。由自由周末面板回传。
-var _free_guide_zone := ""
-## 自由活动的户外落点（2026-09-18 深夜）：{position, label}，空字典 = 本周末没有户外目的地。
-## 湖边这类活动不在 A–H 任何建筑区里，引导线直接指落点坐标，不再借用总部的路标。
-var _free_guide_spot := {}
-## 户外落点的地面黄标（跟着引导线一起出现/收起）。
-var _weekend_spot_marker: Polygon2D
 ## 上次铺路时的玩家位置与目标：据此决定要不要重跑寻路。
 var _guide_path_origin := Vector2(-99999, -99999)
 var _guide_path_target := Vector2(-99999, -99999)
 var _guide_path_urgent := false
 ## 左上角任务卡（主线提示）。名字沿用 _zone_status，因为它的 show()/hide()
-## 散落在进出区域、进出宿舍各处；这里它已经从一行裸 Label 变成整块卡片。
+## 左上角任务卡在区域进出和主流程切换时持续刷新。
 ## 卡内成员：小标签 / 主标题 / 区域徽标 / 副行。
 var _objective_tag: Label
 var _objective_title: Label
@@ -270,28 +234,30 @@ var _objective_urgent := false
 
 
 func _ready() -> void:
+	_load_achievement_nodes()
 	_load_map_data()
 	_build_map_backdrop()
 	_load_walkability_mask()
 	_build_map_collisions()
 	_build_player()
 	_build_guide_line()
-	_build_weekend_spot_marker()
 	_build_npcs()
 	_build_camera()
 	_build_hud()
 	_build_location_markers()
 	_build_debug_overlay()
-	_build_monthly_life()
 	_build_world_time()
+	_build_town_ui_v2()
 	_build_interior_preview()
 	_build_story_event_panel()
+	_build_action_window()
+	_build_assessment_panel()
+	_build_achievement_panel()
 	_build_memory_wall()
-	_build_message_inbox()
 	_build_standing_panel()
-	_build_dorm_room()
-	# 开局就站在宿舍里：黑屏 + 唯一一个「离开宿舍」。
-	_enter_dorm(false)
+	_place_player_at_start()
+	_refresh_objective_hint()
+	_show_reminder_toast("操作教学", "先用 WASD、方向键或左下角摇杆移动角色")
 
 
 ## 键盘移动输入：先问 InputMap（方便以后在游戏里改键），拿不到就直接按物理键位兜底。
@@ -316,21 +282,19 @@ func _any_move_key_pressed(keys: Array) -> bool:
 func _physics_process(delta: float) -> void:
 	if _player == null or _player_sprite == null:
 		return
-	if _interior_preview != null and _interior_preview.is_open():
-		_interior_preview.set_touch_vector(_touch_vector)
-		_hide_guide_line()
-		return
-	# 宿舍里小镇的人不动，但输入要转给宿舍那份"同一套操作"：
-	# 玩家在宿舍屏里自己走到门口/床边才出门、才睡觉。
-	if _in_dorm:
+	if (_assessment_panel != null and _assessment_panel.visible) or (_achievement_panel != null and _achievement_panel.visible) or _training_overlay != null:
 		_player.velocity = Vector2.ZERO
 		_player_sprite.set_motion(Vector2.ZERO, 0.0)
 		_hide_guide_line()
-		if _dorm != null:
-			var dorm_direction := _read_move_input()
-			if _touch_active:
-				dorm_direction = _touch_vector
-			_dorm.set_move_input(dorm_direction)
+		return
+	if _portal_editor_active:
+		_player.velocity = Vector2.ZERO
+		_player_sprite.set_motion(Vector2.ZERO, 0.0)
+		_hide_guide_line()
+		return
+	if _interior_preview != null and _interior_preview.is_open():
+		_interior_preview.set_touch_vector(_touch_vector)
+		_hide_guide_line()
 		return
 	# 记忆墙同样盖住地图，人还在走就对不上；键盘不像鼠标，不受 CanvasLayer 拦。
 	if _memory_wall != null and _memory_wall.is_open():
@@ -341,9 +305,23 @@ func _physics_process(delta: float) -> void:
 	var direction := _read_move_input()
 	if _touch_active:
 		direction = _touch_vector
+	if direction != Vector2.ZERO and not _tutorial_complete and _tutorial_step == 0:
+		_tutorial_step = 1
+		_show_reminder_toast("很好，角色可以移动了", "沿地面指引前往 B 区，走进金色传送门即可进入")
+		_refresh_objective_hint()
 	var wanted_position := _player.position + direction * PLAYER_SPEED * delta
-	if direction != Vector2.ZERO and _is_walkable_position(wanted_position) and _is_inside_active_zone(wanted_position):
-		_player.velocity = direction * PLAYER_SPEED
+	var move_direction := direction
+	if direction != Vector2.ZERO and not _is_walkable_position(wanted_position):
+		var horizontal := _player.position + Vector2(direction.x, 0.0) * PLAYER_SPEED * delta
+		var vertical := _player.position + Vector2(0.0, direction.y) * PLAYER_SPEED * delta
+		if direction.x != 0.0 and _is_walkable_position(horizontal):
+			move_direction = Vector2(direction.x, 0.0)
+		elif direction.y != 0.0 and _is_walkable_position(vertical):
+			move_direction = Vector2(0.0, direction.y)
+		else:
+			move_direction = Vector2.ZERO
+	if move_direction != Vector2.ZERO and _is_inside_active_zone(_player.position + move_direction * PLAYER_SPEED * delta):
+		_player.velocity = move_direction * PLAYER_SPEED
 		_player.move_and_slide()
 		if _is_walkable_position(_player.position):
 			_last_walkable_position = _player.position
@@ -352,11 +330,10 @@ func _physics_process(delta: float) -> void:
 			_player.velocity = Vector2.ZERO
 	else:
 		_player.velocity = Vector2.ZERO
-	_player_sprite.set_motion(direction, _player.velocity.length() * delta)
+	_player_sprite.set_motion(move_direction, _player.velocity.length() * delta)
 	_update_zone_state()
 	_update_nearby_npc()
 	_update_camera(delta)
-	_check_weekend_outdoor_arrival()
 	_refresh_guide_line()
 
 func _process(_delta: float) -> void:
@@ -369,25 +346,27 @@ func _process(_delta: float) -> void:
 		_objective_style.border_color = Color(1.0, 0.62, 0.20, 0.55 + pulse * 0.45)
 		_objective_accent.modulate = Color(1, 1, 1, 0.72 + pulse * 0.28)
 	for index in _entrance_markers.size():
-		var marker := _entrance_markers[index]
+		var marker: Node2D = _entrance_markers[index] as Node2D
 		if not is_instance_valid(marker):
 			continue
 		var zone: Dictionary = ZONES[index] if index < ZONES.size() else {}
-		var is_target := String(zone.get("id", "")).to_lower() == _highlighted_zone_id.to_lower()
-		# 目标入口保持纯黄，只改变亮度和大小，不再变成橙色。
-		marker.modulate = Color(1.0, 1.0, 0.0, 0.78 + pulse * 0.22) if is_target else Color(1.0, 0.96, 0.05, 1.0)
-		marker.scale = Vector2.ONE * (1.0 + (0.16 + pulse * 0.10) if is_target else 1.0)
-	# 户外落点黄标跟着一起呼吸：没有入口门的地方，这个标就是"到了"的提示。
-	# 每帧顺手校一次显隐：主线到点/做完会改变引导目标，黄标要跟着在/不在。
-	_refresh_weekend_spot_marker()
-	if _weekend_spot_marker != null and _weekend_spot_marker.visible:
-		_weekend_spot_marker.modulate = Color(1, 1, 1, 0.72 + pulse * 0.28)
-		_weekend_spot_marker.scale = Vector2.ONE * (1.0 + pulse * 0.18)
+		var is_target := _portal_editor_active or String(zone.get("id", "")).to_lower() == _highlighted_zone_id.to_lower()
+		marker.call("set_highlighted", is_target)
+		marker.scale = Vector2.ONE * (1.08 + pulse * 0.12 if is_target else 1.0)
+	_refresh_town_ui_v2()
 
 ## 拖动中的移动与松手走 _input 而不是 _unhandled_input：
 ## 拖动时鼠标很可能划过按钮/摇杆，那些 Control 会吃掉事件，_unhandled_input 就收不到松手了
 ## → 会一直卡在"拖动中"。这里抢在 GUI 之前收，并顺手把事件标记为已处理（拖动时不希望误触按钮）。
 func _input(event: InputEvent) -> void:
+	if _portal_editor_active:
+		if event is InputEventMouseMotion and _dragged_portal_index >= 0:
+			_move_dragged_portal(get_global_mouse_position())
+			get_viewport().set_input_as_handled()
+		elif event is InputEventMouseButton and not event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+			_dragged_portal_index = -1
+			get_viewport().set_input_as_handled()
+		return
 	if not _is_panning:
 		return
 	if event is InputEventMouseMotion:
@@ -408,16 +387,16 @@ func _unhandled_input(event: InputEvent) -> void:
 	if _handle_map_zoom_input(event):
 		return
 	if event is InputEventKey and event.pressed and not event.echo:
-		# 宿舍盖在最上面时，键盘整套交给宿舍屏自己处理（走动、开确认框）。
-		if _in_dorm:
-			if _dorm != null:
-				_dorm.handle_key(event.keycode)
+		if event.keycode == KEY_F4 and (_interior_preview == null or not _interior_preview.is_open()):
+			_set_portal_editor_active(not _portal_editor_active)
+			return
+		if _portal_editor_active:
+			if event.keycode == KEY_S and event.ctrl_pressed:
+				_save_portal_positions()
 			return
 		if _interior_preview != null and _interior_preview.is_open():
-			# Q 只在人真走到门口（提示亮着）时生效；ESC 仍可随时退出。
+			# 大门感应区会自动返回；ESC 保留为兜底退出。
 			if event.keycode == KEY_ESCAPE:
-				_exit_zone()
-			elif event.keycode == KEY_Q and _interior_preview.is_door_prompt_active():
 				_exit_zone()
 			return
 		if event.keycode == KEY_F3:
@@ -425,12 +404,18 @@ func _unhandled_input(event: InputEvent) -> void:
 			_walkability_debug_sprite.visible = _debug_overlay.visible_overlay
 			_coordinate_label.visible = _debug_overlay.visible_overlay
 			return
+		if event.keycode == KEY_E or event.keycode == KEY_SPACE:
+			if _interaction_button != null and _interaction_button.visible:
+				_begin_interaction()
+				get_viewport().set_input_as_handled()
+				return
 		if event.keycode == KEY_ESCAPE or event.keycode == KEY_Q:
 			_exit_zone()
 			return
-		if event.keycode == KEY_E or event.keycode == KEY_SPACE:
-			_begin_primary_action()
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		if _portal_editor_active and _begin_portal_drag(get_global_mouse_position()):
+			get_viewport().set_input_as_handled()
+			return
 		if _debug_overlay != null and _debug_overlay.visible_overlay:
 			var world_position := get_global_mouse_position()
 			_coordinate_label.text = "地图坐标  x: %d  y: %d" % [roundi(world_position.x), roundi(world_position.y)]
@@ -518,7 +503,7 @@ func _set_map_zoom(value: float) -> void:
 ## 室内 / 剧情面板打开时不给缩放与拖动：那些界面盖住了地图，
 ## 此时改倍率或视角只会在退出后突然跳变一次，观感很差。
 func _is_map_input_locked() -> bool:
-	if _in_dorm:
+	if _town_ui_v2 != null and _town_ui_v2.is_open():
 		return true
 	if _interior_preview != null and _interior_preview.is_open():
 		return true
@@ -602,8 +587,7 @@ func _decay_pan_offset(delta: float) -> void:
 func _build_player() -> void:
 	_player = CharacterBody2D.new()
 	_player.name = "Player"
-	# 出生在慢生活园的宿舍门口（H 区），不再是 E 区入口。
-	_player.position = DORM_DOOR_POSITION
+	_player.position = PLAYER_START_POSITION
 	_last_walkable_position = _player.position
 	_player.collision_layer = 2
 	_player.collision_mask = COLLISION_LAYER
@@ -778,8 +762,8 @@ func _load_map_texture(path: String) -> Texture2D:
 
 
 func _load_walkability_mask() -> void:
-	_walkability_image = Image.new()
-	if _walkability_image.load(ProjectSettings.globalize_path(WALKABILITY_MASK_PATH)) != OK:
+	_walkability_image = WALKABILITY_MASK.get_image()
+	if _walkability_image == null or _walkability_image.is_empty():
 		push_error("道路通行遮罩加载失败: %s" % WALKABILITY_MASK_PATH)
 		_walkability_image = null
 		return
@@ -802,12 +786,8 @@ func _build_map_collisions() -> void:
 	_add_wall_collider(Rect2(1902, 0, 18, 1080))
 	var payload := _read_json(COLLISION_DATA_PATH)
 	for layer in payload.get("layers", []):
-		var layer_id := String(layer.get("id", ""))
 		for polygon in layer.get("polygons", []):
-			var points := _to_points(polygon)
-			_collision_debug_polygons.append(points)
-			if layer_id == "decorations":
-				_add_polygon_collider(polygon)
+			_collision_debug_polygons.append(_to_points(polygon))
 
 
 func _to_points(points_data: Array) -> PackedVector2Array:
@@ -839,6 +819,7 @@ func _load_map_data() -> void:
 			if point is Array and (point as Array).size() >= 2:
 				route_points.append(Vector2(float(point[0]), float(point[1])))
 		loaded_npcs.append({
+			"id": String(item.get("id", "")),
 			"zone": String(item.get("zone", "")).to_lower(), "name": String(item.get("name", "")),
 			"role": String(item.get("role", "")), "loadout": String(item.get("loadout", "")),
 			"route": route_points, "prompt": String(item.get("prompt", "")),
@@ -910,8 +891,10 @@ func _is_walkable_position(position: Vector2) -> bool:
 	var sample_offsets: Array[Vector2] = [Vector2.ZERO, Vector2(-8, 0), Vector2(8, 0), Vector2(0, -8), Vector2(0, 8)]
 	for offset: Vector2 in sample_offsets:
 		var sample: Vector2 = position + offset
-		var x := clampi(roundi(sample.x), 0, _walkability_image.get_width() - 1)
-		var y := clampi(roundi(sample.y), 0, _walkability_image.get_height() - 1)
+		if sample.x < 0.0 or sample.y < 0.0 or sample.x >= WORLD_SIZE.x or sample.y >= WORLD_SIZE.y:
+			return false
+		var x := clampi(floori(sample.x * _walkability_image.get_width() / WORLD_SIZE.x), 0, _walkability_image.get_width() - 1)
+		var y := clampi(floori(sample.y * _walkability_image.get_height() / WORLD_SIZE.y), 0, _walkability_image.get_height() - 1)
 		var pixel := _walkability_image.get_pixel(x, y)
 		if pixel.a < 0.5 or pixel.r < 0.5:
 			return false
@@ -940,10 +923,8 @@ func _build_location_markers() -> void:
 		marker.visible = false
 		add_child(marker)
 		_location_markers.append(marker)
-		var entrance_marker := Polygon2D.new()
-		entrance_marker.name = "Entrance%s" % zone["code"]
-		entrance_marker.polygon = PackedVector2Array([Vector2(0, -14), Vector2(12, 8), Vector2(0, 15), Vector2(-12, 8)])
-		entrance_marker.color = Color("fff500")
+		var entrance_marker := TOWN_PORTAL.new()
+		entrance_marker.name = "TownPortal%s" % zone["code"]
 		entrance_marker.position = zone["entrance"]
 		entrance_marker.z_index = 44
 		add_child(entrance_marker)
@@ -957,20 +938,6 @@ func _build_guide_line() -> void:
 	_guide_line.name = "GroundGuideLine"
 	_guide_line.z_index = -50
 	add_child(_guide_line)
-
-
-## 户外落点黄标（2026-09-18 深夜）：湖边这种没有入口门的落点，用一个会呼吸的菱形
-## 标在地面上，让玩家知道"走到这儿就算到了"。默认隐藏，由 _refresh_weekend_spot_marker
-## 按当前目的地显隐。z_index 与区域入口标一致（44），压在引导线之上。
-func _build_weekend_spot_marker() -> void:
-	_weekend_spot_marker = Polygon2D.new()
-	_weekend_spot_marker.name = "WeekendSpotMarker"
-	_weekend_spot_marker.polygon = PackedVector2Array([
-		Vector2(0, -20), Vector2(17, 11), Vector2(0, 24), Vector2(-17, 11)])
-	_weekend_spot_marker.color = Color("5ad8ff")
-	_weekend_spot_marker.z_index = 44
-	_weekend_spot_marker.visible = false
-	add_child(_weekend_spot_marker)
 
 
 func _hide_guide_line() -> void:
@@ -1028,41 +995,11 @@ func _resolve_guide_target() -> Dictionary:
 				"position": due_zone["entrance"], "code": String(due_zone["code"]),
 				"title": String(next_event.get("title", "")), "urgent": true,
 			}
-	if not _free_guide_spot.is_empty():
-		return {
-			"position": _free_guide_spot.get("position", Vector2.ZERO), "code": "",
-			"title": String(_free_guide_spot.get("label", "自由活动")), "urgent": false,
-		}
-	if not _free_guide_zone.is_empty():
-		var free_zone := _zone_by_code(_free_guide_zone)
-		if not free_zone.is_empty():
-			return {
-				"position": free_zone["entrance"], "code": String(free_zone["code"]),
-				"title": "自由活动", "urgent": false,
-			}
 	return {}
 
 
 ## 户外落点黄标：显示/隐藏 + 挪到落点。**只有落点真的是当前引导目标时才亮**——
 ## 主线到点时引导线去主线，黄标还亮着就成了第二套口径。没有目的地就收起来。
-func _refresh_weekend_spot_marker() -> void:
-	if _weekend_spot_marker == null:
-		return
-	if _free_guide_spot.is_empty():
-		_weekend_spot_marker.visible = false
-		_weekend_spot_marker.scale = Vector2.ONE
-		return
-	var target := _resolve_guide_target()
-	var spot_pos: Vector2 = _free_guide_spot.get("position", Vector2.ZERO)
-	var is_target := not target.is_empty() \
-		and (target.get("position", Vector2.ZERO) as Vector2).distance_to(spot_pos) < 1.0
-	if not is_target:
-		_weekend_spot_marker.visible = false
-		return
-	_weekend_spot_marker.position = spot_pos
-	_weekend_spot_marker.visible = true
-
-
 ## 按区域 code（"A".."H"）取 ZONES 条目；找不到返回空字典。
 func _zone_by_code(code: String) -> Dictionary:
 	var wanted := code.strip_edges().to_upper()
@@ -1072,32 +1009,6 @@ func _zone_by_code(code: String) -> Dictionary:
 		if String(zone.get("code", "")).to_upper() == wanted:
 			return zone
 	return {}
-
-
-## 自由活动面板里的组团名（"D_树影书院" / "心湖" / "A_总部"）→ 区域 code。
-## 前缀字母能直接对上就用；"心湖"这种没有区域的组团返回空（湖中心走不进去）。
-func _zone_code_from_free_label(label: String) -> String:
-	var trimmed := label.strip_edges()
-	if trimmed.is_empty():
-		return ""
-	# 面板的 ZONE_CODES 表优先（2026-09-18 晚修复）：「心湖」「心湖步道」这类
-	# 无 X_ 前缀的组团名只有这张表认得 —— 之前只走前缀/区域名兜底，二者全落空
-	# 返回空串，于是选了湖边散步/湖边深谈后既不画引导线、到达判定也永远不中。
-	if _free_time_panel != null:
-		var mapped := String(_free_time_panel.ZONE_CODES.get(trimmed, ""))
-		if mapped.length() == 1:
-			return mapped
-	var head := trimmed.split("_")[0]
-	if head.length() == 1 and not _zone_by_code(head).is_empty():
-		return head.to_upper()
-	# 兜底：按区域名做包含匹配，"树影书院" → D、"慢生活园" → H。
-	for zone in ZONES:
-		var zone_name := String(zone.get("name", ""))
-		if zone_name.is_empty():
-			continue
-		if zone_name.contains(trimmed) or trimmed.contains(zone_name.split("·")[0]):
-			return String(zone.get("code", "")).to_upper()
-	return ""
 
 
 ## 沿道路求一条从 from 到 to 的引导路径。
@@ -1401,19 +1312,356 @@ func _build_hud() -> void:
 	_interaction_button.hide()
 	_interaction_button.pressed.connect(_begin_interaction)
 	layer.add_child(_interaction_button)
-	_zone_button = Button.new()
-	_zone_button.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	_zone_button.position = Vector2(-390, -150)
-	_zone_button.size = Vector2(350, 82)
-	_zone_button.add_theme_font_override("font", CHINESE_FONT)
-	_zone_button.add_theme_font_size_override("font_size", 22)
-	_zone_button.hide()
-	_zone_button.pressed.connect(_enter_nearby_zone)
-	layer.add_child(_zone_button)
 	# 右上角功能圆钮排（记忆墙 / 周末手账 / 设置），退出游戏收进设置弹窗。
 	_build_hud_button_row(layer)
+	_build_portal_editor_controls(layer)
 	_build_settings_panel()
 	_build_mobile_joystick(layer)
+
+
+func _build_town_ui_v2() -> void:
+	_town_ui_v2 = TOWN_UI_V2.new()
+	_town_ui_v2.profile_requested.connect(_open_ui_profile)
+	_town_ui_v2.task_requested.connect(_open_ui_task)
+	_town_ui_v2.phone_requested.connect(_open_ui_phone)
+	_town_ui_v2.calendar_requested.connect(_open_ui_calendar)
+	_town_ui_v2.task_calendar_requested.connect(_open_ui_task_calendar)
+	_town_ui_v2.settings_requested.connect(func(): _town_ui_v2.open_view("settings"))
+	_town_ui_v2.month_requested.connect(_on_ui_month_requested)
+	_town_ui_v2.chat_requested.connect(_on_ui_chat_requested)
+	_town_ui_v2.phone_message_submitted.connect(_on_phone_message_submitted)
+	ApiClient.chat_ready.connect(_on_npc_chat_ready)
+	ApiClient.chat_failed.connect(_on_npc_chat_failed)
+	_town_ui_v2.save_requested.connect(_save_game_progress)
+	_town_ui_v2.load_requested.connect(_load_game_progress)
+	_town_ui_v2.title_requested.connect(_on_ui_title_requested)
+	_town_ui_v2.preferences_changed.connect(_on_ui_preferences_changed)
+	_town_ui_v2.locate_requested.connect(_on_ui_locate_requested)
+	_town_ui_v2.advance_requested.connect(_on_ui_advance_requested)
+	ApiClient.state_changed.connect(_on_server_state_changed)
+	add_child(_town_ui_v2)
+	if _time_hud != null:
+		_time_hud.hide()
+	if _zone_status != null:
+		_zone_status.hide()
+
+
+func _refresh_town_ui_v2() -> void:
+	if _town_ui_v2 == null:
+		return
+	if _time_hud != null:
+		_time_hud.hide()
+	if _zone_status != null:
+		_zone_status.hide()
+	var remaining := _action_window.remaining if _action_window != null and not _action_window.current_window_id.is_empty() else 3
+	_town_ui_v2.refresh(WorldClock.snapshot(), WorldClock.next_main_event(), remaining, 3)
+
+
+func _on_server_state_changed(_state: Dictionary) -> void:
+	_refresh_town_ui_v2()
+	_refresh_standing_badge()
+	if _town_ui_v2 != null and _town_ui_v2.is_open() and _town_ui_v2.get("_view") == "profile":
+		_town_ui_v2.open_view("profile")
+
+
+func _open_ui_profile() -> void:
+	_town_ui_v2.open_view("profile")
+
+
+func _open_ui_task() -> void:
+	var remaining := _action_window.remaining if _action_window != null and _action_window.active else 3
+	var current_zone := String(_active_zone.get("code", "")) if not _active_zone.is_empty() else ""
+	_town_ui_v2.open_view("task", {
+		"event": WorldClock.next_main_event(),
+		"snapshot": WorldClock.snapshot(),
+		"energy": remaining,
+		"current_zone": current_zone,
+	})
+
+
+func _open_ui_phone() -> void:
+	var people: Array = []
+	for npc in _npc_instances:
+		people.append({"name": String(npc.get("name", "同事")), "zone": String(npc.get("zone", "")).to_upper(), "message": String(npc.get("prompt", "等你来聊聊。"))})
+	var memories: Array = []
+	var seen_memories: Dictionary = {}
+	var file := FileAccess.open("user://workplace_town_events.jsonl", FileAccess.READ)
+	if file != null:
+		while not file.eof_reached():
+			var line := file.get_line().strip_edges()
+			if line.is_empty():
+				continue
+			var record = JSON.parse_string(line)
+			if not record is Dictionary:
+				continue
+			var event_id := String(record.get("eventId", ""))
+			var memory_key := event_id + ":" + String(record.get("choiceId", ""))
+			if seen_memories.has(memory_key):
+				continue
+			for event in WorldClock.story_events():
+				if String(event.get("id", "")) == event_id:
+					seen_memories[memory_key] = true
+					var choice := String(record.get("choiceId", ""))
+					memories.append({"month": event.get("month", 1), "title": event.get("title", ""), "outcome": (event.get("outcome", {}) as Dictionary).get(choice, "")})
+					break
+	_town_ui_v2.open_view("phone", {"people": people, "memories": memories})
+
+
+func _open_ui_calendar() -> void:
+	_town_ui_v2.open_view("calendar", {"month": int(WorldClock.snapshot().get("month", 1)), "target_month": int(WorldClock.next_main_event().get("month", 48)), "next_event": WorldClock.next_main_event(), "events": WorldClock.story_events()})
+
+
+func _open_ui_task_calendar(target_month: int) -> void:
+	_town_ui_v2.open_view("calendar", {
+		"month": int(WorldClock.snapshot().get("month", 1)),
+		"target_month": target_month,
+		"next_event": WorldClock.next_main_event(),
+		"events": WorldClock.story_events(),
+	})
+
+
+func _on_ui_chat_requested(person: String) -> void:
+	for npc in _npc_instances:
+		if String(npc.get("name", "")) == person:
+			_open_phone_chat(String(npc.get("id", "")))
+			return
+
+
+func _open_phone_chat(npc_id: String, pending := false) -> void:
+	for npc in _npc_instances:
+		if String(npc.get("id", "")) == npc_id:
+			_town_ui_v2.open_view("phone", {"chat_id": npc_id,
+				"chat_name": String(npc.get("name", "")),
+				"chat_messages": (_phone_chat_history.get(npc_id, []) as Array).duplicate(true),
+				"chat_pending": pending})
+			return
+
+func _on_phone_message_submitted(npc_id: String, message: String) -> void:
+	for npc in _npc_instances:
+		if String(npc.get("id", "")) == npc_id:
+			var history: Array = _phone_chat_history.get(npc_id, [])
+			history.append({"speaker": "我", "text": message})
+			_phone_chat_history[npc_id] = history
+			_open_phone_chat(npc_id, true)
+			ApiClient.request_npc_chat(npc_id, message, String(npc.get("zone", "A")))
+			return
+
+func _on_npc_chat_ready(npc_id: String, reply: String) -> void:
+	_interior_preview.show_chat_reply(npc_id, reply)
+	var history: Array = _phone_chat_history.get(npc_id, [])
+	if not history.is_empty():
+		history.append({"speaker": "npc", "text": reply})
+		_phone_chat_history[npc_id] = history
+	if _town_ui_v2.current_chat_id() == npc_id:
+		_open_phone_chat(npc_id)
+
+func _on_npc_chat_failed(npc_id: String, reason: String) -> void:
+	_interior_preview.show_chat_failure(npc_id, reason)
+	var history: Array = _phone_chat_history.get(npc_id, [])
+	if not history.is_empty():
+		history.append({"speaker": "system", "text": reason})
+		_phone_chat_history[npc_id] = history
+	if _town_ui_v2.current_chat_id() == npc_id:
+		_open_phone_chat(npc_id)
+
+
+func _on_ui_month_requested(target_month: int) -> void:
+	var current_month := int(WorldClock.snapshot().get("month", 1))
+	if target_month <= current_month or target_month > 48:
+		_show_reminder_toast("无法推进", "请选择当前月份之后、第 48 月之前的月份")
+		return
+	if _story_event_panel != null and _story_event_panel.is_open():
+		_show_reminder_toast("暂时不能跳月", "请先结束正在阅读的剧情")
+		return
+	var confirmation = preload("res://scripts/MonthJumpDialog.gd").new()
+	confirmation.name = "MonthJumpDialog"
+	confirmation.current_month = current_month
+	confirmation.target_month = target_month
+	confirmation.confirmed.connect(func():
+		WorldClock.skip_to_month(target_month)
+		if _action_window != null:
+			_action_window.abandon_for_month_jump()
+		if _activity_panel != null:
+			_activity_panel.hide_panel()
+		for month in ASSESSMENT_MONTHS:
+			if month < target_month and not _assessment_seen_months.has(month):
+				_assessment_seen_months.append(month)
+		_tutorial_complete = true
+		_tutorial_step = 5
+		ApiClient.record_event("month_jump", {"regionId": "A", "targetMonth": target_month})
+		_town_ui_v2.close_view()
+		_refresh_town_ui_v2()
+		_refresh_objective_hint())
+	add_child(confirmation)
+
+
+func _save_game_progress() -> void:
+	if _story_event_panel != null and _story_event_panel.is_open():
+		_show_reminder_toast("暂时不能保存", "请先完成当前剧情")
+		return
+	if ApiClient.is_live_mode() and (not ApiClient.is_session_confirmed() or ApiClient.pending_event_count() > 0):
+		_show_reminder_toast("暂时不能保存", "请等待后端同步完成后再保存")
+		return
+	var file := FileAccess.open("user://town_progress_v1.json", FileAccess.WRITE)
+	if file == null:
+		_show_reminder_toast("保存失败", "无法写入存档")
+		return
+	file.store_string(JSON.stringify({"version": 1, "clock": WorldClock.save_progress(), "action": _action_window.save_progress(), "assessmentSeen": _assessment_seen_months, "achievementSeen": _achievement_seen_ids, "trainingFirstCleared": _training_first_cleared, "tutorialStep": _tutorial_step, "tutorialComplete": _tutorial_complete, "player": {"x": _player.position.x, "y": _player.position.y}, "apiSessionId": ApiClient.current_session_id() if ApiClient.is_live_mode() else "", "apiState": ApiClient.server_state() if ApiClient.is_live_mode() else {}}))
+	file.close()
+	_show_reminder_toast("已保存游戏", "当前月份与行动力已记录")
+
+
+func _load_game_progress() -> void:
+	var file := FileAccess.open("user://town_progress_v1.json", FileAccess.READ)
+	if file == null:
+		_show_reminder_toast("没有存档", "请先保存游戏")
+		return
+	var data = JSON.parse_string(file.get_as_text())
+	if not data is Dictionary or int(data.get("version", 0)) != 1:
+		_show_reminder_toast("读取失败", "存档格式不受支持")
+		return
+	if ApiClient.is_live_mode():
+		if not ApiClient.is_session_confirmed() or ApiClient.pending_event_count() > 0:
+			_show_reminder_toast("暂时不能读档", "请等待后端同步完成后再读取")
+			return
+		if String(data.get("apiSessionId", "")) != ApiClient.current_session_id() or data.get("apiState", {}) != ApiClient.server_state():
+			_show_reminder_toast("不能读取此存档", "后端会话或进度已变化，读取会覆盖另一条剧情")
+			return
+	WorldClock.load_progress(data.get("clock", {}))
+	_action_window.load_progress(data.get("action", {}))
+	_assessment_seen_months.clear()
+	for month in data.get("assessmentSeen", []):
+		_assessment_seen_months.append(int(month))
+	_achievement_seen_ids.clear()
+	for node_id in data.get("achievementSeen", []):
+		_achievement_seen_ids.append(String(node_id))
+	_training_first_cleared = bool(data.get("trainingFirstCleared", false))
+	_tutorial_step = int(data.get("tutorialStep", 0))
+	_tutorial_complete = bool(data.get("tutorialComplete", false))
+	var saved_player := data.get("player", {}) as Dictionary
+	if saved_player.has("x") and saved_player.has("y"):
+		var position := Vector2(float(saved_player["x"]), float(saved_player["y"]))
+		if _is_walkable_position(position):
+			_player.position = position
+			_last_walkable_position = position
+			_camera.position = position
+			_camera.reset_smoothing()
+	_town_ui_v2.close_view()
+	_refresh_town_ui_v2()
+	_refresh_objective_hint()
+	_show_reminder_toast("已读取存档", "游戏进度已恢复")
+
+
+func _on_ui_title_requested() -> void:
+	var confirmation := ConfirmationDialog.new()
+	confirmation.dialog_text = "返回标题？未保存的进度将丢失。"
+	confirmation.confirmed.connect(func(): get_tree().change_scene_to_file("res://Startup.tscn"))
+	confirmation.canceled.connect(confirmation.queue_free)
+	add_child(confirmation)
+	confirmation.popup_centered()
+
+
+func _on_ui_preferences_changed(preferences: Dictionary) -> void:
+	if _story_event_panel != null:
+		_story_event_panel.text_speed = int(preferences.get("text_speed", 1))
+		_story_event_panel.large_text = bool(preferences.get("large_text", false))
+		_story_event_panel.reduced_motion = bool(preferences.get("reduced_motion", false))
+
+
+func _on_ui_locate_requested(zone_code: String) -> void:
+	if not zone_code.is_empty():
+		_highlighted_zone_id = zone_code
+		_show_reminder_toast("已设为追踪", "跟随地面指引前往 %s 区" % zone_code)
+	_town_ui_v2.close_view()
+
+
+func _on_ui_advance_requested() -> void:
+	if _action_window != null and _action_window.active:
+		_show_reminder_toast("暂时不能跳月", "请先消耗完本次自由活动的行动力")
+		return
+	WorldClock.jump_to_next_main_event()
+	_town_ui_v2.close_view()
+	_refresh_objective_hint()
+
+
+func _build_portal_editor_controls(layer: CanvasLayer) -> void:
+	_portal_editor_save_button = Button.new()
+	_portal_editor_save_button.text = "保存传送门位置"
+	_portal_editor_save_button.position = Vector2(34, 370)
+	_portal_editor_save_button.size = Vector2(250, 52)
+	_portal_editor_save_button.add_theme_font_override("font", CHINESE_FONT)
+	_portal_editor_save_button.add_theme_font_size_override("font_size", 20)
+	_portal_editor_save_button.pressed.connect(_save_portal_positions)
+	_portal_editor_save_button.hide()
+	layer.add_child(_portal_editor_save_button)
+
+	_portal_editor_hint = Label.new()
+	_portal_editor_hint.text = "传送门编辑：拖动金色传送门到入口位置，按 Ctrl+S 保存"
+	_portal_editor_hint.position = Vector2(34, 338)
+	_portal_editor_hint.add_theme_font_override("font", CHINESE_FONT)
+	_portal_editor_hint.add_theme_font_size_override("font_size", 18)
+	_portal_editor_hint.add_theme_color_override("font_color", Color("fff2a8"))
+	_portal_editor_hint.add_theme_color_override("font_outline_color", Color("18202b"))
+	_portal_editor_hint.add_theme_constant_override("outline_size", 4)
+	_portal_editor_hint.hide()
+	layer.add_child(_portal_editor_hint)
+
+
+func _set_portal_editor_active(value: bool) -> void:
+	_portal_editor_active = value
+	_dragged_portal_index = -1
+	if _portal_editor_save_button != null:
+		_portal_editor_save_button.visible = value
+	if _portal_editor_hint != null:
+		_portal_editor_hint.visible = value
+	for marker in _entrance_markers:
+		if is_instance_valid(marker):
+			marker.call("set_highlighted", value)
+	_show_reminder_toast("传送门编辑" if value else "已退出编辑", "拖动后按 Ctrl+S 或点击右上角保存" if value else "位置保持为最后一次保存的配置")
+
+
+func _begin_portal_drag(world_position: Vector2) -> bool:
+	for index in _entrance_markers.size():
+		var marker := _entrance_markers[index] as Node2D
+		if is_instance_valid(marker) and marker.global_position.distance_to(world_position) <= 62.0:
+			_dragged_portal_index = index
+			return true
+	return false
+
+
+func _move_dragged_portal(world_position: Vector2) -> void:
+	if _dragged_portal_index < 0 or _dragged_portal_index >= ZONES.size():
+		return
+	var position := world_position.clamp(Vector2(24, 24), WORLD_SIZE - Vector2(24, 24))
+	var zone: Dictionary = ZONES[_dragged_portal_index]
+	zone["entrance"] = position
+	ZONES[_dragged_portal_index] = zone
+	var marker := _entrance_markers[_dragged_portal_index] as Node2D
+	if is_instance_valid(marker):
+		marker.global_position = position
+	if _coordinate_label != null:
+		_coordinate_label.text = "传送门坐标  x: %d  y: %d" % [roundi(position.x), roundi(position.y)]
+
+
+func _save_portal_positions() -> void:
+	var payload := _read_json(REGIONS_PATH)
+	var regions: Array = payload.get("regions", [])
+	if regions.size() != ZONES.size():
+		_show_reminder_toast("保存失败", "区域配置不完整，未写入文件")
+		return
+	for index in ZONES.size():
+		var region: Dictionary = regions[index]
+		var entrance: Vector2 = ZONES[index]["entrance"]
+		region["entrance"] = {"x": roundi(entrance.x), "y": roundi(entrance.y)}
+		regions[index] = region
+	payload["regions"] = regions
+	var file := FileAccess.open(REGIONS_PATH, FileAccess.WRITE)
+	if file == null:
+		_show_reminder_toast("保存失败", "当前运行包无权修改项目配置，请在 Godot 编辑器中运行")
+		return
+	file.store_string(JSON.stringify(payload, "  ") + "\n")
+	file.close()
+	_show_reminder_toast("位置已保存", "已写入 data/town/regions.json")
 
 
 ## ---------- 右上角功能圆钮排（2026-09-17 UI 打磨） ----------
@@ -1421,16 +1669,12 @@ func _build_hud() -> void:
 ## 圆钮行的 y 起点：时间面板（y 26..234）正下方。48px 圆 + 8px 间距，一行 6 颗
 ## （设/账/忆/生/信/处）；点「生」开生活面板（精力/周末/熊友，2026-09-18 拍板）。
 const HUD_CIRCLE_ROW_Y := 250.0
-const HUD_CIRCLE_SIZE := 48.0
+const HUD_CIRCLE_SIZE := 58.0
 
-## 从右往左：设置 / 周末手账 / 记忆墙。悬停圆钮时行下方显示名称提示。
+## 从右往左：设置 / 记忆墙 / 你的处境。悬停时显示名称。
 func _build_hud_button_row(layer: CanvasLayer) -> void:
 	var defs := [
-		{"glyph": "设", "tip": "设置 · 操作说明 / 退出游戏", "caption": "设置", "cb": _open_settings},
-		{"glyph": "账", "tip": "周末手账 · 翻看走过的每个周末", "caption": "周末手账", "cb": _open_ledger_book},
 		{"glyph": "忆", "tip": "记忆墙 · 回看一路攒下的便签", "caption": "记忆墙", "cb": _open_memory_wall},
-		{"glyph": "生", "tip": "生活 · 精力 / 周末 / 熊友", "caption": "生活", "cb": _open_life_panel},
-		{"glyph": "信", "tip": "消息匣 · 谁在这时候想起了你", "caption": "消息匣", "cb": _open_message_inbox},
 		{"glyph": "处", "tip": "你的处境 · 现在站在哪里、为什么", "caption": "你的处境", "cb": _open_standing},
 	]
 	for i in defs.size():
@@ -1438,7 +1682,7 @@ func _build_hud_button_row(layer: CanvasLayer) -> void:
 			layer,
 			String(defs[i]["glyph"]),
 			String(defs[i]["tip"]),
-			Vector2(-15.0 - HUD_CIRCLE_SIZE * (i + 1) - 8.0 * i, HUD_CIRCLE_ROW_Y)
+			Vector2(-15.0 - HUD_CIRCLE_SIZE * (i + 2) - 8.0 * (i + 1), HUD_CIRCLE_ROW_Y)
 		)
 		button.pressed.connect(_on_circle_button_press.bind(button))
 		button.pressed.connect(Callable(defs[i]["cb"]))
@@ -1446,33 +1690,7 @@ func _build_hud_button_row(layer: CanvasLayer) -> void:
 		button.mouse_entered.connect(_show_hud_button_caption.bind(String(defs[i]["caption"])))
 		button.mouse_exited.connect(_on_circle_button_hover.bind(button, 1.0))
 		button.mouse_exited.connect(_hide_hud_button_caption)
-		if String(defs[i]["glyph"]) == "信":
-			# 未读红点：有消息没人看时才亮。圆钮本身只有 48px，红点挂右上角探出去一点。
-			_unread_dot = Panel.new()
-			_unread_dot.position = Vector2(32, -3)
-			_unread_dot.size = Vector2(14, 14)
-			var dot_style := StyleBoxFlat.new()
-			dot_style.bg_color = Color("e5503f")
-			dot_style.set_corner_radius_all(7)
-			_unread_dot.add_theme_stylebox_override("panel", dot_style)
-			_unread_dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			_unread_dot.visible = false
-			button.add_child(_unread_dot)
-		elif String(defs[i]["glyph"]) == "生":
-			# 自由周末红点：本月的周末就绪了还没安排时亮（2026-09-18 拍板：
-			# 周末不再自动弹窗，改红点 + 进月 toast 提醒）。结算完或跨月作废即灭。
-			_life_button = button
-			_weekend_dot = Panel.new()
-			_weekend_dot.position = Vector2(32, -3)
-			_weekend_dot.size = Vector2(14, 14)
-			var wdot_style := StyleBoxFlat.new()
-			wdot_style.bg_color = Color("e5503f")
-			wdot_style.set_corner_radius_all(7)
-			_weekend_dot.add_theme_stylebox_override("panel", wdot_style)
-			_weekend_dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			_weekend_dot.visible = false
-			button.add_child(_weekend_dot)
-		elif String(defs[i]["glyph"]) == "处":
+		if String(defs[i]["glyph"]) == "处":
 			# 处境警示点：处境一旦不是「稳定」，这颗点就亮 —— 被叫去谈话这件事
 			# 不能等玩家自己想起来翻页才知道。颜色分两级（观察=琥珀 / 危急以上=红），
 			# 但**颜色只是快读的辅助**，语义永远有页面上的文字兜着（§2.4）。
@@ -1486,15 +1704,8 @@ func _build_hud_button_row(layer: CanvasLayer) -> void:
 			_standing_dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			_standing_dot.visible = false
 			button.add_child(_standing_dot)
-		elif String(defs[i]["glyph"]) == "设":
-			_settings_button = button
-		elif String(defs[i]["glyph"]) == "账":
-			_ledger_book_button = button
 		elif String(defs[i]["glyph"]) == "忆":
 			_memory_wall_button = button
-		# 「生」钮存成员变量 _life_button：红点挂它上面；面板实例在 _build_monthly_life 里。
-	# （2026-09-18 拍板）旧的「力」精力钮已改「生」生活钮：精力/周末/熊友三 Tab
-	# 合进一颗圆钮（LifePanel），周末不再自动弹窗、改 toast + 红点提醒。
 	_hud_button_caption = Label.new()
 	_hud_button_caption.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	_hud_button_caption.position = Vector2(-410, HUD_CIRCLE_ROW_Y + HUD_CIRCLE_SIZE + 8)
@@ -1590,9 +1801,7 @@ func _open_settings() -> void:
 		_build_settings_panel()
 	if _settings_panel.is_open():
 		return
-	# 记忆墙 / 手账开着时设置钮在弹层之下点不到；这里再兜一层。
-	if (_memory_wall != null and _memory_wall.is_open()) \
-			or (_ledger_book != null and _ledger_book.is_open()):
+	if _memory_wall != null and _memory_wall.is_open():
 		return
 	# 与记忆墙同待遇：设置开着时世界时钟停住。
 	_settings_resume_clock = WorldClock.running
@@ -1609,23 +1818,33 @@ func _on_settings_closed() -> void:
 
 ## 左下角虚拟摇杆（触屏/鼠标共用）。2026-09-18 用户反馈：整体放大到 220，
 ## 内部尺寸全部按底盘比例推，改大小只动 JOYSTICK_SIZE 一个数。
-const JOYSTICK_SIZE := 220.0
+const JOYSTICK_SIZE := 244.0
 
 func _build_mobile_joystick(layer: CanvasLayer) -> void:
 	var half := JOYSTICK_SIZE * 0.5
-	var base_radius := half * 0.867   # 底盘外圈（原 150 盘时 65）
-	var knob_radius := half * 0.333   # 中心旋钮（原 25）
 	var travel := half * 0.733        # 旋钮最大位移（原 55）
 	var center := Vector2(half, half)
 	var joystick := Control.new()
-	joystick.position = Vector2(44, 1080.0 - JOYSTICK_SIZE - 50.0)
+	joystick.position = Vector2(40, 1080.0 - JOYSTICK_SIZE - 38.0)
 	joystick.size = Vector2(JOYSTICK_SIZE, JOYSTICK_SIZE)
 	joystick.mouse_filter = Control.MOUSE_FILTER_STOP
-	joystick.draw.connect(func():
-		joystick.draw_circle(center, base_radius, Color(0.11, 0.16, 0.21, 0.40))
-		joystick.draw_arc(center, base_radius, 0, TAU, 40, Color(1, 1, 1, 0.58), 3)
-		joystick.draw_circle(center + _touch_vector * travel, knob_radius, Color(1, 1, 1, 0.78))
-	)
+	var base := TextureRect.new()
+	base.texture = JOYSTICK_BASE
+	base.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	base.stretch_mode = TextureRect.STRETCH_SCALE
+	base.size = joystick.size
+	base.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	joystick.add_child(base)
+	var knob := TextureRect.new()
+	knob.texture = JOYSTICK_KNOB
+	knob.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	knob.stretch_mode = TextureRect.STRETCH_SCALE
+	knob.size = Vector2(120, 120)
+	knob.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	joystick.add_child(knob)
+	var refresh_knob := func():
+		knob.position = center + _touch_vector * travel - knob.size * 0.5
+	refresh_knob.call()
 	joystick.gui_input.connect(func(event):
 		if event is InputEventScreenTouch or event is InputEventMouseButton:
 			_touch_active = event.pressed
@@ -1634,7 +1853,7 @@ func _build_mobile_joystick(layer: CanvasLayer) -> void:
 		if event is InputEventScreenDrag or event is InputEventMouseMotion:
 			if _touch_active:
 				_touch_vector = (joystick.get_local_mouse_position() - center).limit_length(travel) / travel
-		joystick.queue_redraw()
+		refresh_knob.call()
 	)
 	layer.add_child(joystick)
 
@@ -1643,17 +1862,14 @@ func _update_zone_state() -> void:
 	_update_location_marker_visibility()
 	if not _active_zone.is_empty():
 		_nearby_zone = {}
-		_zone_button.hide()
 		return
 	_nearby_zone = {}
 	for zone in ZONES:
 		var entrance: Vector2 = zone["entrance"]
 		if _player.position.distance_to(entrance) <= ENTRANCE_DISTANCE:
 			_nearby_zone = zone
-			_zone_button.text = "进入 %s区  ·  E" % zone["code"]
-			_zone_button.show()
+			_enter_nearby_zone()
 			return
-	_zone_button.hide()
 
 
 func _update_location_marker_visibility() -> void:
@@ -1670,21 +1886,11 @@ func _update_location_marker_visibility() -> void:
 func _enter_nearby_zone() -> void:
 	if _nearby_zone.is_empty() or not _active_zone.is_empty():
 		return
-	# 夜晚/22 点后进 H 区 = 回宿舍（任务卡许诺「走到 H 区宿舍按 E」就睡）：
-	# 直接开宿舍屏（门口能出、床边能睡），不开慢生活园室内预览——
-	# 那里面没有任何睡觉交互，玩家会被困住只能干等 23 点宵禁兜底。
-	# 2026-09-17 晚：精力见底后白天进 H 区也开宿舍屏——「精力用完只提示不跳 22:00」
-	# 之后，玩家结束本月的唯一入口就是自己回宿舍上床睡觉，白天必须进得去。
-	# 精力还有结余的白天仍走室内预览，保留逛桌游馆的入口。
-	if String(_nearby_zone.get("code", "")) == "H" and (_needs_sleep() or _energy_spent_out()):
-		_nearby_zone = {}
-		_enter_dorm(false)
-		return
+	_portal_return_position = _find_safe_portal_exit(_nearby_zone, _player.position)
 	_active_zone = _nearby_zone
 	_nearby_zone = {}
 	_zone_entered_msec = Time.get_ticks_msec()
 	ApiClient.record_event("region_entered", {"regionId": String(_active_zone.get("code", ""))})
-	_zone_button.hide()
 	_zone_status.hide()
 	_dialog_label.hide()
 	for marker in _location_markers:
@@ -1699,23 +1905,17 @@ func _enter_nearby_zone() -> void:
 	if not texture_path.is_empty():
 		_interior_preview.present(_active_zone, texture_path)
 		_interior_preview.set_phase(String(WorldClock.snapshot().get("phaseId", "work")))
-	# 到达演出（2026-09-18 晚新链路）：出发模式的周末计划落在这区 → 压着室内预览
-	# 演全屏场景图 + 底部文字；演完回面板走原结算链。事件/回声这次都让路。
-	if _maybe_start_weekend_visit():
-		return
 	var event_opened := _open_due_event_for_active_zone()
 	if not event_opened:
 		_interior_preview.enable_exploration()
-		# 回声不跟剧情开场抢话：有事件先演事件，回声留给下次进来。
-		# 周日坐下优先于回声——这个周日只有一次坐下，回声不在这天的话下次还在。
-		if not (_is_sunday() and _maybe_show_sunday_sit()):
-			_maybe_show_weekend_echo()
+		_refresh_activity_panel()
 
 
 func _exit_zone() -> void:
 	if _active_zone.is_empty():
 		return
-	var region_id := String(_active_zone.get("code", ""))
+	var departing_zone := _active_zone.duplicate(true)
+	var region_id := String(departing_zone.get("code", ""))
 	if _zone_entered_msec > 0:
 		ApiClient.record_event("zone_dwell", {
 			"regionId": region_id,
@@ -1728,6 +1928,9 @@ func _exit_zone() -> void:
 	_zone_status.show()
 	if _interior_preview != null:
 		_interior_preview.dismiss()
+	_place_player_outside_portal(departing_zone)
+	if _activity_panel != null:
+		_activity_panel.hide_panel()
 	_refresh_objective_hint()
 	for marker in _location_markers:
 		marker.hide()
@@ -1737,256 +1940,68 @@ func _exit_zone() -> void:
 	_hide_dialog()
 
 
-## ---------- 周末到达演出 · 站点队列（2026-09-18 深夜重做） ----------
-## 一站 = 一个格子的活动，按格子顺序逐站演（同区两格 = 两场，不再拼接成一场）。
-## kind = "zone"（走到区入口按 E 进室内演）/ "outdoor"（走到落点半径内直接演，
-## 湖边这种本来就没有门，按 E 进门反而怪）。
-
-## 队列头那一站。没站了返回空 Dictionary。
-func _weekend_current_station() -> Dictionary:
-	if _weekend_visit.is_empty():
-		return {}
-	var queue: Array = _weekend_visit.get("queue", [])
-	if queue.is_empty():
-		return {}
-	return queue[0]
-
-
-## 把当前站的路引到位：区域站 → 区入口（沿用旧链路）；户外站 → 落点坐标 + 地面黄标。
-func _focus_weekend_station(station: Dictionary) -> void:
-	if station.is_empty():
-		return
-	if String(station.get("kind", "")) == "outdoor":
-		_free_guide_zone = ""
-		_free_guide_spot = {
-			"position": station.get("position", Vector2.ZERO),
-			"label": String(station.get("label", "")),
-		}
-	else:
-		_free_guide_spot = {}
-		_free_guide_zone = String(station.get("key", ""))
-	_refresh_objective_hint()
-	_refresh_guide_line(true)
-	_refresh_weekend_spot_marker()
-
-
-## 推进到队头：铺引导；人已经在户外落点圈里（同一落点的第二场）就直接开演。
-## announce = true 时才提示「还有下一站」（出发铺第一站时不该弹这句）。
-func _start_next_weekend_station(announce: bool = false) -> void:
-	var station := _weekend_current_station()
-	if station.is_empty():
-		_finish_weekend_visit()
-		return
-	_focus_weekend_station(station)
-	if String(station.get("kind", "")) == "outdoor" and _is_player_at_weekend_spot(station):
-		_play_weekend_station(station)
-		return
-	if announce:
-		_dialog_label.text = "这个周末还有下一站，跟着地面指引继续。"
-		_dialog_label.show()
-		_dialog_timer.start(6.0)
-
-
-func _is_player_at_weekend_spot(station: Dictionary) -> bool:
+func _place_player_outside_portal(zone: Dictionary) -> void:
 	if _player == null:
-		return false
-	var target: Vector2 = station.get("position", Vector2.ZERO)
-	var radius := float(station.get("radius", 96.0))
-	return _player.position.distance_to(target) <= radius
+		return
+	var fallback := _find_safe_portal_exit(zone, _player.position)
+	var destination := _portal_return_position if _is_safe_portal_exit(_portal_return_position) else fallback
+	_player.position = destination
+	_player.velocity = Vector2.ZERO
+	_last_walkable_position = _player.position
+	_portal_return_position = Vector2.ZERO
 
 
-## 开演一站：只取该格自己的文案。返回 true = 演出已开。
-func _play_weekend_station(station: Dictionary) -> bool:
-	if _free_time_panel == null or _weekend_scene_panel == null or station.is_empty():
+func _find_safe_portal_exit(zone: Dictionary, approach_position: Vector2) -> Vector2:
+	var entrance: Vector2 = zone.get("entrance", approach_position)
+	var preferred_direction := approach_position - entrance
+	if preferred_direction.length_squared() < 4.0:
+		var bounds: Rect2 = zone.get("rect", Rect2())
+		preferred_direction = entrance - bounds.get_center()
+	if preferred_direction.length_squared() < 4.0:
+		preferred_direction = Vector2.DOWN
+	preferred_direction = preferred_direction.normalized()
+	for distance in [96.0, 124.0, 152.0, 184.0, 220.0]:
+		var candidate: Vector2 = entrance + preferred_direction * distance
+		if _is_safe_portal_exit(candidate):
+			return candidate
+	for distance in [112.0, 152.0, 200.0, 248.0]:
+		for index in 16:
+			var angle := TAU * float(index) / 16.0
+			var candidate: Vector2 = entrance + Vector2(cos(angle), sin(angle)) * float(distance)
+			if _is_safe_portal_exit(candidate):
+				return candidate
+	return _last_walkable_position if _is_safe_portal_exit(_last_walkable_position) else PLAYER_START_POSITION
+
+
+func _is_safe_portal_exit(position: Vector2) -> bool:
+	if not _is_walkable_position(position):
 		return false
-	var scene_cfg: Dictionary = _free_time_panel.build_station_scene(int(station.get("slot", -1)))
-	if scene_cfg.is_empty():
-		# 文案缺失（理论上不该出现）：划掉这站接着走，别把玩家卡在原地。
-		_pop_weekend_station()
-		if _weekend_current_station().is_empty():
-			_finish_weekend_visit()
-		else:
-			_start_next_weekend_station()
-		return false
-	_weekend_visit["current"] = station
-	_weekend_scene_panel.present(scene_cfg)
+	for zone in ZONES:
+		var entrance: Vector2 = zone.get("entrance", Vector2.ZERO)
+		if position.distance_to(entrance) <= ENTRANCE_DISTANCE + 16.0:
+			return false
 	return true
 
 
-func _pop_weekend_station() -> void:
-	_weekend_visit["current"] = {}
-	var queue: Array = _weekend_visit.get("queue", [])
-	if not queue.is_empty():
-		queue.remove_at(0)
-	_weekend_visit["queue"] = queue
-
-
-## 全部演完 → 先退回街上（否则人被留在没开探索模式的室内出不来），再走原结算链。
-func _finish_weekend_visit() -> void:
-	_weekend_visit = {}
-	_free_guide_spot = {}
-	_free_guide_zone = ""
-	_exit_zone()
-	_refresh_weekend_spot_marker()
-	_refresh_guide_line(true)
-	if _free_time_panel != null:
-		_free_time_panel.arrive_and_commit()
-
-
-## 进区时调用（区域站）：队列头就是这一区 → 开演。返回 true = 演出已开，
-## 主线/回声这次都让路。
-func _maybe_start_weekend_visit() -> bool:
-	if _weekend_visit.is_empty() or _weekend_scene_panel == null or _free_time_panel == null:
-		return false
-	if int(_weekend_visit.get("month", -1)) != int(WorldClock.snapshot().get("month", 0)):
-		_weekend_visit = {}
-		_free_guide_spot = {}
-		_refresh_weekend_spot_marker()
-		return false
-	var station := _weekend_current_station()
-	if station.is_empty() or String(station.get("kind", "")) != "zone":
-		return false
-	if String(station.get("key", "")) != String(_active_zone.get("code", "")):
-		return false
-	return _play_weekend_station(station)
-
-
-## 一站演完：先退回街上，再推进到下一站（或结算）。
+## 区域活动演出结束后结算一次行动力。
 func _on_weekend_scene_finished() -> void:
-	if _weekend_visit.is_empty():
-		return
-	_pop_weekend_station()
-	if _weekend_current_station().is_empty():
-		_finish_weekend_visit()
-		return
-	# 演完先退回街上：到达演出分支没走 enable_exploration，室内是死的——人留在
-	# 里面既看不见下一站的引导线，也没有任何可交互的东西（用户实测卡死）。
-	# 同落点的第二场由 _start_next_weekend_station 的近距离判定直接接上。
-	_exit_zone()
-	_start_next_weekend_station(true)
+	if not _pending_action_activity.is_empty():
+		var activity := _pending_action_activity.duplicate(true)
+		_pending_action_activity = {}
+		_activity_busy = false
+		var result := _action_window.spend_on_activity(activity)
+		_refresh_activity_panel()
 
 
-## 街上每帧：队列头是户外站且人已走进半径 → 开演（户外没有"按 E 进门"这一步）。
-func _check_weekend_outdoor_arrival() -> void:
-	if _weekend_visit.is_empty() or _weekend_scene_panel == null:
-		return
-	var station := _weekend_current_station()
-	if station.is_empty() or String(station.get("kind", "")) != "outdoor":
-		return
-	if _weekend_scene_panel.is_open():
-		return
-	if _is_player_at_weekend_spot(station):
-		_play_weekend_station(station)
-
-
-## ---------------------------------------------------------------------------
-## 宿舍 / 宵禁
-## 玩家每天从慢生活园的宿舍出发，晚上 CURFEW_HOUR 点必须回到宿舍。
-## 到点没回来也没关系 —— 人会被直接送回宿舍，那一晚只剩「睡觉」一个选项，
-## 睡醒是第二天 WAKE_UP_HOUR 点，重新出现在宿舍门口。
-## ---------------------------------------------------------------------------
-
-func _build_dorm_room() -> void:
-	_dorm = DORM_ROOM.new()
-	_dorm.leave_requested.connect(_on_dorm_leave)
-	_dorm.sleep_requested.connect(_on_dorm_sleep)
-	add_child(_dorm)
-
-
-func _enter_dorm(curfew: bool) -> void:
-	if _dorm == null:
-		return
-	if not _active_zone.is_empty():
-		_exit_zone()
-	_in_dorm = true
-	_hide_dialog()
-	_interaction_button.hide()
-	_zone_button.hide()
-	_zone_status.hide()
-	if curfew:
-		# 宵禁这一晚把时间钉住：不然玩家发呆的功夫，游戏时间会一路跑到后半夜。
-		WorldClock.set_running(false)
-	_dorm.present(curfew)
-
-
-func _on_dorm_leave() -> void:
-	_in_dorm = false
-	if _dorm != null:
-		_dorm.dismiss()
-	_place_player_at_dorm_door()
-	_zone_status.show()
-	_refresh_objective_hint()
-	# 开局第 1 月 1 日 09:00 正好是 E01 的时点。时间不自动流之后它不会自己演，
-	# 所以「出门」这个动作补一次点火 —— 出门报到，剧情接上。
-	WorldClock.trigger_event_at_now()
-
-
-func _on_dorm_sleep() -> void:
-	_in_dorm = false
-	if _dorm != null:
-		_dorm.dismiss()
-	# 睡觉 = 结束本月（2026-09-17 晚拍板）：直接进下一个月 1 日早上；
-	# 路上有未结算主线时守卫会停在事件上，绝不把剧情睡过去。
-	WorldClock.sleep_to_next_month(WAKE_UP_HOUR)
-	# 睡醒当天挂着主线（多在 9:00）→ 补一枪点火，事件门亮起来引导玩家走过去。
-	# 不补这枪，停钟世界没人把 7:00 推到 9:00，剧情会永远挂起（跳月卡死的根因）。
-	WorldClock.fire_due_event_today()
-	_place_player_at_dorm_door()
-	_zone_status.show()
-	_refresh_objective_hint()
-
-
-## 出门时把人钉在宿舍门口，并让相机直接落位 ——
-## 不落位的话镜头会从昨晚待的地方一路滑过来，看着像瞬移失败。
-func _place_player_at_dorm_door() -> void:
+func _place_player_at_start() -> void:
 	if _player == null:
 		return
-	_player.position = DORM_DOOR_POSITION
+	_player.position = PLAYER_START_POSITION
 	_player.velocity = Vector2.ZERO
 	_last_walkable_position = _player.position
 	if _camera != null:
 		_camera.position = _player.position
 		_camera.reset_smoothing()
-
-
-## 宿舍现在要玩家自己走到门口 / 床边才出确认框（见 scripts/DormRoom.gd），
-## 这里只留一个"直接执行"的入口给自检脚本用。
-func _confirm_dorm_action() -> void:
-	if _dorm == null:
-		return
-	if _dorm.is_curfew():
-		_on_dorm_sleep()
-	else:
-		_on_dorm_leave()
-
-
-## 一过 CURFEW_HOUR 点就把玩家送回宿舍，同一天只送一次。
-func _check_curfew(snapshot: Dictionary) -> void:
-	if _dorm == null or _in_dorm:
-		return
-	if int(snapshot.get("hour", 0)) < CURFEW_HOUR:
-		return
-	var day_key := "%d-%d" % [int(snapshot.get("month", 1)), int(snapshot.get("day", 1))]
-	if _curfew_day_key == day_key:
-		return
-	# 主线剧情开着时先让玩家把选择做完；WorldClock 暂停也说明有事件等处理，
-	# 这时候拽人回宿舍，那个事件就再也触发不到了。
-	if _story_event_panel != null and _story_event_panel.is_open():
-		return
-	if not WorldClock.running:
-		return
-	_curfew_day_key = day_key
-	_enter_dorm(true)
-
-
-## ---------- 精力耗尽联动（2026-09-17 UI 打磨批次） ----------
-
-## 玩家花掉本月最后 1 点精力（MonthlyLife.energy_exhausted）：
-## 2026-09-17 晚拍板：只弹一条提示 —— 不拨时间、不催睡觉。
-## 玩家自己决定接下来干嘛：继续逛小镇，或回宿舍上床睡觉结束本月
-## （精力见底后，白天走进 H 区也直接开宿舍屏，见 _enter_nearby_zone）。
-func _on_energy_exhausted() -> void:
-	_show_reminder_toast("本月精力用完了", "下个月初补满 3 点 · 想结束这个月就回宿舍睡一觉")
 
 
 ## 顶部提醒横幅：屏幕顶上下滑入 → 停 3.6s → 上滑淡出自毁。全程不挡鼠标。
@@ -2065,16 +2080,13 @@ func _show_reminder_toast(title: String, sub: String) -> void:
 
 func _update_nearby_npc() -> void:
 	_nearby_npc = {}
-	if _active_zone.is_empty():
-		_interaction_button.hide()
-		return
 	for npc in _npc_instances:
-		if String(npc["zone"]).to_lower() != String(_active_zone["id"]).to_lower():
+		if not _active_zone.is_empty() and String(npc["zone"]).to_lower() != String(_active_zone["id"]).to_lower():
 			continue
 		var npc_position := (npc["character"] as Node2D).position
-		if _player.position.distance_to(npc_position) <= INTERACTION_DISTANCE:
+		if (npc["character"] as Node2D).visible and _player.position.distance_to(npc_position) <= INTERACTION_DISTANCE:
 			_nearby_npc = npc
-			_interaction_button.text = "与 %s 交谈  ·  E" % npc["name"]
+			_interaction_button.text = "与 %s 交流  ·  E" % npc["name"]
 			_interaction_button.show()
 			return
 	_interaction_button.hide()
@@ -2112,256 +2124,16 @@ func _build_world_time() -> void:
 	environment_layer.add_child(_environment_tint)
 
 
-## 月度生活系统 + 两块面板。MonthlyLife 故意不做 autoload：
-## 引用从这里下发，探针也能直接 new（见 build/probe_free_time.gd）。
-func _build_monthly_life() -> void:
-	_monthly_life = MONTHLY_LIFE.new()
-	_monthly_life.name = "MonthlyLife"
-	add_child(_monthly_life)
-	# 2026-09-17（24 件基准拍板 #2/#7）：精力与时间脱钩。
-	# 精力 = 每月 3 点的养成额度，不再承担「推进时段」的职责；
-	# 时间推进改为双驱动：睡觉跨天（_on_dorm_sleep）+ 主线事件结算推进一拍
-	# （_on_story_outcome_acknowledged → WorldClock.advance_phase）。
-	# 弹窗自己监听 state_changed 刷新圆点/置灰；「精力耗尽」信号挂在 MonthlyLife 上
-	# （2026-09-17 自 EnergyPanel 上移）：弹窗行动卡是唯一消费路径，走 spend_energy
-	# —— 花掉最后 1 点 → 只弹顶部横幅提示（2026-09-17 晚拍板：不再跳 22:00）。
-	_monthly_life.energy_exhausted.connect(_on_energy_exhausted)
-	# 主线门禁（2026-09-17 晚拍板）：当月主线没过完，花精力一律被 MonthlyLife 硬拦、
-	# 弹窗按钮置灰。判定在 WorldClock.main_event_due，用 Callable 注入——
-	# MonthlyLife 刻意不依赖 autoload，探针才能直接 new 出来测。
-	_monthly_life.main_gate = _main_event_gate
-	# 生活面板（2026-09-18 拍板）：右上角只留一颗「生」钮，精力/周末/熊友三 Tab 合一；
-	# 周末不再自动弹窗，就绪时 toast + 红点，玩家点进来自己安排。
-	_life_panel = LIFE_PANEL.new()
-	_life_panel.setup(_monthly_life)
-	_life_panel.main_gate = _main_event_gate
-	_life_panel.closed.connect(_on_life_panel_closed)
-	_life_panel.weekend_requested.connect(_on_life_weekend_requested)
-	add_child(_life_panel)
-	_free_time_panel = FREE_TIME_PANEL.new()
-	_free_time_panel.setup(_monthly_life)
-	_free_time_panel.weekend_closed.connect(_on_weekend_closed)
-	_free_time_panel.memo_requested.connect(_on_memo_recorded)
-	_free_time_panel.weekend_ledger.connect(_on_weekend_ledger)
-	_free_time_panel.zone_focused.connect(_on_free_zone_focused)
-	_free_time_panel.departure_started.connect(_on_weekend_departure)
-	add_child(_free_time_panel)
-	# 到达演出面板：图层 160，压在室内预览（80）上、手账（150）下互不打架。
-	_weekend_scene_panel = WEEKEND_SCENE_PANEL.new()
-	_weekend_scene_panel.finished.connect(_on_weekend_scene_finished)
-	add_child(_weekend_scene_panel)
-
-
-## 出发：登记这一轮周末的站点队列（一格一站，按格子顺序），并把引导铺到第一站。
-## stations 每项 = {kind, key, slot, label, position, radius}（FreeTimePanel.visit_stations()）。
-func _on_weekend_departure(month: int, stations: Array) -> void:
-	var queue: Array = []
-	for station in stations:
-		if station is Dictionary and not (station as Dictionary).is_empty():
-			queue.append(station)
-	_weekend_visit = {"month": month, "queue": queue, "current": {}}
-	# 面板里浏览区域时留下的旧目的地一律清掉，只认这一轮的队头。
-	_free_guide_zone = ""
-	_free_guide_spot = {}
-	_start_next_weekend_station()
-
-
-## 自由周末选了组团 → 把地面指引线改指那个区域，任务卡同时换成"自由活动"。
-## 组团名到区域 code 的换算在 _zone_code_from_free_label（"D_树影书院" → "D"）。
-func _on_free_zone_focused(zone_label: String) -> void:
-	_free_guide_zone = _zone_code_from_free_label(zone_label)
-	_refresh_objective_hint()
-	_refresh_guide_line(true)
-
-
-func _on_weekend_closed(month: int) -> void:
-	if not _weekend_done_months.has(month):
-		_weekend_done_months.append(month)
-	# 周末安排完了：摘红点、清就绪标记，生活面板「周末」页翻到「已过完」。
-	if _weekend_ready_month == month:
-		_weekend_ready_month = -1
-	_refresh_weekend_dot()
-	_refresh_life_panel_context()
-	# 收束即清理目的地引导（2026-09-17）：残留曾让任务卡和地面线在周末过完后
-	# 继续喊「周末目的地 · 跟着地面指引走」，把玩家骗到已过完的区域踩空。
-	# 先把目的地捕获下来，收尾时若人正好还站在那里，补一句周末余韵。
-	var stayed_zone := _free_guide_zone
-	_free_guide_zone = ""
-	# 户外落点同理：周末过完就把黄标和落点引导一起收掉。
-	_free_guide_spot = {}
-	_refresh_weekend_spot_marker()
-	# 契约 payload.regionId 是必填且强制 ^[A-H]$（server.py post_event），缺了会被 400 拒。
-	# weekend_close 是全局收束事件、没有天然区域，取当前所在区域；取不到就退回总部 A。
-	var close_region := String(_active_zone.get("code", "")) if not _active_zone.is_empty() else ""
-	ApiClient.record_event("weekend_close", {
-		"regionId": close_region if close_region.length() == 1 else "A",
-		"month": month,
-		"snapshot": WorldClock.snapshot(),
-	})
-	WorldClock.set_running(true)
-	# 时间恢复流动后再刷任务卡：此刻 _free_guide_zone 已空，卡会回到「下一个主线」。
-	_refresh_objective_hint()
-	# 周日 = 周末收束的次日（§13.1）。这一天的打开方式：NPC 说周日闲话（不加好感）、
-	# 湖边/天台可以坐下待一会儿；什么日程都没有。
-	_sunday_day_index = int(WorldClock.snapshot().get("dayIndex", -1)) + 1
-	_sunday_sit_done = false
-	_check_curfew(WorldClock.snapshot())
-	# 周末余韵：人正好还站在刚过完的目的地区，给一句收束台词，让「过完了」有落点。
-	if not stayed_zone.is_empty() and not _active_zone.is_empty() \
-			and String(_active_zone.get("code", "")) == stayed_zone:
-		var zone_name := String(_zone_by_code(stayed_zone).get("name", "目的地"))
-		_dialog_label.text = "%s的热闹还没散尽。你在人群边上又站了一会儿。" % zone_name
-		_dialog_label.show()
-		_dialog_timer.start(8.0)
-	# 面板关掉、人回到小镇上：这时候才该重新铺线（面板开着时玩家看不到地图）。
-	# 引导目的地已清空，这条刷新会把旧线撤掉、也不会再铺向过完的周末。
-	_refresh_guide_line(true)
-
-
-## 今天是不是「周日」（周末收束后的那一天）。没收束过任何周末时恒否。
-func _is_sunday() -> bool:
-	return _sunday_day_index >= 0 \
-		and int(WorldClock.snapshot().get("dayIndex", -1)) == _sunday_day_index
-
-
-## 周日的坐下时刻（§13.1：湖边 + 天台各一个「坐下」，走遍小镇想待会儿就待会儿）。
-## 湖边（心湖）与天台（A_总部）都在 A 区——进 A 区就算走到位，一個周日只坐一次。
-## 只落 zone_dwell（进区/出区本来就会记），不加任何数值、不进 events.jsonl。
-func _maybe_show_sunday_sit() -> bool:
-	if _sunday_sit_done or _active_zone.is_empty() \
-			or String(_active_zone.get("code", "")) != "A":
-		return false
-	_sunday_sit_done = true
-	var line := "你在湖边坐下。水面把云搬得很慢，你也没急着去哪。"
-	if int(WorldClock.snapshot().get("dayIndex", 0)) % 2 == 1:
-		line = "天台的风还是那个风。今天它只负责吹，不负责让你清醒。"
-	_dialog_label.text = line
-	_dialog_label.show()
-	_dialog_timer.start(8.0)
-	return true
-
-
-## 自由周末触发（2026-09-18 晚改版）：每 3 个月一次（第 3/6/9…月），进月时若该月
-## 没有待结算的主线事件（或主线已结完），**自动弹一次规划面板**——玩家口中的
-## 「周五晚上规划周末」：时间系统没有星期，周末月的开始就是「忙完这个月的活」那一刻。
-## 「生活」钮红点保留；在宿舍里 / 面板已开时不弹，退回 toast 提示。
-## 玩家无视到跨月 = 这个周末作废（month 变了条件不再满足，红点随 _weekend_ready_month 清理）。
-func _maybe_open_weekend(snapshot: Dictionary) -> void:
-	if _monthly_life == null:
-		return
-	var month := int(snapshot["month"])
-	if month % 3 != 0 or _weekend_done_months.has(month):
-		_clear_stale_weekend_ready(month)
-		return
-	if _in_dorm or (_free_time_panel != null and _free_time_panel.is_open()):
-		return
-	var next_event := WorldClock.next_main_event()
-	if not next_event.is_empty() and int(next_event["month"]) == month:
-		return
-	if _weekend_ready_month != month:
-		_weekend_ready_month = month
-		_refresh_weekend_dot()
-		# 自动弹规划面板（发过一次就不再自动弹；玩家还能从「生活」钮进）。
-		if _weekend_auto_prompted_month != month:
-			_weekend_auto_prompted_month = month
-			_open_weekend_planning(month)
-		else:
-			_show_reminder_toast("这个月有自由周末", "点右上角「生活」钮，安排这两天怎么过")
-	_refresh_life_panel_context()
-
-
-## 跨月作废清理：红点挂的月份不再是当前月份（也没结算过）→ 摘掉。
-func _clear_stale_weekend_ready(current_month: int) -> void:
-	if _weekend_ready_month != -1 and _weekend_ready_month != current_month \
-			and not _weekend_done_months.has(_weekend_ready_month):
-		_weekend_ready_month = -1
-		_refresh_weekend_dot()
-
-
-## 「生活」钮红点：周末就绪未安排时亮，其余时候灭。
-func _refresh_weekend_dot() -> void:
-	if _weekend_dot != null:
-		_weekend_dot.visible = _weekend_ready_month != -1
-
-
-## 把周末状态推给生活面板（ready / done / locked / none + 下一个周末的月份）。
-## ⚠ 面板不反查小镇内部状态：探针可以直接 new 面板喂数据。
-func _refresh_life_panel_context() -> void:
-	if _life_panel == null:
-		return
-	var month := int(WorldClock.snapshot().get("month", 1))
-	var state := "none"
-	var weekend_month := -1
-	var next_month := month + (3 - month % 3) if month % 3 != 0 else month + 3
-	if month % 3 == 0:
-		if _weekend_done_months.has(month):
-			state = "done"
-		elif _weekend_ready_month == month:
-			state = "ready"
-			weekend_month = month
-			next_month = month
-		else:
-			state = "locked"
-			next_month = month
-	_life_panel.set_weekend_state(state, weekend_month, next_month)
-
-
 func _on_world_time_changed(snapshot: Dictionary) -> void:
-	if _monthly_life != null:
-		# 跨天 → 体力回满；跨月 → 补一次月底工资结算（见 MonthlyLife.sync）。
-		_monthly_life.sync(int(snapshot["month"]), int(snapshot.get("dayIndex", 0)))
-	# 出发模式跨月作废（2026-09-18 晚）：排好计划没去成，睡过月就清掉面板与目的地。
-	if _free_time_panel != null and _free_time_panel.has_departed_plan() \
-			and _free_time_panel.plan_month() != int(snapshot["month"]):
-		_free_time_panel.discard_plan()
-	if not _weekend_visit.is_empty() \
-			and int(_weekend_visit.get("month", -1)) != int(snapshot["month"]):
-		_weekend_visit = {}
-		_free_guide_spot = {}
-		_refresh_weekend_spot_marker()
 	if _time_hud != null:
 		_time_hud.set_time(snapshot)
-	_maybe_open_weekend(snapshot)
-	_refresh_life_panel_context()
 	if _interior_preview != null and _interior_preview.is_open():
 		_interior_preview.set_phase(String(snapshot.get("phaseId", "work")))
-	_check_curfew(snapshot)
 	_refresh_objective_hint()
 	if _environment_tint == null:
 		return
-	# 视觉只区分白天和晚上。内部仍保留事件使用的细分时刻，避免改变睡觉和主线门禁。
+	# 视觉只区分白天和晚上；职业时间由主线事件直接跳转。
 	_environment_tint.color = Color(0.07, 0.14, 0.35, 0.42) if String(snapshot["phaseId"]) == "night" else Color(1, 1, 1, 0)
-
-
-## （原「跳空白日/跳到下个内容日」逻辑已删：2026-09-17 晚拍板，睡觉 = 进下月，
-## 不再吞月份——那套跳法曾把月 2 整个吞掉、还让事件门停在 7:00 永远点不亮。）
-
-
-## 该回宿舍了吗：走到夜晚时段就该睡了。
-## 2026-09-17：删掉「体力 ≤ 1」条件 —— 精力改月度后整个月大多 ≤ 1，
-## 那个旧条件会让任务卡从月初就一直喊「精力见底」。
-## 2026-09-17 第三批：22 点起也算「该回了」——精力耗尽横幅在 22:00 就喊玩家
-## 回宿舍睡一觉，任务卡与宿舍入口必须跟这个口径一致（旧口径要 23 点夜晚段才认，
-## 玩家 22:00 走到宿舍会被「按了没反应」困住，只能干等宵禁）。
-## 2026-09-17 晚：精力耗尽不再替玩家跳 22:00，这个判定保留给「夜晚/22 点后进 H 区」。
-func _needs_sleep() -> bool:
-	if _in_dorm:
-		return false
-	if int(WorldClock.snapshot().get("phaseIndex", 0)) >= WorldClock.PHASES.size() - 1:
-		return true
-	return int(WorldClock.snapshot().get("hour", 0)) >= ENERGY_CURFEW_JUMP_HOUR
-
-
-## 本月精力已见底（H 区白天开宿舍屏的条件之一）：
-## 精力用完只提示不跳时间之后，玩家结束本月的入口 = 自己回宿舍上床睡觉。
-func _energy_spent_out() -> bool:
-	return _monthly_life != null and int(_monthly_life.energy) <= 0
-
-
-## MonthlyLife.spend_energy 与精力弹窗共用的主线门禁：
-## 当月主线没过完 → 不许花精力（Callable 注入，MonthlyLife/弹窗都不依赖 autoload）。
-func _main_event_gate() -> bool:
-	return WorldClock.main_event_due()
 
 
 func _on_main_event_reached(event: Dictionary) -> void:
@@ -2376,9 +2148,6 @@ func _on_main_event_reached(event: Dictionary) -> void:
 	_refresh_objective_hint()
 	# 事件到点 = 引导线切成"救火"态（橙金 + 加速流动），必须立刻重铺。
 	_refresh_guide_line(true)
-	if not _active_zone.is_empty() and String(_active_zone.get("code", "")) == String(event.get("locationId", "")):
-		_story_event = event.duplicate(true)
-		_story_event_panel.present(_story_event)
 
 
 func _refresh_objective_hint() -> void:
@@ -2415,20 +2184,44 @@ func _event_contact_name(event: Dictionary) -> String:
 	return ""
 
 
-## 按优先级决定任务卡上写什么。优先级必须与 _resolve_guide_target 保持一致：
-## 夜晚该睡 > 到点主线 > 自由活动 > 未到点主线 > 主线已完结。
+## 按优先级决定任务卡内容：教学 > 行动窗口 > 到点主线 > 后续主线 > 完结。
 func _apply_objective_content() -> void:
 	if _zone_status == null:
 		return
-	# 夜晚排最前：时段走到夜晚 = 今天的事拍完了，该睡了。
-	if _needs_sleep():
+	if not _tutorial_complete and _tutorial_step == 0:
 		_set_objective(
-			"夜深了",
-			"回 H 区宿舍睡一觉",
-			"次日 %02d:00 出发 · 走到 H 区宿舍按 E" % WAKE_UP_HOUR,
-			"H 区",
-			true
+			"教学 1/5",
+			"移动角色",
+			"键盘使用 WASD 或方向键 · 手机使用左下角摇杆",
+			"操作",
+			false
 		)
+		return
+	if not _tutorial_complete and _tutorial_step == 1:
+		_set_objective("教学 2/5", "跟随地面路线前往第一段剧情", "到达目标区域入口后按 E 进入", "B 区", true)
+		return
+	if _action_window != null and _action_window.active:
+		var remaining := int(_action_window.remaining)
+		var zone_code := String(_active_zone.get("code", "")) if not _active_zone.is_empty() else ""
+		var action_tag := "自由活动 · 剩余行动力 %d/3" % remaining
+		if not _tutorial_complete:
+			action_tag = "教学 4/5 · 认识行动力" if _tutorial_step <= 3 else "教学 5/5 · 耗尽行动力"
+		if zone_code in ["C", "D", "E", "F", "G", "H"]:
+			_set_objective(
+				action_tag,
+				"选择右侧活动，或与场所NPC交谈",
+				"剩余 %d/3 · 每次有效行动消耗 1 点，清零后开放主线" % remaining,
+				"%s 区" % zone_code,
+				false
+			)
+		else:
+			_set_objective(
+				action_tag,
+				"前往 C 至 H 区自由安排",
+				"剩余 %d/3 · 通过区域活动消耗" % remaining,
+				"C-H 区",
+				false
+			)
 		return
 	var next_event := WorldClock.next_main_event()
 	var snapshot := WorldClock.snapshot()
@@ -2446,28 +2239,6 @@ func _apply_objective_content() -> void:
 			true
 		)
 		return
-	# 户外落点（湖边这类）排在自由活动区域之前：没有区的目的地也要在卡上有说法，
-	# 否则会出现「卡上写着下一个主线、地上那条线却指着湖边」的两套口径。
-	if not _free_guide_spot.is_empty():
-		_set_objective(
-			"自由活动",
-			String(_free_guide_spot.get("label", "周末目的地")),
-			"周末目的地 · 走到标记处就开演",
-			"户外",
-			false
-		)
-		return
-	if not _free_guide_zone.is_empty():
-		var free_zone := _zone_by_code(_free_guide_zone)
-		if not free_zone.is_empty():
-			_set_objective(
-				"自由活动",
-				String(free_zone.get("name", "")),
-				"周末目的地 · 跟着地面指引走",
-				"%s 区" % String(free_zone.get("code", "?")),
-				false
-			)
-			return
 	if next_event.is_empty():
 		_set_objective("主线已完成", "自由探索职业区域", "随便走走，或打开右上角「记忆墙」回顾一路的选择", "", false)
 		return
@@ -2508,18 +2279,126 @@ func _build_story_event_panel() -> void:
 	_story_event_panel.handbook_recorded.connect(_on_handbook_recorded)
 	_story_event_panel.memo_recorded.connect(_on_memo_recorded)
 	add_child(_story_event_panel)
+	_on_ui_preferences_changed(_town_ui_v2.preferences())
 
 
-## 消息匣：挂在 MonthlyLife 上（消息在跨月时生成），面板常驻、按需显隐。
-func _build_message_inbox() -> void:
-	_message_inbox = MESSAGE_INBOX.new()
-	_message_inbox.name = "MessageInbox"
-	_message_inbox.setup(_monthly_life)
-	_message_inbox.inbox_closed.connect(_on_message_inbox_closed)
-	add_child(_message_inbox)
-	# 跨月生成消息 → 亮红点。_build_monthly_life() 在 _ready 里先跑，这里拿得到实例。
-	_monthly_life.message_arrived.connect(_on_message_arrived)
-	_refresh_message_badge()
+func _build_action_window() -> void:
+	_action_window = ACTION_WINDOW.new()
+	_action_window.window_started.connect(_on_action_window_started)
+	_action_window.action_spent.connect(_on_action_spent)
+	_action_window.window_finished.connect(_on_action_window_finished)
+	add_child(_action_window)
+
+	_activity_panel = AREA_ACTIVITY_PANEL.new()
+	_activity_panel.activity_selected.connect(_on_activity_selected)
+	add_child(_activity_panel)
+
+	_weekend_scene_panel = WEEKEND_SCENE_PANEL.new()
+	_weekend_scene_panel.finished.connect(_on_weekend_scene_finished)
+	add_child(_weekend_scene_panel)
+
+
+func _build_assessment_panel() -> void:
+	_assessment_panel = ASSESSMENT_PANEL.new()
+	_assessment_panel.continued.connect(_on_assessment_continued)
+	add_child(_assessment_panel)
+
+
+func _load_achievement_nodes() -> void:
+	var parsed = JSON.parse_string(FileAccess.get_file_as_string(ACHIEVEMENT_PATH))
+	if parsed is Dictionary:
+		_achievement_nodes = parsed.get("nodes", [])
+
+
+func _build_achievement_panel() -> void:
+	_achievement_panel = ACHIEVEMENT_PANEL.new()
+	_achievement_panel.continued.connect(_on_achievement_continued)
+	add_child(_achievement_panel)
+
+
+func _refresh_activity_panel() -> void:
+	if _activity_panel == null or _action_window == null:
+		return
+	if not _action_window.active or _active_zone.is_empty():
+		_activity_panel.hide_panel()
+		return
+	var zone_id := String(_active_zone.get("code", ""))
+	var activities := _action_window.activities_for_region(zone_id)
+	if activities.is_empty():
+		_activity_panel.hide_panel()
+		return
+	_activity_panel.show_for_region(zone_id, activities, _action_window.remaining, ActionWindow.POINTS_PER_WINDOW)
+
+
+func _on_activity_selected(activity: Dictionary) -> void:
+	if _activity_busy or _action_window == null or not _action_window.active:
+		return
+	_activity_busy = true
+	_pending_action_activity = activity.duplicate(true)
+	_activity_panel.hide_panel()
+	var loading := CanvasLayer.new()
+	loading.layer = 155
+	var shade := ColorRect.new()
+	shade.color = Color(0.02, 0.02, 0.02, 0.94)
+	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	loading.add_child(shade)
+	var label := Label.new()
+	label.text = "正在前往 · %s" % String(activity.get("title", "活动场景"))
+	label.set_anchors_preset(Control.PRESET_CENTER)
+	label.position = Vector2(-260, -30)
+	label.size = Vector2(520, 60)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.add_theme_font_override("font", CHINESE_FONT)
+	label.add_theme_font_size_override("font_size", 30)
+	label.add_theme_color_override("font_color", Color("f5dfae"))
+	loading.add_child(label)
+	add_child(loading)
+	await get_tree().create_timer(0.7).timeout
+	loading.queue_free()
+	_weekend_scene_panel.present({
+		"title": String(activity.get("title", "区域活动")),
+		"image": String(activity.get("image", "")),
+		"lines": activity.get("lines", []),
+	})
+
+
+func _on_action_window_started(snapshot: Dictionary) -> void:
+	_refresh_town_ui_v2()
+	_show_reminder_toast("自由活动窗口开始", "获得 3 点行动力，只能通过区域活动消耗；只有消耗完 3 点行动力，才会解锁下一段剧情。")
+	_refresh_activity_panel()
+	_refresh_objective_hint()
+
+
+func _on_action_spent(snapshot: Dictionary, record: Dictionary) -> void:
+	ApiClient.record_event("action_spent", {
+		"regionId": String(_active_zone.get("code", "A")) if not _active_zone.is_empty() else "A",
+		"activityId": String(record.get("targetId", "")),
+		"activityKind": String(record.get("kind", "")),
+		"windowId": String(record.get("windowId", "")),
+		"month": int(WorldClock.snapshot().get("month", 1)),
+		"remainingAfter": int(record.get("remainingAfter", 0)),
+	})
+	_refresh_town_ui_v2()
+	if _activity_panel != null:
+		_activity_panel.refresh_points(int(snapshot.get("remaining", 0)), int(snapshot.get("maximum", 3)))
+	if not _tutorial_complete and _tutorial_step < 4:
+		_tutorial_step = 4
+		_show_reminder_toast("行动力已成功消耗", "继续完成区域活动，直到剩余 0/3")
+	_refresh_objective_hint()
+
+
+func _on_action_window_finished(snapshot: Dictionary) -> void:
+	if _activity_panel != null:
+		_activity_panel.hide_panel()
+	if _action_window != null and _action_window.has_pending_window():
+		_show_reminder_toast("本窗口行动结束", "文档中的下一个自由活动窗口即将开始")
+		_action_window.continue_pending_window()
+		return
+	if not _tutorial_complete:
+		_tutorial_complete = true
+		_tutorial_step = 5
+		_show_reminder_toast("操作教学完成", "任务板已切换到下一主线，跟随地面路线继续")
+	_advance_after_story(String(snapshot.get("afterEvent", "")))
 
 
 ## 心湖记忆墙。数据在磁盘上，所以它是常驻节点 —— 不依附于任何一次剧情事件。
@@ -2527,8 +2406,7 @@ func _build_memory_wall() -> void:
 	_memory_wall = MEMORY_WALL.new()
 	_memory_wall.name = "MemoryWall"
 	_memory_wall.wall_closed.connect(_on_memory_wall_closed)
-	# 关系档色点的数据源。_build_monthly_life() 在 _ready 里先跑（247 < 251），这里一定拿得到。
-	_memory_wall.setup(_monthly_life)
+	_memory_wall.setup(null)
 	add_child(_memory_wall)
 
 
@@ -2537,7 +2415,7 @@ func _open_memory_wall() -> void:
 		return
 	if _memory_wall.is_open():
 		return
-	# 开墙期间世界时钟停住：一墙便签是要慢慢看的，不该边看边被宵禁拽走。
+	# 开墙期间世界时钟停住，避免阅读时主流程变化。
 	_wall_resume_clock = WorldClock.running
 	if _wall_resume_clock:
 		WorldClock.set_running(false)
@@ -2545,51 +2423,10 @@ func _open_memory_wall() -> void:
 
 
 func _on_memory_wall_closed() -> void:
-	# 关墙即把标记消费掉 —— 手账册 / 精力弹窗 / 处境页三个同类面板都是这么写的，
-	# 只有这里漏了（原先靠 _refresh_message_badge() 里一行误置的赋值兜着，
-	# 结果一来消息就把标记清了 → 时钟不恢复）。标记不清的后果是：
-	# 下一次开墙若时钟本来就在停（例如深夜宵禁态），关墙时会被误判成
-	# 「刚才是我停的」而把时钟放回跑步态，等于凭空给时间。
 	var resume := _wall_resume_clock
 	_wall_resume_clock = false
 	if resume:
 		WorldClock.set_running(true)
-
-
-## ---------- 消息匣（Batch 5 · NPC 主动消息） ----------
-
-func _open_message_inbox() -> void:
-	if _message_inbox == null or _monthly_life == null:
-		return
-	if _message_inbox.is_open():
-		return
-	_message_inbox.open()
-	# 打开即已读：红点清零。世界时钟不停——消息是短读，不像一墙便签要慢慢看。
-	_monthly_life.mark_messages_read()
-	_refresh_message_badge()
-
-
-func _on_message_inbox_closed() -> void:
-	_refresh_message_badge()
-
-
-## 新月有人想起你 → 亮红点。
-func _on_message_arrived() -> void:
-	_refresh_message_badge()
-
-
-func _refresh_message_badge() -> void:
-	if _unread_dot == null:
-		return
-	# ⚠ 类型必须写死：_monthly_life 是弱类型成员（理由同 _memory_wall），
-	# 经它的调用返回值推断不出类型，`:=` 会让整个 WorkplaceTown.gd 解析失败 ——
-	# 而报错只说「Cannot infer the type of "n"」，真凶在这个三元表达式里。
-	var n: int = _monthly_life.unread_message_count() if _monthly_life != null else 0
-	_unread_dot.visible = n > 0
-	# ⚠ 这里原有一行 `_wall_resume_clock = false`，2026-09-18 删除。
-	# 那是**记忆墙**的「关墙后要不要把时钟放回去」锚，归 _open_memory_wall /
-	# _on_memory_wall_closed 管。夹在本函数里等于：开墙期间但凡来一条消息（或点开
-	# 消息匣），关墙时时钟就再也不恢复了 —— 表现是「时间莫名不走了」，极难归因。
 
 
 ## ---------- 你的处境（Batch 6 · V5.27 §2.4 明示原则） ----------
@@ -2613,7 +2450,7 @@ func _open_standing() -> void:
 		return
 	if _standing_panel.is_open():
 		return
-	# 翻这一页时停钟：处境是要慢慢读的，不该读到一半被宵禁拽回宿舍。
+	# 翻这一页时暂停主流程，避免阅读中切换状态。
 	_standing_resume_clock = WorldClock.running
 	if _standing_resume_clock:
 		WorldClock.set_running(false)
@@ -2652,112 +2489,48 @@ func _refresh_standing_badge() -> void:
 		(style as StyleBoxFlat).bg_color = dot_color
 
 
-## 周末手账册（§6.2）：16 页，已过是卡、未到是「还没到」的空格。
-func _build_ledger_book() -> void:
-	_ledger_book = LEDGER_BOOK.new()
-	_ledger_book.name = "WeekendLedgerBook"
-	_ledger_book.book_closed.connect(_on_ledger_book_closed)
-	add_child(_ledger_book)
-
-
-func _open_ledger_book() -> void:
-	if _ledger_book == null:
-		_build_ledger_book()
-	if _ledger_book.is_open():
-		return
-	# 与记忆墙同一待遇：看手账时世界时钟停住。
-	_ledger_resume_clock = WorldClock.running
-	if _ledger_resume_clock:
-		WorldClock.set_running(false)
-	_ledger_book.open(_read_weekend_records(), int(WorldClock.snapshot().get("month", 1)))
-
-
-func _on_ledger_book_closed() -> void:
-	if _ledger_resume_clock:
-		WorldClock.set_running(true)
-	_ledger_resume_clock = false
-
-
-## 读全部周末手账（jsonl → 数组）。文件不存在就是新档：返回空，手账册全页「还没到」。
-func _read_weekend_records() -> Array:
-	var records: Array = []
-	var f := FileAccess.open("user://workplace_town_weekends.jsonl", FileAccess.READ)
-	if f == null:
-		return records
-	while not f.eof_reached():
-		var raw := f.get_line()
-		if raw.strip_edges().is_empty():
-			continue
-		var parsed = JSON.parse_string(raw)
-		if parsed is Dictionary:
-			records.append(parsed)
-	f.close()
-	return records
-
-
-## ---- D 件·回声（§6.1）：进区域时同行者冒一句提起上周末的话 ----
-
-func _load_echo_config() -> Dictionary:
-	if not _echo_config.is_empty():
-		return _echo_config
-	var f := FileAccess.open("res://data/story/weekend_echo.json", FileAccess.READ)
-	if f == null:
-		return {}
-	var parsed = JSON.parse_string(f.get_as_text())
-	f.close()
-	if parsed is Dictionary:
-		_echo_config = parsed
-	return _echo_config
-
-
-## 进区域时最多冒一句；没演过 / 都消费完了 / 活动没词，就安静。
-## 消费在展示之后：整条手账 echoConsumed 写回 jsonl，不做复读机。
-func _maybe_show_weekend_echo() -> void:
-	var echo_cfg := _load_echo_config()
-	if echo_cfg.is_empty():
-		return
-	var picked: Dictionary = _monthly_life.pick_weekend_echo(
-		_read_weekend_records(), String(_active_zone.get("code", "")),
-		echo_cfg, MONTHLY_LIFE.NPC_NAMES)
-	if picked.is_empty():
-		return
-	_dialog_label.text = "%s：%s" % [String(picked.get("npcName", "有人")), String(picked.get("line", ""))]
-	_dialog_label.show()
-	_dialog_timer.start(6.0)
-	_monthly_life.consume_weekend_echo(
-		"user://workplace_town_weekends.jsonl",
-		int(picked.get("month", 0)), String(picked.get("slotId", "")))
-
 func _open_due_event_for_active_zone() -> bool:
 	var next_event := WorldClock.next_main_event()
 	if next_event.is_empty() or _active_zone.is_empty():
 		return false
+	# 自由活动窗口期间，主线即使地点相同也不能抢先开启。
+	# 玩家必须把三点行动力通过区域活动消耗完。
+	if _action_window != null and _action_window.active:
+		return false
 	if String(next_event.get("locationId", "")) != String(_active_zone.get("code", "")):
 		return false
-	if WorldClock.running:
+	if WorldClock.running or not _is_event_due(next_event, WorldClock.snapshot()):
 		return false
 	_story_event = next_event.duplicate(true)
+	if not _tutorial_complete and _tutorial_step < 2:
+		_tutorial_step = 2
+		_show_reminder_toast("教学 3/5 · 完成第一段剧情", "阅读对话并做出选择，结算后会进入自由活动窗口")
+		_refresh_objective_hint()
 	_story_event_panel.present(_story_event)
 	return true
 
 
 func _begin_interaction() -> void:
-	if _nearby_npc.is_empty():
+	if not _nearby_npc.is_empty():
+		var npc_id := String(_nearby_npc.get("id", ""))
+		if _town_ui_v2 != null:
+			_open_phone_chat(npc_id)
 		return
-	# 周日闲话（§13.1）：只换台词，**不加好感**——加了玩家就会把周日刷成好感资源。
-	var prompt := String(_nearby_npc.get("prompt", ""))
-	var sunday_lines = _nearby_npc.get("sunday_prompt", [])
-	if _is_sunday() and sunday_lines is Array and not (sunday_lines as Array).is_empty():
-		prompt = String((sunday_lines as Array)[randi() % (sunday_lines as Array).size()])
-	_dialog_label.text = "%s：%s" % [_nearby_npc["name"], prompt]
-	_dialog_label.show()
-	_dialog_timer.start(6.0)
+	var next_event := WorldClock.next_main_event()
+	if not _active_zone.is_empty() and not next_event.is_empty() and not WorldClock.running \
+			and (_action_window == null or not _action_window.active) \
+			and _is_event_due(next_event, WorldClock.snapshot()) \
+			and String(next_event.get("locationId", "")) == String(_active_zone.get("code", "")):
+		_story_event = next_event.duplicate(true)
+		_story_event_panel.present(_story_event)
+		if not _tutorial_complete and _tutorial_step < 2:
+			_tutorial_step = 2
+		return
+	return
 
 
 func _begin_primary_action() -> void:
-	if _active_zone.is_empty():
-		_enter_nearby_zone()
-	else:
+	if not _active_zone.is_empty():
 		_begin_interaction()
 
 
@@ -2772,50 +2545,6 @@ func _quit_game() -> void:
 ## 记忆便签落盘：心湖记忆墙的唯一数据源。
 ## 便签原本是「弹一下就没了」的装饰，写进 user:// 之后玩家下次进游戏还能翻到
 ## 「第 1 月 15 日 · 新员工手册」当时贴了什么 —— 这是 E27 那句质问的情感承重墙。
-## 自由周末手账落盘（§7.2 weekend_ledger / §8）。一个周末一条，独立于主线便签：
-## 主线便签进记忆墙，周末手账是「我的周末」这个容器（二期手账册读它）。
-func _on_weekend_ledger(record: Dictionary) -> void:
-	if record.is_empty():
-		return
-	# B 件发射端（设计说明 §13.4）：把在场一幕的应答上报后端（encounter_choice，
-	# 契约叙事流补充枚举）。只报标签与选项，不带任何数值；没演过这一幕就不发。
-	var enc_v = record.get("encounter", {})
-	var enc: Dictionary = enc_v if enc_v is Dictionary else {}
-	var enc_tags: Array = enc.get("tags", []) if enc.get("tags", []) is Array else []
-	if not enc.is_empty() and not enc_tags.is_empty():
-		var enc_slot_id := String(enc.get("slotId", ""))
-		var enc_zone := ""
-		var enc_targets: Array = []
-		for slot in record.get("slots", []):
-			if slot is Dictionary and String(slot.get("slotId", "")) == enc_slot_id:
-				enc_zone = String(slot.get("zone", ""))
-				var t = slot.get("targets", [])
-				enc_targets = t if t is Array else []
-				break
-		# regionId 与 weekend_close 同规：单字母 A-H，解析不出退回总部 A（400 拒空值）。
-		var region := enc_zone.strip_edges().split("_")[0].to_upper() if not enc_zone.is_empty() else ""
-		var payload := {
-			"regionId": region if (region.length() == 1 and "ABCDEFGH".contains(region)) else "A",
-			"activityId": String(enc.get("activityId", "")),
-			"optionId": String(enc.get("optionId", "")),
-			"memoryTags": enc_tags,
-			"month": int(record.get("month", 0)),
-		}
-		if not enc_targets.is_empty():
-			payload["npcId"] = String(enc_targets[0])
-		ApiClient.record_event("encounter_choice", payload)
-	var line := record.duplicate(true)
-	line["worldMinute"] = WorldClock.world_minute
-	var file := FileAccess.open("user://workplace_town_weekends.jsonl", FileAccess.READ_WRITE)
-	if file == null:
-		file = FileAccess.open("user://workplace_town_weekends.jsonl", FileAccess.WRITE)
-	if file == null:
-		return
-	file.seek_end()
-	file.store_line(JSON.stringify(line))
-	file.close()
-
-
 func _on_memo_recorded(event_id: String, memo: Dictionary) -> void:
 	if event_id.is_empty() or memo.is_empty():
 		return
@@ -2844,10 +2573,7 @@ func _on_story_choice_confirmed(event_id: String, choice_id: String, duration_mi
 	}, duration_minutes * 60)
 
 
-## 主线事件结算 = 时间推进的第二驱动：把时段往前推一拍（早上 → 上班后 → 下班 → 夜晚）。
-## 2026-09-17（拍板 #7）：拆掉「花 1 点精力 = 推一个时段」的旧联动 ——
-## 精力是月度养成额度，不再承担时间职责。一拍 = advance_phase()，精确落到下个时段起点；
-## 事件本身的 duration_minutes 只进埋点（option_click），不再换算成钟面时间。
+## 主线结算后由文档配置决定进入行动窗口或直接跳到下一事件。
 func _on_story_outcome_acknowledged(event_id: String, choice_id: String, duration_minutes: int) -> void:
 	var file := FileAccess.open("user://workplace_town_events.jsonl", FileAccess.READ_WRITE)
 	if file == null:
@@ -2857,38 +2583,112 @@ func _on_story_outcome_acknowledged(event_id: String, choice_id: String, duratio
 		file.store_line(JSON.stringify({"eventId": event_id, "choiceId": choice_id, "durationMinutes": duration_minutes, "worldMinute": WorldClock.world_minute}))
 	_story_event_panel.dismiss()
 	WorldClock.complete_main_event(event_id)
-	WorldClock.advance_phase()
 	_story_event = {}
-	# 训练谷邀约（Batch 4）：M2-E08 选「接受」→ 直接进对局。邀约本身仍正常结算推进。
-	if event_id == "M2-E08" and choice_id == "option_a":
-		_open_training_valley()
+	if not _tutorial_complete and event_id == "E01":
+		_tutorial_step = 3
+		_show_reminder_toast("第一段剧情已完成", "前往其他场景参加区域活动，消耗完 3 点行动力后才能解锁下一段剧情。与 NPC 交流不消耗行动力。")
 	if _interior_preview != null and _interior_preview.is_open():
 		_interior_preview.enable_exploration()
-	# 补一次宵禁检查：23:00 撞上主线事件时，先让玩家把结果看完再送回宿舍。
-	_check_curfew(WorldClock.snapshot())
-	# 终局答辩（第 48 月）结算完 → 进入终局演出（六幕回放 + 四熊告别 + 报告交棒）。
-	if event_id == "M6-E24":
+	_advance_after_story(event_id)
+
+
+func _advance_after_story(event_id: String) -> void:
+	if event_id == "E35":
 		_open_finale()
+		return
+	for node in _achievement_nodes:
+		if String(node.get("afterEvent", "")) == event_id and not _achievement_seen_ids.has(String(node.get("id", ""))):
+			WorldClock.set_running(false)
+			_achievement_panel.open(node)
+			return
+	var upcoming := WorldClock.next_main_event()
+	var next_month := int(upcoming.get("month", 49))
+	for month in ASSESSMENT_MONTHS:
+		if month < next_month and not _assessment_seen_months.has(month):
+			WorldClock.set_running(false)
+			_assessment_panel.open(month)
+			return
+	if _action_window != null and _action_window.start_after_event(event_id):
+		_refresh_objective_hint()
+		return
+	if not _training_first_cleared and WorldClock.completed_main_event_ids().has("E07"):
+		_open_training_first()
+		return
+	WorldClock.jump_to_next_main_event()
+	_refresh_objective_hint()
 
-## 训练谷面板：按需实例化一次（同 free_time_panel 惯例）。
-## 奖励落账在面板内部走 MonthlyLife.add_money；reward_earned 信号留给对局遥测（暂缓）。
-func _open_training_valley() -> void:
-	if _training_panel == null:
-		_training_panel = TRAINING_PANEL.new()
-		_training_panel.setup(_monthly_life)
-		add_child(_training_panel)
-	if _monthly_life != null:
-		_training_panel.open(_monthly_life.month)
+
+func _on_assessment_continued(month: int) -> void:
+	if not _assessment_seen_months.has(month):
+		_assessment_seen_months.append(month)
+	var completed := WorldClock.completed_main_event_ids()
+	_advance_after_story(completed[-1] if not completed.is_empty() else "")
 
 
-## 终局演出（Batch 5 第 3 轮 · 6E）：M6-E24 结算后由 _on_story_outcome_acknowledged 触发。
+func _on_achievement_continued(node_id: String, choice_id: String) -> void:
+	if not _achievement_seen_ids.has(node_id):
+		_achievement_seen_ids.append(node_id)
+	for node in _achievement_nodes:
+		if String(node.get("id", "")) != node_id:
+			continue
+		var note := {"eventTitle": node.get("title", ""), "text": node.get("memory", ""), "tone": "gold", "month": int(WorldClock.snapshot().get("month", 1)), "day": 1}
+		_on_memo_recorded(node_id, note)
+		break
+	ApiClient.record_event("achievement_view", {"regionId": "A", "storyId": node_id, "choiceId": choice_id})
+	var completed := WorldClock.completed_main_event_ids()
+	_advance_after_story(completed[-1] if not completed.is_empty() else "")
+
+
+func _open_training_first() -> void:
+	if _training_overlay != null:
+		return
+	WorldClock.set_running(false)
+	_training_overlay = CanvasLayer.new()
+	_training_overlay.layer = 195
+	add_child(_training_overlay)
+	var frame := Control.new()
+	frame.size = Vector2(1280, 720)
+	frame.scale = get_viewport_rect().size / frame.size
+	_training_overlay.add_child(frame)
+	var battle := TRAINING_SCENE.instantiate()
+	frame.add_child(battle)
+	battle.training_completed.connect(_on_training_first_completed)
+	battle.training_result.connect(_on_training_result)
+	ApiClient.record_event("node_enter", {"regionId": "E", "storyId": "training_valley_1"})
+
+
+func _on_training_result(result: Dictionary) -> void:
+	ApiClient.record_event("training_result", {
+		"regionId": "E", "activityId": "training_valley_1",
+		"month": int(WorldClock.snapshot().get("month", 1)), "result": result,
+	})
+
+
+func _on_training_first_completed() -> void:
+	_training_first_cleared = true
+	ApiClient.record_event("task_complete", {"regionId": "E", "activityId": "training_valley_1"})
+	_training_overlay.queue_free()
+	_training_overlay = null
+	_advance_after_story("E07")
+
+## 终局演出：E35 结算后触发。
 ## 报告交棒交给 FinalePanel 默认的「查看我的职业报告」按钮（直接实例化 ReportPanel.open()）。
 func _open_finale() -> void:
 	if _finale == null:
 		_finale = FINALE_PANEL.new()
 		add_child(_finale)
-	if _monthly_life != null:
-		_finale.setup(_monthly_life.relation_overview())
+	var bears: Array = []
+	var state := ApiClient.server_state()
+	var stages: Dictionary = state.get("npcRelationStage", {})
+	var names := {"wang_ge": "王哥", "xiao_lin": "小林", "xiao_zhao": "小赵", "lao_zhou": "老周"}
+	for npc_id in ["wang_ge", "xiao_lin", "xiao_zhao", "lao_zhou"]:
+		var stage_text := String(stages.get(npc_id, "关系记录同步中"))
+		var level := 1
+		if stage_text.begins_with("Lv"):
+			level = int(stage_text.trim_prefix("Lv"))
+			stage_text = ["点头之交", "渐渐熟悉", "并肩伙伴", "彼此信任", "可以托底"][clampi(level - 1, 0, 4)]
+		bears.append({"id": npc_id, "name": names[npc_id], "level": level, "stage": stage_text})
+	_finale.setup(bears)
 
 
 func _on_decision_opened(event_id: String) -> void:
@@ -2942,7 +2742,7 @@ func _on_handbook_recorded(event_id: String, records: Dictionary) -> void:
 
 func _on_interior_message_submitted(npc_id: String, message: String) -> void:
 	var region_id := String(_active_zone.get("code", "")) if not _active_zone.is_empty() else "A"
-	ApiClient.record_npc_chat(npc_id, message, region_id)
+	ApiClient.request_npc_chat(npc_id, message, region_id)
 
 func _contract_choice_id(event_id: String, choice_id: String) -> String:
 	if choice_id.begins_with("option_"):
@@ -2950,46 +2750,3 @@ func _contract_choice_id(event_id: String, choice_id: String) -> String:
 		var index: String = String({"a":"01", "b":"02", "c":"03"}.get(suffix, suffix))
 		return "%s-C%s" % [event_id, index]
 	return choice_id
-
-
-## ---------- 生活面板开关（2026-09-18 拍板：精力/周末/熊友三 Tab 合一，见 LifePanel.gd） ----------
-
-## 点「生」圆钮 → 打开居中模态生活面板。
-## 停钟照 _open_settings 的模式：开着面板时世界时钟停住，关上还原；
-## MonthlyLife 的 energy_exhausted 信号不经过这里，照样能触发跳晚 + 横幅。
-func _open_life_panel() -> void:
-	if _life_panel == null or _monthly_life == null:
-		return
-	_refresh_life_panel_context()
-	_life_resume_clock = WorldClock.running
-	if _life_resume_clock:
-		WorldClock.set_running(false)
-	_life_panel.open()
-
-
-## 面板关闭回调：还原停钟（含花完最后 1 点后的 0.8s 自动关面板）。
-func _on_life_panel_closed() -> void:
-	if _life_resume_clock:
-		WorldClock.set_running(true)
-		_life_resume_clock = false
-
-
-## 生活面板「周末」页点「去安排」：关生活面板（恢复停钟），再按原周末待遇
-## 停表 + 打开自由周末面板（周末是要慢慢挑的，不该边挑边被宵禁拽走）。
-## 结算完 _on_weekend_closed 里统一恢复时钟。
-func _on_life_weekend_requested(weekend_month: int) -> void:
-	_open_weekend_planning(weekend_month)
-
-
-## 打开周末规划（自动弹窗与「生活」钮共用）：已出发过就回计划页，别把玩家排好的
-## 两格清空重排；没出发过才开新的一轮。
-func _open_weekend_planning(weekend_month: int) -> void:
-	if _free_time_panel == null or _monthly_life == null:
-		return
-	if _life_panel != null and _life_panel.is_open():
-		_life_panel.close()
-	WorldClock.set_running(false)
-	if _free_time_panel.has_departed_plan() and _free_time_panel.plan_month() == weekend_month:
-		_free_time_panel.reopen_plan()
-	else:
-		_free_time_panel.open_for_month(weekend_month)

@@ -2,25 +2,22 @@ extends CanvasLayer
 ## 周末活动 · 到达演出面板（2026-09-18 晚新链路，弹丸论外式）：
 ## 玩家按计划走到目的区进门 → 全屏场景图 + 底部对话框逐字演出「做了什么、什么感受」。
 ## 交互：点击 / E / 空格 / 回车逐条推进；正在打字时先一键补全，再点才翻页；
-## 最后一条演完自动收起并 emit finished（由 WorkplaceTown 接 FreeTimePanel 结算）。
-## 人物立绘先不做（用户拍板）：后续叠加在同一段代码里，不动结构。
+## 最后一条演完自动收起并 emit finished，由 WorkplaceTown 结算行动力。
+## 区域活动是旁白分镜：使用旁白框，不展示说话人姓名或角色立绘。
 ## 红线：不引用 autoload（探针直接 new）；文案零数字流水（手账红线同源）。
 
 signal finished
 
 const FONT := preload("res://assets/fonts/NotoSansCJKsc-Regular.otf")
+const NARRATION_DIALOG := preload("res://assets/对话框/旁白对话框_空白.png")
+const NARRATION_FRAME_REGION := Rect2(24, 176, 2136, 352)
 ## 打字机节奏与 StoryEventPanel 保持一致（0.022s × 2 字符/拍）。
 const TYPE_INTERVAL := 0.022
-## 弹丸论外式演出（2026-09-18 用户对照参考图拍板）：
-## 底部一条**近全宽的实心黑条** + **大白字**，占画面下沿 ~1/4，
-## 字要有存在感，不能是窄窄一条半透明 HUD。
-const COLOR_DIALOG_BG := Color(0.0, 0.0, 0.0, 0.94)
-const COLOR_DIALOG_BORDER := Color(1.0, 1.0, 1.0, 0.18)
-const COLOR_TEXT := Color(1.0, 1.0, 1.0)
-const COLOR_SUB := Color(0.72, 0.72, 0.72)
+## 区域活动与剧情旁白共用美术素材。
+const COLOR_TEXT := Color("56301e")
+const COLOR_SUB := Color("9b6a48")
 ## 对话框字号：1080p 下 32px 才有 galgame 台词的分量。
 const DIALOG_FONT_SIZE := 32
-const DIALOG_HEIGHT := 252.0
 
 var _config: Dictionary = {}
 var _lines: Array = []
@@ -171,41 +168,34 @@ func _build_ui() -> void:
 	_root.add_child(_image_rect)
 
 	_title_label = Label.new()
-	_title_label.position = Vector2(34, 22)
-	_title_label.size = Vector2(1200, 40)
-	_title_label.add_theme_font_override("font", FONT)
-	_title_label.add_theme_font_size_override("font_size", 26)
-	_title_label.add_theme_color_override("font_color", COLOR_TEXT)
-	_title_label.add_theme_color_override("font_outline_color", Color(0, 0, 0))
-	_title_label.add_theme_constant_override("outline_size", 6)
-	_title_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_title_label.visible = false
 	_root.add_child(_title_label)
 
-	var dialog_panel := Panel.new()
-	dialog_panel.anchor_left = 0.0
-	dialog_panel.anchor_right = 1.0
+	var dialog_panel := TextureRect.new()
+	var cropped := AtlasTexture.new()
+	cropped.atlas = NARRATION_DIALOG
+	cropped.region = NARRATION_FRAME_REGION
+	dialog_panel.texture = cropped
+	dialog_panel.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	dialog_panel.stretch_mode = TextureRect.STRETCH_SCALE
+	dialog_panel.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	dialog_panel.anchor_left = 0.5
+	dialog_panel.anchor_right = 0.5
 	dialog_panel.anchor_top = 1.0
 	dialog_panel.anchor_bottom = 1.0
-	# 近全宽：左右只留一窄边，让黑条横贯整个下沿（弹丸论外式）。
-	dialog_panel.offset_left = 24.0
-	dialog_panel.offset_right = -24.0
-	dialog_panel.offset_top = -DIALOG_HEIGHT
-	dialog_panel.offset_bottom = -24.0
-	var style := StyleBoxFlat.new()
-	style.bg_color = COLOR_DIALOG_BG
-	style.set_corner_radius_all(4)
-	style.set_border_width_all(2)
-	style.border_color = COLOR_DIALOG_BORDER
-	dialog_panel.add_theme_stylebox_override("panel", style)
+	dialog_panel.offset_left = -720.0
+	dialog_panel.offset_right = 720.0
+	dialog_panel.offset_top = -335.0
+	dialog_panel.offset_bottom = -65.0
 	dialog_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_root.add_child(dialog_panel)
 
 	_dialog_label = Label.new()
 	_dialog_label.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_dialog_label.offset_left = 40.0
-	_dialog_label.offset_right = -40.0
-	_dialog_label.offset_top = 28.0
-	_dialog_label.offset_bottom = -56.0
+	_dialog_label.offset_left = 95.0
+	_dialog_label.offset_right = -95.0
+	_dialog_label.offset_top = 58.0
+	_dialog_label.offset_bottom = -68.0
 	_dialog_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_dialog_label.vertical_alignment = VERTICAL_ALIGNMENT_TOP
 	_dialog_label.add_theme_font_override("font", FONT)
@@ -215,15 +205,15 @@ func _build_ui() -> void:
 	dialog_panel.add_child(_dialog_label)
 
 	_hint_label = Label.new()
-	_hint_label.text = "点击继续 ▼"
+	_hint_label.text = "点击继续"
 	_hint_label.anchor_left = 1.0
 	_hint_label.anchor_right = 1.0
 	_hint_label.anchor_top = 1.0
 	_hint_label.anchor_bottom = 1.0
-	_hint_label.offset_left = -140.0
-	_hint_label.offset_right = -18.0
-	_hint_label.offset_top = -46.0
-	_hint_label.offset_bottom = -22.0
+	_hint_label.offset_left = -215.0
+	_hint_label.offset_right = -75.0
+	_hint_label.offset_top = -68.0
+	_hint_label.offset_bottom = -38.0
 	_hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_hint_label.add_theme_font_override("font", FONT)
 	_hint_label.add_theme_font_size_override("font_size", 14)

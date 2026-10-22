@@ -85,7 +85,7 @@ var _notes: Array = []
 var _cards: Array = []
 var _selected := -1
 var _catalog: Array = []
-## 关系档的唯一来源（MonthlyLife）。**刻意可空**：不做 autoload、验收脚本直接 new
+## 关系档数据源可空：不做 autoload，验收脚本可直接 new
 ## 出来时它是 null —— 那种情况下墙上不贴色点，而不是报错或瞎猜一个档位。
 var _life = null
 
@@ -347,7 +347,7 @@ func _relation_dot(level: int) -> Panel:
 
 
 ## 便签挂在谁身上、那个人现在是什么档。返回 0 = 不贴点。
-## memo["npc"] 存的是**显示名**（StoryEventPanel._lead_actor_name / FreeTimePanel），
+## memo["npc"] 存的是**显示名**（StoryEventPanel._lead_actor_name），
 ## 名字是两套 id 空间之间唯一都成立的 join key。
 func _dot_level_of(memo: Dictionary) -> int:
 	if _life == null:
@@ -523,14 +523,13 @@ func _memo_from_catalog(event_id: String, choice_id: String, world_minute: int) 
 	}
 
 
-## 事件目录只以 WorldClock 的 MAIN_EVENTS 为准 —— 这里不复制一份数值。
-## 用 get_script_constant_map() 而不是 autoload 单例：面板可能在任何时机被 new 出来。
+## 事件目录直接读取V1.2剧情数据，避免与主线时钟各留一份旧剧情。
 func _catalog_event(event_id: String) -> Dictionary:
 	if _catalog.is_empty():
-		var script := load("res://scripts/WorldClock.gd")
-		if script == null:
-			return {}
-		_catalog = script.get_script_constant_map().get("MAIN_EVENTS", []) as Array
+		var text := FileAccess.get_file_as_string("res://data/story/main_story_v12.json")
+		var parsed = JSON.parse_string(text)
+		if parsed is Dictionary:
+			_catalog = (parsed as Dictionary).get("events", []) as Array
 	for value in _catalog:
 		var event := Dictionary(value)
 		if String(event.get("id", "")) == event_id:

@@ -1,0 +1,26 @@
+#landscape-prompt {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  box-sizing: border-box;
+  color: #382c26;
+  background: #f2e5c7;
+  font-family: sans-serif;
+  text-align: center;
+  touch-action: manipulation;
+}
+#landscape-prompt[hidden] { display: none; }
+#landscape-prompt strong { font-size: 26px; }
+#landscape-prompt p { font-size: 16px; line-height: 1.5; }
+#landscape-prompt button {
+  min-width: 140px;
+  min-height: 48px;
+  border: 1px solid #6a512f;
+  border-radius: 6px;
+  background: #dbaf58;
+  color: #30271e;
+  font: inherit;
+}

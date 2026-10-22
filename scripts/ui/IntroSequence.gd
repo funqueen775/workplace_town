@@ -27,6 +27,12 @@ const DEFAULT_FONT := "res://assets/fonts/NotoSansCJKsc-Regular.otf"
 ## 第 2 屏木框背后的世界地图（参考图里框外能看到小镇和 A/B/C 区名牌）
 const TOWN_MAP := "res://assets/town/workplace_town_reference.png"
 const DECO := preload("res://scripts/ui/IntroDeco.gd")
+const DIRECT_PORTRAITS := {
+	"bear_orange_blazer": "res://assets/characters/direct_frames/orange_bear/01.png",
+	"bear_plaid_glasses": "res://assets/characters/direct_frames/gray_bear/01.png",
+	"bear_beige_blazer": "res://assets/characters/direct_frames/beige_bear/01.png",
+	"bear_green_cardigan": "res://assets/characters/direct_frames/green_bear/01.png",
+}
 
 ## 设计稿 1600x900 → 工程 viewport 1920x1080
 const DESIGN_SCALE := 1.2
@@ -251,7 +257,7 @@ func _mk_art(cfg: Dictionary) -> TextureRect:
 	var tr := TextureRect.new()
 	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	tr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST  # 像素图放大必须 nearest
+	tr.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	if cfg.has("atlas"):
 		var atlas_path := str(cfg["atlas"])
 		if ResourceLoader.exists(atlas_path):
@@ -275,6 +281,8 @@ func _portrait_cfg(who: Dictionary) -> Dictionary:
 	var loadout := str(who.get("loadout", ""))
 	if pattern == "" or loadout == "":
 		return {}
+	if DIRECT_PORTRAITS.has(loadout):
+		return {"image": String(DIRECT_PORTRAITS[loadout])}
 	return {
 		"atlas": pattern.replace("{loadout}", loadout),
 		"region": pd.get("portraitRegion", [0, 0, 64, 80]),

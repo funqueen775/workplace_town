@@ -5,7 +5,7 @@ build(result, reg, ...) 是唯一入口，输出即 contracts/openapi.yaml 的 R
 （camelCase，与契约字段一一对应；M4 API 层直接下发，不再做第二次映射）。
 
 呈现铁律（算法册 §6）：
-  - 可观测的事实给死数字（次数、毫秒）；推断值给档位不给点值；
+  - 可观测的事实给死数字（次数、毫秒）；大五展示分必须同时给证据状态；
   - 阈值永不出现（门槛数字只留 TopicModule.threshold 供内测对账）；
   - 证据不足的模块整体不出现（displayable=false / 字段缺省）；
   - 差距翻译成行为语言，禁止「只能做 X」断言。
@@ -22,6 +22,7 @@ from ..core.loader import DEFAULT_DATA_DIR
 from ..engine import promotion as pr
 from ..engine.state import GameState
 from ..measure import bayes, career, investment, radar, topics
+from .portrait import style_tags, with_interaction_evidence
 
 CAREER_PROFILES_PATH = DEFAULT_DATA_DIR / "career_profiles.json"
 
@@ -233,7 +234,8 @@ def build(result, reg, self_ratings: dict[str, float] | None = None,
     state: GameState = result.state
     months_log = result.log.months
 
-    trait_rows = bayes.build_posteriors(state, reg.loading_base, self_ratings)
+    portrait_state = with_interaction_evidence(state, result.log.tracking)
+    trait_rows = bayes.build_posteriors(portrait_state, reg.loading_base, self_ratings)
     topic_mods = [m for m in topics.build_topics(state) if m["displayable"]]
 
     # 岗位适配（算法设计 V2.3 §5 理想点模型）：只做排序，不做断言。
@@ -268,9 +270,14 @@ def build(result, reg, self_ratings: dict[str, float] | None = None,
 
     persona = {
         "personaSketch": sketch,
+        "styleTags": style_tags(trait_rows),
+        "portraitStatus": ("provisional" if any(
+            r["portrait_evidence"] != "established" for r in trait_rows) else "established"),
         "bigfive": [{
             "trait": r["trait"], "traitCn": r["trait_cn"],
             "self": r["self"], "behavior": r["behavior"], "behaviorStd": r["behavior_std"],
+            "portraitScore": r["portrait_score"],
+            "portraitEvidence": r["portrait_evidence"],
             "posterior": r["posterior"], "conflict": r["conflict"],
             "conflictSignificant": r["conflict_significant"],
             "evidenceCount": r["evidence_count"],
@@ -325,6 +332,7 @@ def build(result, reg, self_ratings: dict[str, float] | None = None,
     return {
         "sessionId": session_id,
         "scoringVersion": str(reg.version.get("scoring_cards", "unknown")),
+        "portraitVersion": 2,
         "generatedAt": datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds"),
         "decisionCount": len(state.decisions),
         "layers": {

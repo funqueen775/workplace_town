@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="260" viewBox="0 0 1080 260">
+  <defs>
+    <style>
+      text { font-family: 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif; fill: #263b3c; }
+      .title { font-size: 19px; font-weight: 700; }
+      .body { font-size: 15px; }
+      .state { font-size: 14px; font-weight: 700; }
+      .arrow { stroke: #537a75; stroke-width: 3; fill: none; marker-end: url(#head); }
+    </style>
+    <marker id="head" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M1 1 L9 5 L1 9 Z" fill="#537a75"/></marker>
+  </defs>
+  <rect width="1080" height="260" fill="#fff"/>
+  <rect x="25" y="33" width="226" height="150" rx="7" fill="#dceee9" stroke="#70a39a" stroke-width="2"/>
+  <text x="45" y="62" class="state">已记录</text>
+  <text x="138" y="103" class="title" text-anchor="middle">模拟器渲染</text>
+  <text x="138" y="137" class="body" text-anchor="middle">触控与对话</text>
+  <rect x="293" y="33" width="226" height="150" rx="7" fill="#fff4db" stroke="#d4ad54" stroke-width="2"/>
+  <text x="313" y="62" class="state">待验收</text>
+  <text x="406" y="103" class="title" text-anchor="middle">真机签名安装</text>
+  <text x="406" y="137" class="body" text-anchor="middle">资源 · 横屏 · 触控</text>
+  <rect x="561" y="33" width="226" height="150" rx="7" fill="#fff4db" stroke="#d4ad54" stroke-width="2"/>
+  <text x="581" y="62" class="state">待验收</text>
+  <text x="674" y="103" class="title" text-anchor="middle">业务链路</text>
+  <text x="674" y="137" class="body" text-anchor="middle">聊天 · 晋升 · 报告</text>
+  <rect x="829" y="33" width="226" height="150" rx="7" fill="#f2f5f7" stroke="#9eabb5" stroke-width="2"/>
+  <text x="849" y="62" class="state">后续目标</text>
+  <text x="942" y="103" class="title" text-anchor="middle">独立部署</text>
+  <text x="942" y="137" class="body" text-anchor="middle">签名包 · HTTPS API</text>
+  <path class="arrow" d="M251 108 H285"/><path class="arrow" d="M519 108 H553"/><path class="arrow" d="M787 108 H821"/>
+  <text x="540" y="224" class="body" text-anchor="middle">模拟器通过不等于真机全流程通过；每个阶段以设备录屏和接口日志为证据</text>
+</svg>

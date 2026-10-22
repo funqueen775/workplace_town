@@ -6,10 +6,8 @@ extends CanvasLayer
 ## 版式几代演进：
 ##   第一代 = 全屏压暗 + 土黄弹窗，玩家在"弹窗里"做选择。
 ##   第二代 = 场景全屏 + 立绘 + 底部对话条 + 结果拍 + 记忆便签 + 黑场入场卡。
-##   第三代 = 本版。对话层改成戏剧演出：
-##            黑色撕裂气泡、立绘压边、左上角日期时段牌、右下角操作提示，
-##            以及最要紧的一条 —— beats 分镜脚本：事件可以排演一段戏，
-##            而不是"NPC 说一句、玩家答一句"。
+##   第三代 = beats 分镜脚本、场景入场拍与可交互选择。
+##   当前对白层使用独立角色/旁白框和按台词切换的新立绘。
 ##
 ## beats（分镜）一个 beat 一个动作：
 ##   say       某人说话（气泡 + 名字牌 + 立绘聚焦）
@@ -38,8 +36,18 @@ const HANDBOOK := preload("res://scripts/HandbookPanel.gd")
 const TORN_BUBBLE := preload("res://scripts/ui/TornBubble.gd")
 
 const FONT := preload("res://assets/fonts/NotoSansCJKsc-Regular.otf")
-const DOLL_ATLAS := "res://assets/characters/paper_doll_64/portraits/%s_walk_64.png"
+const CHARACTER_DIALOG := preload("res://assets/对话框/角色对话框_空白.png")
+const NARRATION_DIALOG := preload("res://assets/对话框/旁白对话框_空白.png")
+const NAME_PLATE := preload("res://assets/对话框/姓名牌_空白_确认版.png")
+const PORTRAIT_PATH := "res://assets/角色立绘/%s/%s_%s.png"
+const CHARACTER_FRAME_REGION := Rect2(40, 168, 2088, 416)
+const NARRATION_FRAME_REGION := Rect2(24, 176, 2136, 352)
+const NAME_PLATE_REGION := Rect2(264, 288, 1368, 264)
 const TYPE_INTERVAL := 0.022
+
+var text_speed := 1
+var large_text := false
+var reduced_motion := false
 
 ## 入场拍：黑场里先把"这是哪一幕、哪一天、什么地方"压上来，再落进叙述。
 const ENTRY_CARD_IN := 0.35
@@ -47,14 +55,6 @@ const ENTRY_HOLD := 1.45
 const ENTRY_OUT := 0.5
 ## 黑场不完全捂住房间：留一点影子，玩家知道"人还站在那个屋里"。
 const ENTRY_DIM := 0.62
-
-## 立绘尺寸：说话人放大压边，旁听者缩小压暗。
-## 像素图放大走 NEAREST 过滤，保住像素块硬边，不做线性模糊。
-const FOCUS_SCALE := 4.3
-const IDLE_SCALE := 2.3
-## 水平落点（占总宽比例）。0.075 / 0.925 让立绘有一角实打实伸到画面外，形成"压边"。
-const SLOT_X := {"left": 0.075, "right": 0.925}
-const GROUND_Y := 0.86
 
 ## 区域内景图：剧情演出与可探索室内共用同一批场景美术。
 const INTERIOR_BY_ZONE := {
@@ -66,14 +66,6 @@ const INTERIOR_BY_ZONE := {
 	"F": "res://assets/场景内部图/观澜展会码头.png",
 	"G": "res://assets/场景内部图/暖邻康护院.png",
 	"H": "res://assets/场景内部图/慢生活园.png",
-}
-
-const BEAR_LOADOUT_BY_ACTOR := {
-	"小熊": "bear_green_cardigan",
-	"王哥": "bear_plaid_glasses",
-	"陈工": "bear_orange_blazer",
-	"小林": "bear_beige_blazer",
-	"老周": "bear_green_cardigan",
 }
 
 ## 情境强度只做光影，不显示任何标签或数字（V5.27 红线：测量口径不下发前端）
@@ -102,7 +94,6 @@ var _handbook: CanvasLayer
 var _event: Dictionary = {}
 var _stage := "closed"
 var _chosen_id := ""
-var _actors: Array[Dictionary] = []
 var _beats: Array = []
 var _beat_index := -1
 var _entry_fade: ColorRect
@@ -147,16 +138,41 @@ func _ready() -> void:
 func present(event: Dictionary) -> void:
 	_event = event.duplicate(true)
 	_chosen_id = ""
-	_beats = _event.get("beats", []) as Array
+	_beats = _player_visible_beats(_event.get("beats", []) as Array)
 	if _beats.is_empty():
+		var story := String(_event.get("story", "事件内容待补充。"))
+		if _is_developer_note(story):
+			story = ""
 		_beats = [
-			{"type": "narration", "text": String(_event.get("story", "事件内容待补充。"))},
+			{"type": "narration", "text": story},
 			{"type": "choice"},
 		]
+	# 每个主线事件必须让玩家完成一次选择。部分新版事件有分镜，
+	# 但数据没有写 choice beat 时，旧逻辑会在分镜结束后直接结算。
+	if not (_event.get("choices", []) as Array).is_empty() and not _beats.any(func(beat): return String(Dictionary(beat).get("type", "")) == "choice"):
+		_beats.append({"type": "choice"})
 	_beat_index = -1
 	_build_stage()
 	_show_entry()
 	_root.show()
+
+
+## 剧情文档中的「表现说明」是给制作人员的备注，绝不能作为玩家旁白显示。
+func _player_visible_beats(source_beats: Array) -> Array:
+	var visible: Array = []
+	for value in source_beats:
+		if not (value is Dictionary):
+			continue
+		var beat := Dictionary(value)
+		var text := String(beat.get("text", ""))
+		if _is_developer_note(text):
+			continue
+		visible.append(beat)
+	return visible
+
+
+func _is_developer_note(text: String) -> bool:
+	return text.strip_edges().begins_with("表现说明")
 
 
 func dismiss() -> void:
@@ -201,7 +217,6 @@ func _process(delta: float) -> void:
 func _build_stage() -> void:
 	for child in _stage_layer.get_children():
 		child.queue_free()
-	_actors.clear()
 	var size := _view_size()
 	var zone := String(_event.get("locationId", "B"))
 	var room := TextureRect.new()
@@ -226,9 +241,6 @@ func _build_stage() -> void:
 	_stage_layer.add_child(floor_shade)
 	_build_date_badge()
 	_build_top_bar()
-	for actor in _cast_list():
-		_add_actor(actor)
-	_layout_actors("")
 
 
 ## 光影 = 情境强度 × 时段：白天别把画面压死，深夜才沉下去。
@@ -339,7 +351,6 @@ func _cast_list() -> Array:
 			var actor := Dictionary(entry)
 			if not actor.has("id"):
 				actor["id"] = String(actor.get("name", "actor"))
-			actor["loadout"] = _bear_loadout(actor)
 			result.append(actor)
 		elif entry is String:
 			var id := String(entry)
@@ -347,63 +358,11 @@ func _cast_list() -> Array:
 			if profile.is_empty():
 				continue
 			profile["id"] = id
-			profile["loadout"] = _bear_loadout(profile)
 			result.append(profile)
 	if result.size() == 2:
 		(result[0] as Dictionary)["pos"] = "left"
 		(result[1] as Dictionary)["pos"] = "right"
 	return result
-
-
-func _bear_loadout(actor: Dictionary) -> String:
-	return String(BEAR_LOADOUT_BY_ACTOR.get(String(actor.get("name", "")), "bear_green_cardigan"))
-
-
-## 立绘：直接取纸娃娃图集第一帧（down 方向），不引额外依赖。
-## cast 为空 = 独处事件，画面上真的没有别人（这正是"没人看着"的视觉表达）。
-func _add_actor(actor: Dictionary) -> void:
-	var anchor := Node2D.new()
-	anchor.name = "Actor_%s" % String(actor.get("id", "actor"))
-	_stage_layer.add_child(anchor)
-	var shadow := Polygon2D.new()
-	shadow.polygon = PackedVector2Array([Vector2(-24, -4), Vector2(24, -4), Vector2(30, 2), Vector2(18, 8), Vector2(-18, 8), Vector2(-30, 2)])
-	shadow.color = Color(0.02, 0.03, 0.05, 0.34)
-	anchor.add_child(shadow)
-	var sprite := Sprite2D.new()
-	sprite.texture = _load_texture(DOLL_ATLAS % String(actor.get("loadout", "bear_green_cardigan")))
-	sprite.region_enabled = true
-	sprite.region_rect = Rect2(0, 0, 128, 160)
-	sprite.centered = false
-	sprite.position = Vector2(-64, -144)
-	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	anchor.add_child(sprite)
-	_actors.append({"data": actor, "anchor": anchor})
-
-
-## 说话人：放大、压边、提亮。旁听者：缩小、后退、压暗。
-## 谁在说话不用任何 UI 提示，看谁被推到了前面就知道。
-func _layout_actors(focus_id: String) -> void:
-	var size := _view_size()
-	for entry in _actors:
-		var actor: Dictionary = entry["data"]
-		var anchor: Node2D = entry["anchor"]
-		if not is_instance_valid(anchor):
-			continue
-		var side := String(actor.get("pos", "left"))
-		var slot := float(SLOT_X.get(side, SLOT_X["left"]))
-		var is_focus := String(actor.get("id", "")) == focus_id
-		var scale := FOCUS_SCALE if is_focus else IDLE_SCALE
-		if focus_id.is_empty():
-			# 旁白拍：所有人一起退到背景，画面交给文字
-			anchor.modulate = Color(0.72, 0.75, 0.82)
-			anchor.scale = Vector2.ONE * IDLE_SCALE
-			anchor.position = Vector2(size.x * slot, size.y * GROUND_Y)
-			continue
-		anchor.scale = Vector2.ONE * scale
-		# 非说话人再往画面外让 4%，免得两个人压在一起
-		var drift := 0.0 if is_focus else (-0.04 if side == "right" else 0.04)
-		anchor.position = Vector2(size.x * (slot + drift), size.y * GROUND_Y)
-		anchor.modulate = Color.WHITE if is_focus else Color(0.56, 0.60, 0.70)
 
 
 # ---------------------------------------------------------------- 分镜
@@ -430,36 +389,41 @@ func _show_say(beat: Dictionary) -> void:
 	_stage = "say"
 	_clear_ui()
 	var speaker_id := String(beat.get("speaker", ""))
-	_layout_actors(speaker_id)
 	var text := String(beat.get("text", ""))
-	var bubble := _make_bubble(true, minf(1240.0, _view_size().x - 200.0), text, 24)
-	var body := _label("", 24, Color("f7f2e6"))
-	body.position = Vector2(PAD_X, 26.0)
-	body.size = Vector2(bubble.size.x - PAD_X * 2.0, bubble.size.y - 56.0)
+	var profile := _speaker_profile(speaker_id)
+	var portrait_name := _portrait_name(String(profile.get("name", speaker_id)))
+	var bubble := _make_dialogue_frame(true)
+	var body := _label("", 30, Color("56301e"), true)
+	body.position = Vector2(520.0, 72.0) if not portrait_name.is_empty() else Vector2(95.0, 72.0)
+	body.size = Vector2(bubble.size.x - body.position.x - 90.0, bubble.size.y - 118.0)
 	body.vertical_alignment = VERTICAL_ALIGNMENT_TOP
-	body.add_theme_constant_override("line_spacing", 10)
+	body.add_theme_constant_override("line_spacing", 14)
 	bubble.add_child(body)
 	_typewriter_label = body
 	_start_typewriter(text)
-	_add_name_plate(bubble, _speaker_profile(speaker_id))
-	_add_key_hint(bubble, "点击继续")
+	if not portrait_name.is_empty():
+		var expression := String(beat.get("expression", ""))
+		if expression not in ["开心", "认真", "无奈", "疑惑", "自然"]:
+			expression = _expression_for(text)
+		_add_speaker_portrait(portrait_name, expression)
+	_add_asset_name_plate(bubble, profile, speaker_id)
+	_add_dialogue_hint(bubble)
 
 
 ## 旁白拍：没有名字、没有立绘聚焦。玩家在看场景，不是在看人。
 func _show_narration(text: String) -> void:
 	_stage = "narration"
 	_clear_ui()
-	_layout_actors("")
-	var bubble := _make_bubble(false, minf(1240.0, _view_size().x - 200.0), text, 24)
-	var body := _label("", 24, Color("efe6d4"))
-	body.position = Vector2(PAD_X, 26.0)
-	body.size = Vector2(bubble.size.x - PAD_X * 2.0, bubble.size.y - 56.0)
+	var bubble := _make_dialogue_frame(false)
+	var body := _label("", 29, Color("56301e"), true)
+	body.position = Vector2(92.0, 62.0)
+	body.size = Vector2(bubble.size.x - 184.0, bubble.size.y - 118.0)
 	body.vertical_alignment = VERTICAL_ALIGNMENT_TOP
-	body.add_theme_constant_override("line_spacing", 10)
+	body.add_theme_constant_override("line_spacing", 14)
 	bubble.add_child(body)
 	_typewriter_label = body
 	_start_typewriter(text)
-	_add_key_hint(bubble, "点击继续")
+	_add_dialogue_hint(bubble)
 
 
 ## 可交互拍：不推进剧情，等玩家去碰它。
@@ -486,7 +450,7 @@ func _show_interact(beat: Dictionary) -> void:
 	_add_key_hint(bubble, "点击翻开")
 
 
-## 选择拍：三个撕纸片，竖排在画面中偏右（说话的对象在那边）。
+## 选择拍沿用角色对白框素材，保留原选项命中和悬停记录。
 func _show_choices(prompt: String) -> void:
 	_stage = "choices"
 	_stop_typewriter()
@@ -495,13 +459,16 @@ func _show_choices(prompt: String) -> void:
 	_clear_ui()
 	var choices: Array = _event.get("choices", [])
 	var size := _view_size()
-	var bubble_w := minf(840.0, size.x * 0.52)
-	var start_y := size.y * 0.28
+	var bubble_w := minf(930.0, size.x - 64.0)
+	var row_height := 118.0
+	var row_gap := 16.0
+	var start_y := maxf(150.0, (size.y - (row_height * 3.0 + row_gap * 2.0)) * 0.5)
+	var start_x := (size.x - bubble_w) * 0.5
 	var caption_text := prompt if not prompt.is_empty() else String(_event.get("prompt", ""))
 	if not caption_text.is_empty():
-		var caption := _label(caption_text, 21, Color("e6d6b4"))
-		caption.position = Vector2(size.x * 0.46, start_y - 48.0)
-		caption.size = Vector2(720, 32)
+		var caption := _label(caption_text, 25, Color("fff4e3"), true)
+		caption.position = Vector2(start_x + 30.0, start_y - 52.0)
+		caption.size = Vector2(bubble_w - 60.0, 38.0)
 		caption.add_theme_color_override("font_outline_color", Color(0.03, 0.03, 0.05, 0.92))
 		caption.add_theme_constant_override("outline_size", 6)
 		_ui_layer.add_child(caption)
@@ -509,43 +476,36 @@ func _show_choices(prompt: String) -> void:
 		var choice: Dictionary = choices[index]
 		var choice_id := String(choice.get("id", "option_%d" % index))
 		var text := String(choice.get("text", ""))
-		var lines := _wrapped_lines(text, bubble_w - 76.0, 22)
-		var height := maxf(88.0, float(lines) * 34.0 + 40.0)
-		var row: Control = TORN_BUBBLE.new()
+		var row := TextureRect.new()
 		row.name = "Choice_%s" % choice_id
-		row.size = Vector2(bubble_w, height)
-		row.position = Vector2(size.x * 0.46, start_y + float(index) * (height + 16.0))
-		row.fill_color = BUBBLE_FILL
-		row.outline_color = BUBBLE_LINE
-		row.outline_width = 3.0
-		row.tail_side = "right"
-		row.tail_at = 0.5
-		row.tail_length = 26.0
-		row.jag = 6.0
-		row.shape_seed = 4100 + index
+		row.texture = _cropped_texture(CHARACTER_DIALOG, CHARACTER_FRAME_REGION)
+		row.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		row.stretch_mode = TextureRect.STRETCH_SCALE
+		row.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		row.size = Vector2(bubble_w, row_height)
+		row.position = Vector2(start_x, start_y + float(index) * (row_height + row_gap))
+		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_ui_layer.add_child(row)
-		var label := _label(text, 22, Color("f7f2e6"))
-		label.position = Vector2(34, 18)
-		label.size = Vector2(bubble_w - 76.0, height - 36.0)
+		var label := _label(text, 27, Color("56301e"), true)
+		label.position = Vector2(68.0, 20.0)
+		label.size = Vector2(bubble_w - 136.0, row_height - 40.0)
 		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		label.add_theme_constant_override("line_spacing", 8)
+		label.add_theme_constant_override("line_spacing", 4)
 		row.add_child(label)
 		var button := Button.new()
 		button.name = "Hit_%s" % choice_id
 		button.flat = true
-		button.size = Vector2(bubble_w, height)
+		button.size = row.size
 		button.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
 		button.add_theme_stylebox_override("hover", StyleBoxEmpty.new())
 		button.add_theme_stylebox_override("pressed", StyleBoxEmpty.new())
 		var event_id := String(_event.get("id", ""))
 		var duration_minutes := int(_event.get("durationMinutes", 45))
 		button.mouse_entered.connect(func():
-			row.fill_color = BUBBLE_FILL_HOT
-			row.queue_redraw()
+			row.modulate = Color("ffe3b6")
 			choice_hovered.emit(event_id, choice_id))
 		button.mouse_exited.connect(func():
-			row.fill_color = BUBBLE_FILL
-			row.queue_redraw())
+			row.modulate = Color.WHITE)
 		button.pressed.connect(func(): _on_choice_picked(event_id, choice_id, duration_minutes))
 		row.add_child(button)
 
@@ -560,27 +520,23 @@ func _show_outcome(choice_id: String) -> void:
 	_stage = "outcome"
 	_stop_typewriter()
 	_clear_ui()
-	_layout_actors("")
 	var text := _outcome_text(choice_id)
-	var width := minf(1180.0, _view_size().x - 200.0)
-	# 气泡要同时装下正文和底部那行「你选择了 · X」——按正文算完高度再补一条
-	var text_h := _bubble_height(text, width, 23)
-	var bubble := _make_bubble_sized(false, width, text_h + 80.0)
-	var body := _label("", 23, Color("f5eddc"))
-	body.position = Vector2(PAD_X, 26.0)
-	body.size = Vector2(bubble.size.x - PAD_X * 2.0, text_h - 62.0)
+	var bubble := _make_dialogue_frame(false)
+	var body := _label("", 28, Color("56301e"), true)
+	body.position = Vector2(92.0, 57.0)
+	body.size = Vector2(bubble.size.x - 184.0, bubble.size.y - 123.0)
 	body.vertical_alignment = VERTICAL_ALIGNMENT_TOP
 	body.add_theme_constant_override("line_spacing", 10)
 	bubble.add_child(body)
 	_typewriter_label = body
 	_start_typewriter(text)
-	var echo := _label("你选择了 · %s" % _choice_text(choice_id), 19, Color("b9ab90"))
-	echo.position = Vector2(PAD_X, bubble.size.y - 66.0)
-	echo.size = Vector2(bubble.size.x - 300.0, 32.0)
+	var echo := _label("你选择了 · %s" % _choice_text(choice_id), 18, Color("9b6a48"))
+	echo.position = Vector2(92.0, bubble.size.y - 70.0)
+	echo.size = Vector2(bubble.size.x - 320.0, 28.0)
 	echo.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	bubble.add_child(echo)
 	_add_memo_note(choice_id)
-	_add_key_hint(bubble, "结束")
+	_add_dialogue_hint(bubble)
 
 
 func _finish_without_choice() -> void:
@@ -706,8 +662,12 @@ func _start_typewriter(text: String) -> void:
 	_typewriter_full = text
 	_typewriter_shown = 0
 	if is_instance_valid(_typewriter_label):
-		_typewriter_label.text = ""
-		_typewriter_timer.start()
+		_typewriter_label.text = text if reduced_motion else ""
+		if reduced_motion:
+			_typewriter_shown = text.length()
+		else:
+			_typewriter_timer.wait_time = [0.05, TYPE_INTERVAL, 0.008][clampi(text_speed, 0, 2)]
+			_typewriter_timer.start()
 
 
 func _tick_typewriter() -> void:
@@ -734,6 +694,87 @@ func _finish_typewriter() -> void:
 func _stop_typewriter() -> void:
 	if _typewriter_timer != null:
 		_typewriter_timer.stop()
+
+
+# ---------------------------------------------------------------- 新对白素材
+
+func _portrait_name(name: String) -> String:
+	return name if name in ["小林", "小赵", "王哥", "老周"] else ""
+
+
+func _portrait_texture(name: String, expression: String) -> Texture2D:
+	var path := PORTRAIT_PATH % [name, name, expression]
+	return _load_texture(path)
+
+
+func _expression_for(text: String) -> String:
+	if text.contains("?") or text.contains("？") or text.contains("怎么") or text.contains("为什么"):
+		return "疑惑"
+	if text.contains("不错") or text.contains("笑") or text.contains("做得好") or text.contains("可以") or text.contains("点头"):
+		return "开心"
+	if text.contains("无奈") or text.contains("只能") or text.contains("算了"):
+		return "无奈"
+	if text.contains("不") or text.contains("别") or text.contains("问题") or text.contains("责任") or text.contains("必须"):
+		return "认真"
+	return "自然"
+
+
+func _cropped_texture(source: Texture2D, region: Rect2) -> AtlasTexture:
+	var cropped := AtlasTexture.new()
+	cropped.atlas = source
+	cropped.region = region
+	return cropped
+
+
+func _make_dialogue_frame(character: bool) -> Control:
+	var size := _view_size()
+	var frame := TextureRect.new()
+	frame.texture = _cropped_texture(CHARACTER_DIALOG, CHARACTER_FRAME_REGION) if character else _cropped_texture(NARRATION_DIALOG, NARRATION_FRAME_REGION)
+	frame.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	frame.stretch_mode = TextureRect.STRETCH_SCALE
+	frame.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	frame.size = Vector2(minf(1550.0, size.x - 56.0), 330.0 if character else 280.0)
+	frame.position = Vector2((size.x - frame.size.x) * 0.5, size.y - frame.size.y - 70.0)
+	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_ui_layer.add_child(frame)
+	return frame
+
+
+func _add_speaker_portrait(name: String, expression: String) -> void:
+	var sprite := TextureRect.new()
+	sprite.name = "DialoguePortrait"
+	sprite.texture = _portrait_texture(name, expression)
+	sprite.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	sprite.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	sprite.position = Vector2(10.0, _view_size().y - 690.0)
+	sprite.size = Vector2(660.0, 660.0)
+	sprite.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_ui_layer.add_child(sprite)
+
+
+func _add_asset_name_plate(frame: Control, profile: Dictionary, fallback: String) -> void:
+	var plate := TextureRect.new()
+	plate.texture = _cropped_texture(NAME_PLATE, NAME_PLATE_REGION)
+	plate.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	plate.stretch_mode = TextureRect.STRETCH_SCALE
+	plate.position = Vector2(355.0, -35.0)
+	plate.size = Vector2(270.0, 70.0)
+	plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	frame.add_child(plate)
+	var label := _label(String(profile.get("name", fallback)), 27, Color("56301e"), true)
+	label.position = Vector2(18.0, 13.0)
+	label.size = Vector2(234.0, 44.0)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	plate.add_child(label)
+
+
+func _add_dialogue_hint(frame: Control) -> void:
+	var label := _label("点击继续", 19, Color("9b6a48"), true)
+	label.position = Vector2(frame.size.x - 235.0, frame.size.y - 72.0)
+	label.size = Vector2(150.0, 30.0)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	frame.add_child(label)
 
 
 # ---------------------------------------------------------------- 零件
@@ -974,7 +1015,7 @@ func _label(value: String, font_size: int, color: Color, bold: bool = false) -> 
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	label.add_theme_font_override("font", _bold(FONT, 0.6) if bold else FONT)
-	label.add_theme_font_size_override("font_size", font_size)
+	label.add_theme_font_size_override("font_size", roundi(font_size * (1.12 if large_text else 1.0)))
 	label.add_theme_color_override("font_color", color)
 	return label
 

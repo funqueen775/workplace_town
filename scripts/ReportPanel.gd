@@ -1,55 +1,87 @@
 extends CanvasLayer
-## 「我的报告」全屏面板（Batch 3，2026-09-17）。
-## 数据链路红线：报告只在服务端算（loader.py L7「scoring_cards 不得下发前端」），
-## 这里**只渲染** ApiClient.fetch_report() 拉回来的 JSON，本地不算任何分。
-## 拉取流程：open() → 状态条「正在生成…」→ ApiClient.fetch_report() →
-##   report_ready(report) → render(report)；report_failed(reason) → 状态条说明原因 + 可重试。
-## 版式口径与 StartupFlow / EnergyPanel 一致：木框 + 羊皮纸 + 米色便签。
-## 探针：build/probe_report_panel.gd（喂 contracts/fixtures/report-ready.json 验渲染）。
 
 signal closed
 
 const FONT := preload("res://assets/fonts/NotoSansCJKsc-Regular.otf")
+const INK := Color("30271e")
+const MUTED := Color("776b5d")
+const GREEN := Color("456a54")
+const GOLD := Color("c58a30")
+const TRACK := Color("eadfc8")
+const PAPER := Color("fffaf2")
+const FS := 1.45
 
-# 与 EnergyPanel 同源的木色 / 羊皮纸配色（无 tokens 文件，色值集中在这几行）。
-const COLOR_DIM := Color(0.05, 0.07, 0.05, 0.55)
-const COLOR_WOOD := Color("54321f")
-const COLOR_BORDER := Color("d49a4c")
-const COLOR_PAPER := Color("f5ecd7")
-const COLOR_INK := Color("4a3a20")
-const COLOR_SUB := Color("7a6547")
-const COLOR_TITLE := Color("ffe5a8")
-const COLOR_ACCENT := Color("ef9f27")
-const COLOR_GOOD := Color("3f7d4e")
-const COLOR_BAD := Color("9c4a38")
+class BigFiveRadar:
+	extends Control
 
-const PANEL_RECT := Rect2(210, 60, 1500, 940)
+	var rows: Array = []
+	var font: Font
 
-var _report: Dictionary = {}
-var _dim: ColorRect
-var _panel: Panel
-var _scroll: ScrollContainer
-var _list: VBoxContainer
+	func _draw() -> void:
+		if rows.size() != 5 or font == null:
+			return
+		var center := size / 2.0
+		var radius := minf(size.x * 0.29, size.y * 0.35)
+		var angles := PackedFloat32Array()
+		for index in 5:
+			angles.append(-PI / 2.0 + TAU * float(index) / 5.0)
+		for step in 5:
+			var points := PackedVector2Array()
+			for angle in angles:
+				points.append(center + Vector2(cos(angle), sin(angle)) * radius * float(step + 1) / 5.0)
+			points.append(points[0])
+			draw_polyline(points, Color("d8d4c9"), 2.0)
+		var shape := PackedVector2Array()
+		var complete := true
+		for index in 5:
+			var outer := center + Vector2(cos(angles[index]), sin(angles[index])) * radius
+			draw_line(center, outer, Color("d8d4c9"), 2.0)
+			var score = rows[index].get("score")
+			if score == null:
+				complete = false
+			else:
+				shape.append(center + Vector2(cos(angles[index]), sin(angles[index])) * radius * clampf(float(score) / 100.0, 0.0, 1.0))
+			var title := String(rows[index].get("name", ""))
+			var text_size := font.get_string_size(title, HORIZONTAL_ALIGNMENT_LEFT, -1, 24)
+			var label_pos := center + Vector2(cos(angles[index]), sin(angles[index])) * (radius + 43.0)
+			draw_string(font, label_pos - Vector2(text_size.x / 2.0, -text_size.y / 3.0), title,
+				HORIZONTAL_ALIGNMENT_LEFT, -1, 24, INK)
+		if complete:
+			draw_colored_polygon(shape, Color(0.28, 0.43, 0.33, 0.18))
+			var outline := shape.duplicate()
+			outline.append(shape[0])
+			draw_polyline(outline, GREEN, 4.0, true)
+			for index in shape.size():
+				draw_circle(shape[index], 5.0,
+					GREEN if rows[index].get("evidence") != "none" else Color("b5b0a5"))
+		else:
+			draw_string(font, center + Vector2(-54, 8), "证据不足", HORIZONTAL_ALIGNMENT_LEFT, -1, 21, MUTED)
+
+
+var _main: VBoxContainer
 var _status: Label
-var _retry_btn: Button
-var _close_btn: Button
+var _retry: Button
+var _radar: BigFiveRadar
+var _scores: VBoxContainer
+var _tags: FlowContainer
+var _hint: Label
+var _basis_note: Label
+
 
 func _ready() -> void:
-	layer = 200
+	layer = 220
 	visible = false
-	_build_static()
-	# 只连一次；处理器里用 visible 判断是否消费，避免面板关着时收包。
+	_build()
 	ApiClient.report_ready.connect(_on_report_ready)
 	ApiClient.report_failed.connect(_on_report_failed)
 
 
-# ------------------------------------------------------------------ 开合
-
 func open() -> void:
 	visible = true
-	_report = {}
-	_set_status("正在生成报告……（报告由服务端结算，走完的剧情都在里面）", true)
-	_rebuild_list()
+	_main.visible = false
+	_hint.visible = false
+	_status.text = "正在生成…"
+	_retry.visible = false
 	ApiClient.fetch_report()
 
 
@@ -63,324 +95,211 @@ func _unhandled_input(event: InputEvent) -> void:
 		close()
 
 
-# ------------------------------------------------------------------ 静态骨架
+func _build() -> void:
+	var background := ColorRect.new()
+	background.color = PAPER
+	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	background.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(background)
 
-func _build_static() -> void:
-	_dim = ColorRect.new()
-	_dim.color = COLOR_DIM
-	_dim.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_dim.mouse_filter = Control.MOUSE_FILTER_STOP
-	add_child(_dim)
+	var texture := TextureRect.new()
+	texture.texture = load("res://assets/ui/ledger/paper_tex.png")
+	texture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	texture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	texture.modulate.a = 0.06
+	texture.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	texture.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(texture)
 
-	_panel = Panel.new()
-	_panel.position = PANEL_RECT.position
-	_panel.size = PANEL_RECT.size
-	_panel.add_theme_stylebox_override("panel", _style(COLOR_PAPER, COLOR_WOOD, 10, 6))
-	add_child(_panel)
+	var scroll := ScrollContainer.new()
+	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	add_child(scroll)
+	var center := CenterContainer.new()
+	center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.add_child(center)
+	var margin := MarginContainer.new()
+	margin.custom_minimum_size.x = 860
+	margin.add_theme_constant_override("margin_left", 40)
+	margin.add_theme_constant_override("margin_right", 40)
+	margin.add_theme_constant_override("margin_top", 32)
+	margin.add_theme_constant_override("margin_bottom", 42)
+	center.add_child(margin)
+	var root := VBoxContainer.new()
+	root.add_theme_constant_override("separation", 18)
+	margin.add_child(root)
 
-	var title := _label("我 的 报 告", 30, COLOR_INK)
-	title.position = Vector2(30, 18)
-	title.size = Vector2(500, 40)
-	_panel.add_child(title)
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", 18)
+	root.add_child(head)
+	var title := _label("你的职场画像", 38, INK)
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(title)
+	_status = _label("", 17, MUTED)
+	_status.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	head.add_child(_status)
+	_retry = _button("重试")
+	_retry.visible = false
+	_retry.pressed.connect(open)
+	head.add_child(_retry)
+	var close_button := _button("关闭")
+	close_button.pressed.connect(close)
+	head.add_child(close_button)
 
-	_status = _label("", 16, COLOR_SUB)
-	_status.position = Vector2(30, 62)
-	_status.size = Vector2(PANEL_RECT.size.x - 220, 26)
-	_panel.add_child(_status)
+	_hint = _label("", 19, MUTED)
+	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_hint.visible = false
+	root.add_child(_hint)
 
-	_retry_btn = _button("重新拉取")
-	_retry_btn.position = Vector2(PANEL_RECT.size.x - 300, 22)
-	_retry_btn.size = Vector2(130, 44)
-	_retry_btn.pressed.connect(open)
-	_panel.add_child(_retry_btn)
+	_main = VBoxContainer.new()
+	_main.add_theme_constant_override("separation", 22)
+	_main.visible = false
+	root.add_child(_main)
+	_radar = BigFiveRadar.new()
+	_radar.font = FONT
+	_radar.custom_minimum_size = Vector2(780, 410)
+	_main.add_child(_radar)
+	_scores = VBoxContainer.new()
+	_scores.add_theme_constant_override("separation", 12)
+	_main.add_child(_scores)
+	_main.add_child(_label("你的风格标签", 25, INK))
+	_tags = FlowContainer.new()
+	_tags.add_theme_constant_override("h_separation", 14)
+	_tags.add_theme_constant_override("v_separation", 10)
+	_main.add_child(_tags)
+	_basis_note = _label("", 15, MUTED)
+	_main.add_child(_basis_note)
 
-	_close_btn = _button("关闭")
-	_close_btn.position = Vector2(PANEL_RECT.size.x - 158, 22)
-	_close_btn.size = Vector2(130, 44)
-	_close_btn.pressed.connect(close)
-	_panel.add_child(_close_btn)
-
-	_scroll = ScrollContainer.new()
-	_scroll.position = Vector2(24, 100)
-	_scroll.size = PANEL_RECT.size - Vector2(48, 124)
-	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	_panel.add_child(_scroll)
-
-	_list = VBoxContainer.new()
-	_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_list.custom_minimum_size.x = _scroll.size.x - 24
-	_list.add_theme_constant_override("separation", 18)
-	_scroll.add_child(_list)
-
-
-## 清空内容区；loading / 失败 / 渲染三种状态都从这里起步。
-func _rebuild_list() -> void:
-	for child in _list.get_children():
-		child.queue_free()
-
-
-# ------------------------------------------------------------------ 数据入口
 
 func _on_report_ready(report: Dictionary) -> void:
-	if not visible:
-		return
-	_report = report
-	_set_status("", false)
-	render(report)
+	if visible:
+		render(report)
 
 
 func _on_report_failed(reason: String) -> void:
-	if not visible:
-		return
-	_set_status(String(reason), true)
+	if visible:
+		_main.visible = false
+		_status.text = "生成失败"
+		_hint.text = reason
+		_hint.visible = true
+		_retry.visible = true
 
 
-## 渲染整份报告（也供探针直接喂 fixture，不走网络）。
 func render(report: Dictionary) -> void:
-	_rebuild_list()
-	if report.is_empty() or not report.has("layers"):
-		_set_status("报告内容为空。", true)
-		return
 	var persona: Dictionary = report.get("layers", {}).get("persona", {})
-
-	_header(report)
-	_section_sketch(persona)
-	_section_radar(persona.get("radar", []))
-	_section_bigfive(persona.get("bigfive", []))
-	_section_topics(persona.get("topics", []))
-	_section_promotion(persona.get("promotionTrack", {}))
-	_section_hints(report.get("layers", {}).get("crossHints", {}).get("hints", []))
-
-
-# ------------------------------------------------------------------ 各节渲染
-
-func _header(report: Dictionary) -> void:
-	var head := "共 %d 次选择" % int(report.get("decisionCount", 0))
-	if report.get("scoringVersion", "") != "":
-		head += " · 口径 %s" % String(report["scoringVersion"])
-	if report.get("generatedAt", "") != "":
-		head += " · 生成于 %s" % String(report["generatedAt"]).replace("T", " ")
-	_list.add_child(_card(head, COLOR_SUB, 15))
-
-
-func _section_sketch(persona: Dictionary) -> void:
-	var sketch := String(persona.get("personaSketch", ""))
-	if sketch.is_empty():
+	var traits: Array = persona.get("bigfive", [])
+	if traits.size() != 5:
+		_on_report_failed("报告数据不完整")
 		return
-	_list.add_child(_title("人格速写"))
-	_list.add_child(_para(sketch, 20, COLOR_INK))
+	_clear(_scores)
+	_clear(_tags)
+	var radar_rows: Array = []
+	var has_empty := false
+	var has_limited := false
+	var names := {"O": "开放性", "C": "尽责性", "E": "外向性", "A": "宜人性", "N": "情绪稳定"}
+	for key in ["O", "C", "E", "A", "N"]:
+		var trait_row: Dictionary = {}
+		for item in traits:
+			if String(item.get("trait", "")) == key:
+				trait_row = item
+				break
+		var name: String = names[key]
+		var score := int(trait_row.get("portraitScore", 50))
+		var evidence := String(trait_row.get("portraitEvidence", "none"))
+		has_empty = has_empty or evidence == "none"
+		has_limited = has_limited or evidence == "limited"
+		radar_rows.append({"name": name, "score": score, "evidence": evidence})
+		_add_score_row(name, score, evidence)
+	_radar.rows = radar_rows
+	_radar.queue_redraw()
+	var tags: Array = persona.get("styleTags", [])
+	for tag in tags:
+		_tags.add_child(_tag(String(tag)))
+	if tags.is_empty():
+		_tags.add_child(_tag("待积累经历"))
+	_status.text = ""
+	var skipped: Array = report.get("skippedStoryIds", [])
+	_basis_note.visible = has_empty or has_limited
+	if has_empty:
+		_basis_note.text = ("已跳过 %d 段剧情；" % skipped.size() if not skipped.is_empty() else "") + "灰色维度为 50 分中性起点，仍需更多经历验证。"
+	elif has_limited:
+		_basis_note.text = "部分维度样本较少，分数仅供参考。"
+	_hint.visible = false
+	_retry.visible = false
+	_main.visible = true
 
 
-func _section_radar(rows: Array) -> void:
-	if rows.is_empty():
-		return
-	_list.add_child(_title("能力六柱（按在册事件实算满分归一化）"))
-	for row in rows:
-		var pillar := String(row.get("pillar", ""))
-		var score := int(row.get("score", 0))
-		var cap := int(row.get("cap", 0))
-		var line := HBoxContainer.new()
-		line.add_theme_constant_override("separation", 12)
-		var name_label := _label(pillar, 17, COLOR_INK)
-		name_label.custom_minimum_size.x = 130
-		line.add_child(name_label)
-		var bar := ProgressBar.new()
-		bar.min_value = 0
-		bar.max_value = 100
-		bar.value = score
-		bar.show_percentage = false
-		bar.custom_minimum_size = Vector2(560, 22)
-		bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		bar.modulate = COLOR_ACCENT
-		line.add_child(bar)
-		var value := _label("%d / 100" % score, 16, COLOR_SUB)
-		value.custom_minimum_size.x = 90
-		line.add_child(value)
-		var card := _card("", COLOR_INK, 15)
-		_card_body(card).add_child(line)
-		if cap > 0 and cap < 15:
-			_card_text(card).text = "样本机会少（满分上限 %d 分）" % cap
-		_list.add_child(card)
+func _add_score_row(name: String, score: int, evidence: String) -> void:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 18)
+	_scores.add_child(row)
+	var title := _label(name, 23, INK)
+	title.custom_minimum_size.x = 160
+	row.add_child(title)
+	var bar := ProgressBar.new()
+	bar.min_value = 0
+	bar.max_value = 100
+	bar.value = score
+	bar.show_percentage = false
+	bar.custom_minimum_size.y = 16
+	bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	bar.add_theme_stylebox_override("background", _style(TRACK, 8))
+	bar.add_theme_stylebox_override("fill", _style(
+		Color("b5b0a5") if evidence == "none" else Color("d7ac67") if evidence == "limited" else GOLD, 8))
+	row.add_child(bar)
+	var value := _label(str(score), 22, MUTED if evidence == "none" else INK)
+	value.custom_minimum_size.x = 110
+	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	row.add_child(value)
 
 
-func _section_bigfive(rows: Array) -> void:
-	if rows.is_empty():
-		return
-	_list.add_child(_title("性格五维（自评 vs 48 个月的行为）"))
-	for row in rows:
-		var cn := String(row.get("traitCn", ""))
-		var line_text := ""
-		if bool(row.get("behaviorAvailable", false)):
-			# self/behavior 服务端给的是 0-10 分（数字）；老契约若给档位词也能直接显示。
-			line_text = "自评 %s · 行为落在 %s（0-10 分）" % [
-				_score_text(row.get("self", "")), _score_text(row.get("behavior", ""))]
-			if bool(row.get("conflictSignificant", false)):
-				line_text += "　⚠ 自评与行为有显著落差"
-		else:
-			line_text = "行为证据不足（%d 条），仅供参考" % int(row.get("evidenceCount", 0))
-		var note := String(row.get("note", ""))
-		var card := _card("%s：%s" % [cn, line_text], COLOR_INK, 16)
-		if not note.is_empty():
-			_card_text(card).text += "\n" + note
-		_list.add_child(card)
-
-
-## 分数显示：数字 → 一位小数；已经是文字（档位词）→ 原样。
-func _score_text(value) -> String:
-	if value is float or value is int:
-		return "%.1f" % float(value)
-	return str(value)
-
-
-func _section_topics(mods: Array) -> void:
-	var shown := 0
-	for m in mods:
-		if not bool(m.get("displayable", false)):
-			continue
-		shown += 1
-		if shown == 1:
-			_list.add_child(_title("行为专题"))
-		var card := _card(String(m.get("title", "")), COLOR_INK, 17)
-		var body := String(m.get("summary", ""))
-		for bullet in (m.get("bullets", []) as Array):
-			# 契约里 bullet = {label, value}（如「自主性均值：0.9 / 2」）；兼容纯字符串。
-			if bullet is Dictionary:
-				body += "\n· %s：%s" % [String((bullet as Dictionary).get("label", "")),
-					String((bullet as Dictionary).get("value", ""))]
-			else:
-				body += "\n· " + str(bullet)
-		var detail := _label(body, 15, COLOR_SUB)
-		detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		detail.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		_card_body(card).add_child(detail)
-		_list.add_child(card)
-	if shown == 0:
-		_list.add_child(_card("行为专题：这一局的证据还不够下结论——证据不足的话题宁可不说话。", COLOR_SUB, 15))
-
-
-func _section_promotion(track: Dictionary) -> void:
-	var windows: Array = track.get("windows", [])
-	var grade: Dictionary = track.get("finalGrade", {})
-	if windows.is_empty() and grade.is_empty():
-		return
-	_list.add_child(_title("晋升轨迹"))
-	if not windows.is_empty():
-		var chips := ""
-		for w in windows:
-			var mark := "✓升" if bool(w.get("passed", false)) else "·"
-			chips += "第 %d 月 %s　" % [int(w.get("month", 0)), mark]
-		_list.add_child(_card(chips.trim_suffix("　"), COLOR_INK, 16))
-	if not grade.is_empty():
-		var line := "终局：%s（L%d %s）" % [
-			String(grade.get("label", "")), int(grade.get("level", 1)), String(grade.get("grade", ""))]
-		var extra := String(grade.get("line", ""))
-		if not extra.is_empty():
-			line += "\n" + extra
-		_list.add_child(_card(line, COLOR_INK, 16))
-
-
-func _section_hints(hints: Array) -> void:
-	if hints.is_empty():
-		return
-	_list.add_child(_title("值得回头看的地方"))
-	for h in hints:
-		var line := String(h.get("line", ""))
-		if line.is_empty():
-			continue
-		_list.add_child(_card(line, COLOR_INK, 16))
-
-
-# ------------------------------------------------------------------ 小构件
-
-func _set_status(text: String, show_retry: bool) -> void:
-	_status.text = text
-	_retry_btn.visible = show_retry
-
-
-func _title(text: String) -> Label:
-	var label := _label(text, 21, COLOR_INK)
-	label.custom_minimum_size.y = 30
-	return label
-
-
-func _card(text: String, color: Color, font_size: int) -> PanelContainer:
-	var panel := PanelContainer.new()
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(1, 1, 1, 0.55)
-	style.border_color = Color(COLOR_BORDER, 0.6)
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(6)
-	style.content_margin_left = 14
-	style.content_margin_right = 14
+func _tag(value: String) -> PanelContainer:
+	var tag := PanelContainer.new()
+	var style := _style(Color("fff5e5"), 8)
+	style.border_color = GOLD
+	style.set_border_width_all(2)
+	style.content_margin_left = 22
+	style.content_margin_right = 22
 	style.content_margin_top = 10
 	style.content_margin_bottom = 10
-	panel.add_theme_stylebox_override("panel", style)
-	# PanelContainer 的多个子节点会互相叠住 —— 内容一律装进这层 VBox，
-	# 要往卡里追加行就 _card_body(panel).add_child(...)。
-	var vbox := VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 6)
-	panel.add_child(vbox)
-	var label := _label(text, font_size, color)
-	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	vbox.add_child(label)
-	return panel
+	tag.add_theme_stylebox_override("panel", style)
+	tag.add_child(_label(value, 21, INK))
+	return tag
 
 
-## 卡片的内容层（VBox）。第一行是 _card 里的主文案 Label。
-func _card_body(card: PanelContainer) -> VBoxContainer:
-	return card.get_child(0) as VBoxContainer
+func _clear(node: Node) -> void:
+	for child in node.get_children():
+		child.queue_free()
 
 
-## 卡片的主文案。
-func _card_text(card: PanelContainer) -> Label:
-	return (_card_body(card).get_child(0) as Label)
-
-
-func _para(text: String, font_size: int, color: Color) -> Label:
-	var label := _label(text, font_size, color)
-	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	label.custom_minimum_size.x = _list.custom_minimum_size.x - 40
-	return label
-
-
-func _label(text: String, font_size: int, color: Color) -> Label:
+func _label(value: String, size: int, color: Color) -> Label:
 	var label := Label.new()
-	label.text = text
+	label.text = value
 	label.add_theme_font_override("font", FONT)
-	label.add_theme_font_size_override("font_size", font_size)
+	label.add_theme_font_size_override("font_size", roundi(float(size) * FS))
 	label.add_theme_color_override("font_color", color)
-	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	return label
 
 
-func _button(text: String) -> Button:
+func _button(value: String) -> Button:
 	var button := Button.new()
-	button.text = text
+	button.text = value
+	button.custom_minimum_size = Vector2(100, 48)
 	button.add_theme_font_override("font", FONT)
-	button.add_theme_font_size_override("font_size", 17)
-	var style := StyleBoxFlat.new()
-	style.bg_color = COLOR_WOOD
-	style.set_corner_radius_all(8)
-	button.add_theme_stylebox_override("normal", style)
-	var hover := style.duplicate()
-	hover.bg_color = COLOR_WOOD.lightened(0.12)
-	button.add_theme_stylebox_override("hover", hover)
-	var pressed := style.duplicate()
-	pressed.bg_color = COLOR_WOOD.darkened(0.12)
-	button.add_theme_stylebox_override("pressed", pressed)
-	button.add_theme_color_override("font_color", COLOR_TITLE)
+	button.add_theme_font_size_override("font_size", 22)
+	button.add_theme_color_override("font_color", INK)
+	button.add_theme_color_override("font_hover_color", INK)
+	button.add_theme_color_override("font_pressed_color", INK)
+	button.add_theme_stylebox_override("normal", _style(Color("f3e9d8"), 6))
+	button.add_theme_stylebox_override("hover", _style(Color("ead9bb"), 6))
+	button.add_theme_stylebox_override("pressed", _style(Color("dfc99f"), 6))
 	return button
 
 
-func _style(bg: Color, border: Color, margin: int, radius: int) -> StyleBoxFlat:
+func _style(color: Color, radius: int) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
-	style.bg_color = bg
-	style.border_color = border
-	style.set_border_width_all(3)
+	style.bg_color = color
 	style.set_corner_radius_all(radius)
-	style.content_margin_left = margin
-	style.content_margin_right = margin
-	style.content_margin_top = margin
-	style.content_margin_bottom = margin
 	return style

@@ -1904,33 +1904,16 @@
     "_flags_note": "2026-09-16（v3.0）：`quick_fix` 的埋雷端由 E12.C（已归档）重指到此——「继续短期修补、把重构留到下个季度」与「加一行提示糊过去」同族，都是把债往后挪。兑现端改指 E40（`M6-E21`）。"
    },
    "C": {
-    "text": "拆出高风险链路，边交付边替换",
-    "state_delta": {
-     "S": 1,
-     "N": 1,
-     "O": 1,
-     "H": -1
-    },
-    "life": -1,
-    "prof": 1,
-    "bonus_tier": "achieved",
-    "competency": {
-     "architecture": 1,
-     "collaboration": 1
-    },
-    "bigfive": [
-     {
-      "trait": "C",
-      "dir": 1
-     }
-    ],
-    "cognition": {
-     "CFC": 1
-    },
-    "regulatory_focus": "promotion",
-    "memory_tags": [
-     "拆出高风险链路"
-    ]
+      "text": "交给外包",
+      "state_delta": {
+        "S": -1,
+        "N": 1,
+        "O": 1
+      },
+      "bonus_tier": "none",
+      "memory_tags": [
+        "把重构交给外包"
+      ]
    }
   }
  },

@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="370" viewBox="0 0 1080 370">
+  <defs>
+    <style>
+      text { font-family: 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif; fill: #263b3c; }
+      .title { font-size: 20px; font-weight: 700; }
+      .body { font-size: 16px; }
+      .step { font-size: 14px; font-weight: 700; fill: #52736f; }
+      .arrow { stroke: #52736f; stroke-width: 3; fill: none; marker-end: url(#head); }
+    </style>
+    <marker id="head" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M1 1 L9 5 L1 9 Z" fill="#52736f"/></marker>
+  </defs>
+  <rect width="1080" height="370" fill="#fff"/>
+  <rect x="22" y="46" width="188" height="142" rx="7" fill="#e9eee6" stroke="#91a98a" stroke-width="2"/>
+  <text x="42" y="76" class="step">01  请求</text>
+  <text x="116" y="115" class="title" text-anchor="middle">Godot Web</text>
+  <text x="116" y="146" class="body" text-anchor="middle">请求游戏资源</text>
+  <rect x="236" y="46" width="188" height="142" rx="7" fill="#dceee9" stroke="#70a39a" stroke-width="2"/>
+  <text x="256" y="76" class="step">02  拦截</text>
+  <text x="330" y="115" class="title" text-anchor="middle">ArkWeb</text>
+  <text x="330" y="146" class="body" text-anchor="middle">识别虚拟来源</text>
+  <rect x="450" y="46" width="188" height="142" rx="7" fill="#fff4db" stroke="#d4ad54" stroke-width="2"/>
+  <text x="470" y="76" class="step">03  校验</text>
+  <text x="544" y="115" class="title" text-anchor="middle">资源白名单</text>
+  <text x="544" y="146" class="body" text-anchor="middle">只接受游戏文件</text>
+  <rect x="664" y="46" width="188" height="142" rx="7" fill="#dceee9" stroke="#70a39a" stroke-width="2"/>
+  <text x="684" y="76" class="step">04  读取</text>
+  <text x="758" y="115" class="title" text-anchor="middle">HAP 本地资源</text>
+  <text x="758" y="146" class="body" text-anchor="middle">读取内置字节</text>
+  <rect x="878" y="46" width="180" height="142" rx="7" fill="#e9eee6" stroke="#91a98a" stroke-width="2"/>
+  <text x="898" y="76" class="step">05  返回</text>
+  <text x="968" y="115" class="title" text-anchor="middle">正确 MIME</text>
+  <text x="968" y="146" class="body" text-anchor="middle">加载并显示游戏</text>
+  <path class="arrow" d="M210 117 H228"/><path class="arrow" d="M424 117 H442"/><path class="arrow" d="M638 117 H656"/><path class="arrow" d="M852 117 H870"/>
+  <rect x="110" y="231" width="860" height="94" rx="7" fill="#f4f7f7" stroke="#d5e1df" stroke-width="2"/>
+  <text x="540" y="267" class="title" text-anchor="middle">游戏素材离线可读，不需要远程资源服务器</text>
+  <text x="540" y="299" class="body" text-anchor="middle">后端 API 是另一条链路；资源离线并不代表业务数据可离线结算</text>
+</svg>

@@ -12,6 +12,18 @@ const DIRECTION_NAMES: Array[String] = ["down", "right", "up", "left"]
 const SLOT_NAMES: Array[String] = ["head", "top_hands", "bottom", "shoes"]
 const DEFAULT_CYCLE_DISTANCE := 64.0
 const DEFAULT_FRAME_DURATION_SECONDS := 0.2
+const DIRECT_FRAME_ROOT := "res://assets/characters/direct_frames/"
+const DIRECT_FRAME_DIRS := {
+	"avatar_player": "player",
+	"avatar_xiaoye": "xiaoye",
+	"avatar_yueya": "yueya",
+	"avatar_mili": "mili",
+	"avatar_amai": "amai",
+	"bear_orange_blazer": "orange_bear",
+	"bear_plaid_glasses": "gray_bear",
+	"bear_beige_blazer": "beige_bear",
+	"bear_green_cardigan": "green_bear",
+}
 
 @export_file("*.json") var catalog_path := DEFAULT_CATALOG_PATH
 @export var cycle_distance := DEFAULT_CYCLE_DISTANCE
@@ -24,6 +36,8 @@ var _direction_row := 0
 var _frame_sequence_index := 0
 var _distance_progress := 0.0
 var _frame_duration_seconds := DEFAULT_FRAME_DURATION_SECONDS
+var _direct_frames: Array[Texture2D] = []
+var _direct_frame_mode := false
 
 
 func _ready() -> void:
@@ -87,6 +101,8 @@ func load_catalog(path: String) -> bool:
 func set_loadout(loadout_id: String) -> bool:
 	if not _loadout_by_id.has(loadout_id):
 		return false
+	if DIRECT_FRAME_DIRS.has(loadout_id):
+		return _set_direct_frames(loadout_id, String(DIRECT_FRAME_DIRS[loadout_id]))
 	var atlas_path := String((_loadout_by_id[loadout_id] as Dictionary)["atlas"])
 	if not atlas_path.begins_with("res://"):
 		atlas_path = "res://" + atlas_path
@@ -99,6 +115,8 @@ func set_loadout(loadout_id: String) -> bool:
 	vframes = 4
 	frame_coords = previous_coords
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_direct_frames.clear()
+	_direct_frame_mode = false
 	_current_loadout_id = loadout_id
 	loadout_changed.emit(loadout_id)
 	return true
@@ -209,7 +227,35 @@ func is_catalog_ready() -> bool:
 
 
 func _sync_frame() -> void:
+	if _direct_frame_mode:
+		if _direct_frames.size() == FRAME_SEQUENCE.size() * DIRECTION_NAMES.size():
+			texture = _direct_frames[_direction_row * FRAME_SEQUENCE.size() + FRAME_SEQUENCE[_frame_sequence_index]]
+			frame_coords = Vector2i.ZERO
+		return
 	frame_coords = Vector2i(FRAME_SEQUENCE[_frame_sequence_index], _direction_row)
+
+
+func _set_direct_frames(loadout_id: String, directory_name: String) -> bool:
+	var loaded: Array[Texture2D] = []
+	for frame_index in range(16):
+		var frame_path := "%s%s/%02d.png" % [DIRECT_FRAME_ROOT, directory_name, frame_index + 1]
+		var frame := _load_texture(frame_path)
+		if frame == null:
+			push_error("PaperDoll64Sprite frame is missing: %s" % frame_path)
+			return false
+		loaded.append(frame)
+	_direct_frames = loaded
+	_direct_frame_mode = true
+	texture = loaded[0]
+	hframes = 1
+	vframes = 1
+	scale = Vector2(0.25, 0.25)
+	position = Vector2(-64, -112)
+	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	_current_loadout_id = loadout_id
+	_sync_frame()
+	loadout_changed.emit(loadout_id)
+	return true
 
 
 func _direction_row_from_vector(direction: Vector2) -> int:

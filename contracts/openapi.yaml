@@ -66,6 +66,32 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/EventResponse' }
         '409': { description: Event conflicts with current story state }
+  /sessions/{sessionId}/assessments/{month}:
+    post:
+      summary: Settle a six-month promotion checkpoint once all story nodes through that month are complete
+      description: Idempotent. Returns the public result only; scores and thresholds stay on the server.
+      parameters:
+        - { $ref: '#/components/parameters/SessionId' }
+        - name: month
+          in: path
+          required: true
+          schema: { type: integer, enum: [6, 12, 18, 24, 30, 36, 42] }
+      responses:
+        '200':
+          description: Settled checkpoint and authoritative session state
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [month, passed, levelAfter, state]
+                properties:
+                  month: { type: integer }
+                  passed: { type: boolean }
+                  levelAfter: { type: integer }
+                  interactionEvidence: { $ref: '#/components/schemas/InteractionEvidence' }
+                  state: { $ref: '#/components/schemas/SessionState' }
+        '400': { description: Month is not a promotion checkpoint }
+        '409': { description: A story node through this month is incomplete }
   /sessions/{sessionId}/npcs/{npcId}/memories:
     get:
       summary: List what an NPC remembers about the player (memory wall / dialogue context)
@@ -162,6 +188,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ReportStatus' }
+        '409': { description: The final story has not been settled }
     get:
       summary: Read a generated report
       description: >
@@ -206,6 +233,10 @@ components:
         chapterId: { type: string, example: M1 }
         currentNodeId: { type: string, example: M1-E01 }
         completedStoryIds: { type: array, items: { type: string } }
+        skippedStoryIds:
+          type: array
+          description: 跳月略过的主线，不作为测评选择；同时包含在进度清单中以维持事件顺序。
+          items: { type: string }
         completedActivityIds: { type: array, items: { type: string } }
         unlockedRegionIds:
           type: array
@@ -251,6 +282,24 @@ components:
           description: >
             Current rank L1-L7, issued by the server. The client renders it and never
             computes or mirrors it — one authoritative copy only (2026-09-17 decision).
+        abilityLevels:
+          type: object
+          description: Visible baseline-5 ability meters (1-5), derived from authoritative choice competency deltas.
+          additionalProperties: { type: integer, minimum: 1, maximum: 5 }
+        currentMonth:
+          type: integer
+          minimum: 0
+          description: Latest month settled by the server.
+        assessmentHistory:
+          type: array
+          description: Settled six-month promotion checkpoints; internal scores and thresholds are omitted.
+          items:
+            type: object
+            required: [month, passed, levelAfter]
+            properties:
+              month: { type: integer }
+              passed: { type: boolean }
+              levelAfter: { type: integer }
         nextAssessmentMonth:
           type: integer
           minimum: 1
@@ -298,9 +347,12 @@ components:
             - ai_reaction_view       # 反馈查看：时长 → 沉浸度
             - task_complete          # 结束：汇总 → 沉浸度
             - report_view            # 报告浏览：顺序/时长 → 报告优化
+            - month_jump             # V1.2 跳月至未来月份；payload.targetMonth 为目标月
             # ---- 叙事流补充（非测评，服务端只落日志）
             - region_entered
             - npc_dialogue_complete
+            - action_spent            # V1.2 区域行动窗口的实际消耗，不等于旧版自由周末
+            - training_result         # 训练谷对局摘要；胜负和骰运不进入职业测评
             - weekend_close          # 自由周末收束：月份/收束快照 → 周末完成度（不测评）
             - encounter_choice       # 在场一幕应答：活动/选项/NPC/标签 → 性格回声（不测评，只记性格标签）
         contentVersion: { type: string, example: v1 }
@@ -311,11 +363,17 @@ components:
           required: [regionId]
           properties:
             regionId: { type: string, enum: [A, B, C, D, E, F, G, H] }
+            targetMonth: { type: integer, minimum: 2, maximum: 48, description: month_jump 的目标月份 }
             storyId: { type: string, example: E27 }
             activityId: { type: string, example: W1 }
             choiceId: { type: string, example: E27-A }
             templateId: { type: string, example: work_late }
             npcId: { type: string }
+            message: { type: string, maxLength: 2000, description: 玩家对 NPC 说的话，供后续记忆系统使用；不直接评分 }
+            activityKind: { type: string, enum: [area_activity, npc_conversation] }
+            windowId: { type: string }
+            remainingAfter: { type: integer, minimum: 0, maximum: 3 }
+            result: { type: object, additionalProperties: true, description: 训练谷结果摘要；仅记录，不进入职业测评 }
             optionId: { type: string, example: A, description: 在场一幕应答选项编号（encounter_choice 用） }
             memoryTags:
               type: array
@@ -371,12 +429,18 @@ components:
         三层报告（算法册 V2.3 §6）：一层职场人格画像（48 个月行为，可信度高）、
         二层岗位市场参考（真实 JD，市场数据非测评）、三层交叉提示（前两层叠加，
         提示非结论）。呈现铁律：可观测事实给死数字；推断值给档位不给点值；
-        阈值永不出现；证据不足的模块整体不出现（displayable=false 时客户端不渲染）。
+        阈值永不出现；大五展示分附证据状态，低样本时采用中性先验并标记初步估计。
       properties:
         sessionId: { type: string, format: uuid }
         scoringVersion: { type: string, example: v2.9 }
+        portraitVersion: { type: integer, example: 2 }
         generatedAt: { type: string, format: date-time }
         decisionCount: { type: integer, description: 核心决策点数（seq 口径，约 103） }
+        interactionEvidence: { $ref: '#/components/schemas/InteractionEvidence' }
+        skippedStoryIds:
+          type: array
+          description: 跳月略过的主线，不计入 decisionCount。
+          items: { type: string }
         layers:
           type: object
           required: [persona, market, crossHints]
@@ -391,6 +455,22 @@ components:
           type: array
           description: 行为证据回放（犹豫离群点、横跳离群点等），按 seq 升序
           items: { $ref: '#/components/schemas/EvidenceRef' }
+    InteractionEvidence:
+      type: object
+      description: 互动行为摘要。完成一个三点行动力窗口可在该考核窗增加一次封顶累积分；对话正文和训练胜负不直接计分。
+      properties:
+        actionCount: { type: integer, minimum: 0 }
+        actionsByKind: { type: object, additionalProperties: { type: integer } }
+        dialogueCount: { type: integer, minimum: 0 }
+        dialogueByNpc: { type: object, additionalProperties: { type: integer } }
+        trainingResults:
+          type: array
+          items:
+            type: object
+            properties:
+              outcome: { type: string }
+              rounds: { type: integer, nullable: true }
+        scoringNote: { type: string }
     EvidenceRef:
       type: object
       description: >
@@ -410,15 +490,17 @@ components:
       type: object
       required: [trait, traitCn]
       description: >
-        行为证据 n<5（BIGFIVE_MIN_EVIDENCE）时 behavior/posterior 为 null，
-        behaviorAvailable=false，客户端只渲染自评条并附「行为证据不足，仅供参考」。
+        行为证据不足时 behavior/posterior 保持 null；portraitScore 为带中性先验的展示分，
+        portraitEvidence 标明该维度是否有足够证据。中性起点不是测量结果。
       properties:
         trait: { type: string, enum: [O, C, E, A, N] }
         traitCn: { type: string, example: 尽责性 }
         self: { type: number, nullable: true, description: 建档自评，0-10；未建档为 null }
         behavior: { type: number, nullable: true, description: 行为分，0-10，按 loading_base 对中点等比缩放 }
+        portraitScore: { type: integer, minimum: 0, maximum: 100, description: 报告展示分；证据不足时向 50 中性起点收缩 }
+        portraitEvidence: { type: string, enum: [none, limited, established] }
         behaviorStd: { type: number, nullable: true }
-        posterior: { type: number, nullable: true, description: 贝叶斯后验 = 自评 + K×(行为分−自评)，K=n/(n+5) }
+        posterior: { type: number, nullable: true, description: 贝叶斯后验 = 自评 + K×(行为分−自评)，K=有效证据量/(有效证据量+5) }
         conflict: { type: number, nullable: true, description: 矛盾度 = |自评 − 后验| }
         conflictSignificant: { type: boolean }
         evidenceCount: { type: integer }
@@ -472,6 +554,11 @@ components:
         bigfive:
           type: array
           items: { $ref: '#/components/schemas/BigFiveTrait' }
+        styleTags:
+          type: array
+          description: 依据有证据支持的维度生成；完全没有证据时返回“待积累经历”。
+          items: { type: string }
+        portraitStatus: { type: string, enum: [provisional, established] }
         selfVsBehaviorConflicts:
           type: array
           description: 自评 vs 行为显著矛盾点（矛盾度超标的特质），措辞用行为语言

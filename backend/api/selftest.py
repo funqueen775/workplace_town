@@ -18,6 +18,7 @@ import sys
 import tempfile
 import threading
 import uuid
+from unittest.mock import patch
 from http.client import HTTPConnection
 from pathlib import Path
 
@@ -70,6 +71,39 @@ def make_event(story_id: str, choice_id: str, *, event_type: str = "main_choice"
     return ev
 
 
+def finish_story(client: Client, sid: str) -> bool:
+    for _ in range(40):
+        code, nxt = client.req("GET", f"/api/v1/sessions/{sid}/next")
+        if code != 200:
+            return False
+        if nxt.get("nodeType") == "finished":
+            return True
+        choices = nxt.get("choices") or []
+        event = make_event(nxt["nodeId"], choices[0]["choiceId"] if choices else "-",
+                           event_type="main_choice" if choices else "achievement_view")
+        code, _ = client.req("POST", f"/api/v1/sessions/{sid}/events", event)
+        if code != 200:
+            return False
+    return False
+
+
+def advance_through_month(client: Client, service: srv.Service, sid: str, month: int) -> bool:
+    for _ in range(40):
+        code, nxt = client.req("GET", f"/api/v1/sessions/{sid}/next")
+        if code != 200 or nxt.get("nodeType") == "finished":
+            return code == 200
+        key = service.mapping.scoring_key(nxt["nodeId"])
+        if service.engine.sched_month[key] > month:
+            return True
+        choices = nxt.get("choices") or []
+        event = make_event(nxt["nodeId"], choices[0]["choiceId"] if choices else "-",
+                           event_type="main_choice" if choices else "achievement_view")
+        code, _ = client.req("POST", f"/api/v1/sessions/{sid}/events", event)
+        if code != 200:
+            return False
+    return False
+
+
 def main() -> int:
     tmp = Path(tempfile.mkdtemp(prefix="wt_api_selftest_"))
     db = tmp / f"selftest_{uuid.uuid4().hex[:8]}.db"
@@ -84,6 +118,18 @@ def main() -> int:
     # ---- ① health
     code, resp = c.req("GET", "/api/v1/health")
     check("health 200", code == 200 and resp.get("status") == "ok")
+    preflight = HTTPConnection("127.0.0.1", port, timeout=10)
+    preflight.request("OPTIONS", "/api/v1/sessions", headers={
+        "Origin": srv.Handler.WEB_ORIGIN,
+        "Access-Control-Request-Method": "POST",
+        "Access-Control-Request-Headers": "content-type",
+    })
+    response = preflight.getresponse()
+    check("鸿蒙 Web 跨域预检", response.status == 204
+          and response.getheader("Access-Control-Allow-Origin") == srv.Handler.WEB_ORIGIN
+          and "Content-Type" in response.getheader("Access-Control-Allow-Headers", ""))
+    response.read()
+    preflight.close()
 
     # ---- ② 建会话：形状对齐 fixture session-created.json
     code, sess = c.req("POST", "/api/v1/sessions", {"contentVersion": "v1"})
@@ -95,12 +141,48 @@ def main() -> int:
           and set(sess["state"].keys()) >= set(shape["state"].keys()),
           str(list(sess.get("state", {}).keys())))
     check("初始 currentNodeId=M1-E01", sess["state"]["currentNodeId"] == "M1-E01")
+    check("新员工初始档案：L1、能力3、首次考核第6月",
+          sess["state"].get("level") == 1
+          and sess["state"].get("abilityLevels") == {
+              "technical": 3, "collaboration": 3, "expression": 3,
+              "integrity": 3, "resilience": 3,
+          }
+          and sess["state"].get("nextAssessmentMonth") == 6
+          and sess["state"].get("assessmentHistory") == [])
 
     # ---- ③ resume：不存在的 → 404；存在的 → 200 同一会话
     code, _ = c.req("POST", "/api/v1/sessions", {"resumeSessionId": str(uuid.uuid4())})
     check("resume 未知会话 404", code == 404)
     code, sess2 = c.req("POST", "/api/v1/sessions", {"resumeSessionId": sid})
     check("resume 续接 200 同 sessionId", code == 200 and sess2["sessionId"] == sid)
+
+    before_tracking = svc.store.get_session(sid)["state_json"]
+    dialogue = make_event("M1-E01", "-", event_type="npc_dialogue_complete")
+    dialogue["payload"] = {"regionId": "B", "npcId": "wang_ge",
+                           "message": "我想先确认需求和时间", "messageLength": 11, "month": 1}
+    code, _ = c.req("POST", f"/api/v1/sessions/{sid}/events", dialogue)
+    check("NPC 原话入事件流", code == 200)
+    code, memories = c.req("GET", f"/api/v1/sessions/{sid}/npcs/wang_ge/memories?layers=social")
+    check("NPC social 记忆按角色与 eventId 可读取",
+          code == 200 and any(item.get("fact") == dialogue["payload"]["message"]
+                              and item.get("eventRef") == dialogue["eventId"]
+                              for item in memories.get("items", [])))
+    action = make_event("M1-E01", "-", event_type="action_spent")
+    action["payload"] = {"regionId": "C", "windowId": "FW01",
+                         "activityId": "C_meeting", "activityKind": "area_activity",
+                         "month": 1, "remainingAfter": 2}
+    code, _ = c.req("POST", f"/api/v1/sessions/{sid}/events", action)
+    check("区域行动记录 accepted", code == 200)
+    training = make_event("M1-E01", "-", event_type="training_result")
+    training["payload"] = {"regionId": "E", "activityId": "training_valley_1", "month": 1,
+                           "result": {"outcome": "victory", "rounds": 3}}
+    code, _ = c.req("POST", f"/api/v1/sessions/{sid}/events", training)
+    check("训练结果记录 accepted", code == 200)
+    tracked = srv.Engine.state_from_json(svc.store.get_session(sid)["state_json"])
+    original = srv.Engine.state_from_json(before_tracking)
+    check("单次行动、聊天、训练不改变职业分数",
+          tracked.window_cumulative == original.window_cumulative
+          and tracked.seq == original.seq and tracked.level == original.level)
 
     # ---- ④ fixture 原样事件：M1-E01 + M1-E01-C02（契约口径）→ 引擎 E01 选 B
     ev = fixture("event-main-choice.json")
@@ -331,27 +413,61 @@ def main() -> int:
     check("未生成时 status 200 pending",
           code == 200 and st_pre.get("status") == "pending", str((code, st_pre)))
 
-    code, post1 = c.req("POST", f"/api/v1/sessions/{sid}/report")
+    code, premature = c.req("POST", f"/api/v1/sessions/{sid}/report")
+    check("终局前拒绝生成报告", code == 409 and premature.get("error") == "final story not complete",
+          str((code, premature)))
+    code, report_session = c.req("POST", "/api/v1/sessions", {"contentVersion": "v1"})
+    report_sid = report_session["sessionId"]
+    report_action = make_event("M1-E01", "-", event_type="action_spent")
+    report_action["payload"] = {"regionId": "C", "activityKind": "area_activity",
+                                "activityId": "C_meeting", "windowId": "FW01", "month": 1,
+                                "remainingAfter": 2}
+    c.req("POST", f"/api/v1/sessions/{report_sid}/events", report_action)
+    report_chat = make_event("M1-E01", "-", event_type="npc_dialogue_complete")
+    report_chat["payload"] = {"regionId": "B", "npcId": "wang_ge", "month": 1,
+                              "message": "这次先核对需求"}
+    c.req("POST", f"/api/v1/sessions/{report_sid}/events", report_chat)
+    check("报告会话走完全部可玩剧情", finish_story(c, report_sid))
+    code, post1 = c.req("POST", f"/api/v1/sessions/{report_sid}/report")
     check("POST /report 202 且同步 ready（纯模板无大模型，不伪造中间态）",
           code == 202 and post1.get("status") == "ready", str((code, post1)))
 
-    code, post2 = c.req("POST", f"/api/v1/sessions/{sid}/report")
+    code, post2 = c.req("POST", f"/api/v1/sessions/{report_sid}/report")
     check("POST /report 幂等：重复请求返同一 handle",
-          code == 202 and post2.get("sessionId") == sid
+          code == 202 and post2.get("sessionId") == report_sid
           and post2.get("status") == "ready", str((code, post2, sid)))
 
-    code, rep_http = c.req("GET", f"/api/v1/sessions/{sid}/report")
+    code, rep_http = c.req("GET", f"/api/v1/sessions/{report_sid}/report")
     check("ready 后 GET /report 200", code == 200, str(code))
+    summary = rep_http.get("interactionEvidence", {})
+    check("终局报告包含真实互动摘要但不泄露对话正文",
+          summary.get("actionCount") == 1 and summary.get("dialogueCount") == 1
+          and summary.get("dialogueByNpc", {}).get("wang_ge") == 1
+          and report_chat["payload"]["message"] not in json.dumps(rep_http, ensure_ascii=False),
+          str(summary))
     check("GET /report 三层结构齐",
           {"persona", "market", "crossHints"} <= set(rep_http.get("layers", {})),
           str(list(rep_http.get("layers", {}).keys())))
     check("GET /report 回填 sessionId 与 decisionCount",
-          rep_http.get("sessionId") == sid and rep_http.get("decisionCount") == 4,
+          rep_http.get("sessionId") == report_sid and rep_http.get("decisionCount") == 26,
           str((rep_http.get("sessionId"), rep_http.get("decisionCount"))))
 
-    code, st_post = c.req("GET", f"/api/v1/sessions/{sid}/report/status")
+    code, st_post = c.req("GET", f"/api/v1/sessions/{report_sid}/report/status")
     check("生成后 status 200 ready",
           code == 200 and st_post.get("status") == "ready", str((code, st_post)))
+    code, _ = c.req("POST", f"/api/v1/sessions/{report_sid}/events", {
+        "eventId": str(uuid.uuid4()), "eventType": "encounter_choice",
+        "contentVersion": "v1", "clientTime": "2026-09-17T12:00:00+08:00",
+        "payload": {"regionId": "C", "activityId": "D1_coffee_chat",
+                    "npcId": "xiao_lin", "optionId": "A", "memoryTags": ["会先开口的人"],
+                    "month": 48},
+    })
+    code, stale_status = c.req("GET", f"/api/v1/sessions/{report_sid}/report/status")
+    check("新增证据后旧报告失效", code == 200 and stale_status.get("status") == "pending")
+    code, _ = c.req("POST", f"/api/v1/sessions/{report_sid}/report")
+    code, refreshed_report = c.req("GET", f"/api/v1/sessions/{report_sid}/report")
+    check("重建报告包含新增证据", code == 200 and
+          refreshed_report.get("layers", {}).get("persona", {}).get("encounterEchoes", {}).get("n") == 1)
 
     # ---- ⑭ 考核窗接线：跨过考核月应真的结算一个窗
     # 跑批（simulation.py）是逐月循环，考核月自然命中一次；服务层是**逐事件跳跃**
@@ -383,12 +499,70 @@ def main() -> int:
     check("考核窗月份落在 PROMOTION_MONTHS 内",
           all(m in C.PROMOTION_MONTHS for m in months3), str(months3))
     check("同一考核月不重复结算（幂等）", len(months3) == len(set(months3)), str(months3))
+    code, resumed3 = c.req("GET", f"/api/v1/sessions/{sid3}")
+    history3 = resumed3.get("state", {}).get("assessmentHistory", [])
+    check("检查点历史由服务端恢复且不泄露阈值",
+          code == 200 and [w.get("month") for w in history3] == months3
+          and all(set(w) == {"month", "passed", "levelAfter"} for w in history3),
+          str(history3))
     rep3 = build_report(sim.RunResult(state=st3, log=sim.RunLog()), reg)
     wins3 = (rep3.get("layers", {}).get("persona", {})
              .get("promotionTrack", {}).get("windows", []))
     check("报告 promotionTrack.windows 不再恒空（与 state 窗数一致）",
           len(wins3) == len(months3) > 0,
           f"report={len(wins3)} state={len(months3)}")
+
+    code, checkpoint_session = c.req("POST", "/api/v1/sessions", {"contentVersion": "v1"})
+    checkpoint_sid = checkpoint_session["sessionId"]
+    checkpoint_action = make_event("M1-E01", "-", event_type="action_spent")
+    checkpoint_action["payload"] = {"regionId": "C", "activityKind": "area_activity",
+                                    "activityId": "C_meeting", "windowId": "FW01", "month": 1,
+                                    "remainingAfter": 2}
+    c.req("POST", f"/api/v1/sessions/{checkpoint_sid}/events", checkpoint_action)
+    for remaining in (1, 0):
+        action = make_event("M1-E01", "-", event_type="action_spent")
+        action["payload"] = {"regionId": "C", "activityKind": "area_activity",
+                              "activityId": "C_meeting", "windowId": "FW01", "month": 1,
+                              "remainingAfter": remaining}
+        c.req("POST", f"/api/v1/sessions/{checkpoint_sid}/events", action)
+    earned = srv.Engine.state_from_json(svc.store.get_session(checkpoint_sid)["state_json"])
+    check("同一行动窗口完整消耗三点只加一次累积分",
+          earned.window_cumulative == 1 and earned.window_action_bonus_granted)
+    for remaining in (2, 1, 0):
+        extra = make_event("M1-E01", "-", event_type="action_spent")
+        extra["payload"] = {"regionId": "C", "activityKind": "area_activity",
+                            "activityId": "C_meeting", "windowId": "FW02", "month": 1,
+                            "remainingAfter": remaining}
+        c.req("POST", f"/api/v1/sessions/{checkpoint_sid}/events", extra)
+    capped = srv.Engine.state_from_json(svc.store.get_session(checkpoint_sid)["state_json"])
+    check("同一考核窗第二个行动窗口不重复加分", capped.window_cumulative == 1)
+    code, early_checkpoint = c.req(
+        "POST", f"/api/v1/sessions/{checkpoint_sid}/assessments/6")
+    check("第 6 月剧情未完成拒绝检查点", code == 409 and early_checkpoint.get("expected"))
+    check("完成第 6 月全部剧情", advance_through_month(c, svc, checkpoint_sid, 6))
+    code, first_checkpoint = c.req(
+        "POST", f"/api/v1/sessions/{checkpoint_sid}/assessments/6")
+    code2, duplicate_checkpoint = c.req(
+        "POST", f"/api/v1/sessions/{checkpoint_sid}/assessments/6")
+    check("第 6 月检查点幂等且状态一致",
+          code == code2 == 200 and first_checkpoint == duplicate_checkpoint
+          and len(first_checkpoint["state"]["assessmentHistory"]) == 1)
+    check("检查点下发本期互动证据且不泄露内部门槛",
+          first_checkpoint.get("interactionEvidence", {}).get("actionCount") == 6
+          and first_checkpoint["interactionEvidence"].get("actionsByKind", {}).get("area_activity") == 6
+          and "window_action_bonus_granted" not in first_checkpoint.get("state", {}))
+    check("完成第 23 月全部剧情", advance_through_month(c, svc, checkpoint_sid, 23))
+    code, empty_month_checkpoint = c.req(
+        "POST", f"/api/v1/sessions/{checkpoint_sid}/assessments/24")
+    check("没有主线的第 24 月也能准时结算",
+          code == 200 and empty_month_checkpoint.get("month") == 24
+          and any(w["month"] == 24 for w in empty_month_checkpoint["state"]["assessmentHistory"]))
+    reloaded = srv.Store(db)
+    restored = srv.Engine.state_from_json(reloaded.get_session(checkpoint_sid)["state_json"])
+    check("重启恢复检查点与真实逐月日志",
+          [w["month"] for w in restored.promotion_windows] == [6, 12, 18, 24]
+          and len(restored.month_log) == 24)
+    reloaded.conn.close()
 
     # 未知会话三条路由都要 404，不能因为「没有 reports 行」就 500
     ghost = uuid.uuid4()
@@ -419,6 +593,7 @@ def main() -> int:
             post_ok = False
             break
     check("encounter_choice 上报 accepted", post_ok, str((code, r)))
+    check("encounter 会话走完全部可玩剧情", finish_story(c, sid4))
     code, rep4_pre = c.req("POST", f"/api/v1/sessions/{sid4}/report")
     check("encounter 会话报告 ready", rep4_pre.get("status") == "ready", str(rep4_pre))
     code, rep4 = c.req("GET", f"/api/v1/sessions/{sid4}/report")
@@ -482,6 +657,21 @@ def main() -> int:
     check("月末尾巴幂等：重复调用不重复结算", before == after, f"{before} → {after}")
     check("月末尾巴按稳态记录了已结算月份", len(st3.settled_months) == st3.month,
           f"settled={len(st3.settled_months)} month={st3.month}")
+
+    code, atomic_session = c.req("POST", "/api/v1/sessions", {"contentVersion": "v1"})
+    atomic_sid = atomic_session["sessionId"]
+    atomic_event = make_event("M1-E01", "M1-E01-C02")
+    before_state = svc.store.get_session(atomic_sid)["state_json"]
+    with patch.object(svc, "_session_state", side_effect=RuntimeError("injected failure")):
+        try:
+            svc.post_event(atomic_sid, atomic_event)
+        except RuntimeError:
+            pass
+    check("事件写入中断时状态与事件一起回滚",
+          svc.store.get_session(atomic_sid)["state_json"] == before_state
+          and svc.store.get_event(atomic_sid, atomic_event["eventId"]) is None)
+    code, retried = c.req("POST", f"/api/v1/sessions/{atomic_sid}/events", atomic_event)
+    check("回滚后原 eventId 可安全重试", code == 200 and retried.get("accepted") is True)
 
     # ---- ⑯ 未知会话 404
     code, _ = c.req("GET", f"/api/v1/sessions/{uuid.uuid4()}")

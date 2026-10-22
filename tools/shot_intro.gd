@@ -66,6 +66,12 @@ func _run() -> void:
 				inst.call("_show_title")
 			else:
 				inst.call("_goto_intro", int(key))
+		elif _scene.ends_with("Startup.tscn"):
+			if key == "title":
+				inst.call("_show_login_screen")
+			else:
+				inst.call("_start_intro")
+				inst.call("_go_page", int(key))
 		_mark("built %s" % key)
 		# 两帧：一帧让容器算完布局，一帧让它真的画出来；
 		# 非开场场景（有相机/物理）多等几帧，等相机与寻路稳定
