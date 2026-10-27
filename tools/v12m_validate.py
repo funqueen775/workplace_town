@@ -452,8 +452,12 @@ def main() -> int:
                 errors.append(f"提示 {hint_id} 监听的节点 {target} 不存在")
         if hint.get("dismissOn"):
             dismiss = str(hint["dismissOn"])
-            if dismiss not in DISMISS and trigger_head(dismiss) not in {"node_completed"}:
+            if dismiss not in DISMISS and trigger_head(dismiss) not in {"node_completed", "node_started"}:
                 errors.append(f"提示 {hint_id} 的 dismissOn 不在词表里：{dismiss}")
+            elif trigger_head(dismiss) in {"node_completed", "node_started"}:
+                target = dismiss.split(":", 1)[1]
+                if target not in by_id:
+                    errors.append(f"提示 {hint_id} 的 dismissOn 指向不存在的节点：{target}")
         if hint.get("replace") and str(hint["replace"]) not in all_hint_ids:
             errors.append(f"提示 {hint_id} 的 replace 指向不存在的提示：{hint['replace']}")
         if hint.get("persist") and hint.get("autoDismissMs"):

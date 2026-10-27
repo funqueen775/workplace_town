@@ -31,6 +31,9 @@ const MONTH12_ACTIVITY := preload("res://scripts/v12m/Month12ActivityPanel.gd")
 const MONTH12_CLOSE := preload("res://scripts/v12m/Month12ClosePanel.gd")
 const HANDBOOK_PANEL := preload("res://scripts/HandbookPanel.gd")
 const PHONE_INBOX := preload("res://scripts/v12m/PhoneInboxPanel.gd")
+## 到访制的进门确认页（12 个月 F 段，替代旧的中央菜单）。
+const PLACE_VISIT_PANEL := preload("res://scripts/v12m/PlaceVisitPanel.gd")
+const MONTH12_PLACES_PATH := "res://data/story/v12m/activities.json"
 ## 十二个月的时间过场：跨旬 / 时段 / 翻月 / 昼夜四档，压在面板之上、提示条之下。
 const TRANSITION_WIPE := preload("res://scripts/v12m/TransitionWipe.gd")
 const MONTH12_HANDBOOK_PATH := "res://data/story/employee_handbook_12m.json"
@@ -70,6 +73,9 @@ const MOVE_UP_KEYS := [KEY_W, KEY_UP]
 const MOVE_DOWN_KEYS := [KEY_S, KEY_DOWN]
 const INTERACTION_DISTANCE := 230.0
 const ENTRANCE_DISTANCE := 64.0
+## 到访制的门：走近到这个距离就给「按 E 进去」。比自动传送口宽一点，
+## 门是玩家主动要进的地方，不该逼他踩在点上。
+const PLACE_REACH_DISTANCE := 96.0
 const ZONE_ZOOM := 3.15
 const OUTDOOR_EXPLORATION_ZOOM := 1.55
 const CAMERA_FOLLOW_SPEED := 5.4
@@ -208,6 +214,20 @@ var _month12_flags: Dictionary = {}
 var _month12_handbook
 var _month12_activity_panel
 var _month12_close_panel
+## 从月末卡跳去看档案时置真：档案页关掉后要把月末卡放回来。
+var _archive_return_to_close := false
+## 首月活动去处：三扇门在自由活动开始时一起出现，由玩家自己选择先去哪里。
+var _month12_places: Array = []
+var _month12_place_portals := {}
+## 本月必玩是否已经做完：做完之前，不开放的门口压成灰；做完那一刻一起亮回来。
+var _month12_places_open := false
+var _month12_place_panel
+var _month12_nearby_place := ""
+var _month12_activity_taken := false
+## 进了活动专属场景（天台、湖边）时把同事藏起来，出来还原。
+var _month12_scene_npcs_hidden := false
+## 首月不为每个地点单独弹解锁卡；活动入口同时出现，到达地点后再看活动确认页。
+var _end_month_button: Button
 ## 左上角日期栏的当前读数：月 / 旬 / 白天夜晚 / 日内时段。
 ## 只由节点数据给（phase、timeBand），客户端不推算日子，也不显示钟点。
 var _wipe: TransitionWipe
@@ -224,7 +244,6 @@ var _date_then_queue: Array = []
 var _date_wait_panel: Array = []
 var _date_debug := false
 var _date_debug_step := 0
-var _month_phone_tutorial
 ## 12m 首月手机：E01_TOUR 的信到了才解锁右下角手机；未读时点开直接进陈工这条。
 var _month_phone_messages: Array = []
 var _month_phone_unread := false
@@ -401,6 +420,7 @@ func _physics_process(delta: float) -> void:
 	_refresh_guide_line()
 	if _month12_active:
 		_update_month12_waypoint()
+		_refresh_month12_place_seals()
 
 func _process(_delta: float) -> void:
 	# 剧情面板一关就把欠着的时间过场补上，别让「午后」卡在队列里不播。
@@ -1314,6 +1334,25 @@ func _build_objective_card(layer: CanvasLayer) -> void:
 		bold.base_font = CHINESE_FONT
 		bold.variation_embolden = 0.5
 		label.add_theme_font_override("font", bold)
+	# 「结束这个月」：只在当月必玩做完之后出现，贴在任务卡正下方（11.10 的位置）。
+	_end_month_button = Button.new()
+	_end_month_button.name = "EndMonthButton"
+	_end_month_button.text = "结束这个月"
+	_end_month_button.position = Vector2(36, 244)
+	_end_month_button.size = Vector2(190, 58)
+	_end_month_button.focus_mode = Control.FOCUS_NONE
+	_end_month_button.add_theme_font_override("font", CHINESE_FONT)
+	_end_month_button.add_theme_font_size_override("font_size", 24)
+	_end_month_button.add_theme_color_override("font_color", Color("fff4d5"))
+	var end_style := StyleBoxFlat.new()
+	end_style.bg_color = Color("b95035")
+	end_style.border_color = Color("2e1a12")
+	end_style.set_border_width_all(3)
+	end_style.set_corner_radius_all(10)
+	_end_month_button.add_theme_stylebox_override("normal", end_style)
+	_end_month_button.pressed.connect(_on_end_month_pressed)
+	_end_month_button.hide()
+	layer.add_child(_end_month_button)
 
 
 func _make_card_label(text: String, font_size: int, color: Color, parent: Control, position: Vector2, size: Vector2) -> Label:
@@ -1416,6 +1455,7 @@ func _build_town_ui_v2() -> void:
 	_town_ui_v2.manual_requested.connect(_open_month12_handbook)
 	# 档案那一颗圆钮 = 员工档案页；记忆墙 / 你的处境从档案页里那两个入口进来。
 	_town_ui_v2.archive_requested.connect(_open_ui_profile)
+	_town_ui_v2.view_closed.connect(_on_ui_view_closed)
 	_town_ui_v2.memory_wall_requested.connect(_open_memory_wall)
 	_town_ui_v2.standing_requested.connect(_open_standing)
 	ApiClient.chat_ready.connect(_on_npc_chat_ready)
@@ -1479,11 +1519,17 @@ func _open_ui_profile() -> void:
 func _open_ui_task() -> void:
 	var remaining := _action_window.remaining if _action_window != null and _action_window.active else 3
 	var current_zone := String(_active_zone.get("code", "")) if not _active_zone.is_empty() else ""
+	var event := WorldClock.next_main_event()
+	var snapshot := WorldClock.snapshot()
 	_town_ui_v2.open_view("task", {
-		"event": WorldClock.next_main_event(),
-		"snapshot": WorldClock.snapshot(),
+		"event": event,
+		"snapshot": snapshot,
 		"energy": remaining,
 		"current_zone": current_zone,
+		"story_time_ready": _is_event_due(event, snapshot),
+		"activity_window_active": _action_window != null and _action_window.active,
+		"month12_active": _month12_active,
+		"month12_phase": _month12_phase,
 	})
 
 
@@ -1555,8 +1601,25 @@ func _on_month_phone_reply_sent(reply_id: String, reply_text: String) -> void:
 	ApiClient.record_event("m01_phone_reply", {"replyId": reply_id})
 
 
+## 月末卡上的「打开档案」：先把卡让开，看完档案再把它放回原位，
+## 不然月末卡在上一层，档案页会被压在它背后。
+func _open_archive_from_close_card() -> void:
+	if _month12_close_panel != null:
+		_month12_close_panel.hide()
+	_archive_return_to_close = true
+	_open_ui_profile()
+
+
+func _on_ui_view_closed() -> void:
+	if not _archive_return_to_close:
+		return
+	_archive_return_to_close = false
+	if _month12_close_panel != null:
+		_month12_close_panel.show()
+
+
 func _open_ui_calendar() -> void:
-	_town_ui_v2.open_view("calendar", {"month": int(WorldClock.snapshot().get("month", 1)), "target_month": int(WorldClock.next_main_event().get("month", 48)), "next_event": WorldClock.next_main_event(), "events": WorldClock.story_events()})
+	_town_ui_v2.open_view("calendar", {"month": int(WorldClock.snapshot().get("month", 1)), "target_month": int(WorldClock.next_main_event().get("month", 48)), "next_event": WorldClock.next_main_event(), "events": WorldClock.story_events(), "progression_locked": _month12_active and _month12_phase != "done"})
 
 
 func _open_ui_task_calendar(target_month: int) -> void:
@@ -1565,6 +1628,7 @@ func _open_ui_task_calendar(target_month: int) -> void:
 		"target_month": target_month,
 		"next_event": WorldClock.next_main_event(),
 		"events": WorldClock.story_events(),
+		"progression_locked": _month12_active and _month12_phase != "done",
 	})
 
 
@@ -1641,6 +1705,9 @@ func _on_npc_chat_failed(npc_id: String, reason: String) -> void:
 
 func _on_ui_month_requested(target_month: int) -> void:
 	var current_month := int(WorldClock.snapshot().get("month", 1))
+	if _month12_active and _month12_phase != "done":
+		_show_reminder_toast("先完成首月", "月历现在可以查看；首月回顾后再推进月份")
+		return
 	if target_month <= current_month or target_month > 48:
 		_show_reminder_toast("无法推进", "请选择当前月份之后、第 48 月之前的月份")
 		return
@@ -1990,6 +2057,8 @@ func _enter_nearby_zone() -> void:
 		character.visible = is_current
 		tag.visible = is_current
 	var texture_path := String(INTERIOR_ASSETS.get(String(_active_zone["code"]), ""))
+	# 区的室内用默认动线；上一趟活动场景可能换过一套。
+	_interior_preview.use_activity_layout(false)
 	if not texture_path.is_empty():
 		_interior_preview.present(_active_zone, texture_path)
 		_interior_preview.set_phase(String(WorldClock.snapshot().get("phaseId", "work")))
@@ -2012,6 +2081,7 @@ func _exit_zone() -> void:
 	_zone_entered_msec = 0
 	_active_zone = {}
 	_nearby_npc = {}
+	_restore_month12_scene_npcs()
 	_interaction_button.hide()
 	_zone_status.show()
 	if _interior_preview != null:
@@ -2073,6 +2143,10 @@ func _is_safe_portal_exit(position: Vector2) -> bool:
 
 ## 区域活动演出结束后结算一次行动力。
 func _on_weekend_scene_finished() -> void:
+	if _month12_active:
+		# 首月做完一件自由活动：不扣旧行动力窗口的点（那套窗口首月压根没启动），直接进月末。
+		call_deferred("_start_month12_close")
+		return
 	if not _pending_action_activity.is_empty():
 		var activity := _pending_action_activity.duplicate(true)
 		_pending_action_activity = {}
@@ -2172,9 +2246,13 @@ func _show_reminder_toast(title: String, sub: String) -> void:
 
 func _update_nearby_npc() -> void:
 	_nearby_npc = {}
-	if _month12_active:
-		# 首月是脚本化带巡，E 互动先不参与。
+	# 进了室内（含活动场景）就不该再冒"与某某交流"——那是镇上的事。
+	if _interior_preview != null and _interior_preview.is_open():
 		_interaction_button.hide()
+		return
+	if _month12_active:
+		# 首月没有 NPC 互动；屏幕下方那颗 E 只留给"走进亮着的门"。
+		_update_month12_place_prompt()
 		return
 	for npc in _npc_instances:
 		if not _active_zone.is_empty() and String(npc["zone"]).to_lower() != String(_active_zone["id"]).to_lower():
@@ -2380,6 +2458,10 @@ func _build_story_event_panel() -> void:
 	_story_event_panel.handbook_recorded.connect(_on_handbook_recorded)
 	_story_event_panel.memo_recorded.connect(_on_memo_recorded)
 	add_child(_story_event_panel)
+	_month12_place_panel = PLACE_VISIT_PANEL.new()
+	_month12_place_panel.name = "PlaceVisitPanel"
+	_month12_place_panel.activity_confirmed.connect(_on_month12_place_confirmed)
+	add_child(_month12_place_panel)
 	_on_ui_preferences_changed(_town_ui_v2.preferences())
 
 
@@ -2432,6 +2514,14 @@ func _refresh_activity_panel() -> void:
 
 
 func _on_activity_selected(activity: Dictionary) -> void:
+	if _month12_active:
+		# 首月：在室内点了某一项，才给这一页确认（做什么 / 花什么 / 就做这个 / 先回去）。
+		if _month12_activity_taken or _month12_place_panel == null:
+			return
+		var month12_place := _month12_place_by_id(String(activity.get("id", "")))
+		if not month12_place.is_empty():
+			_month12_place_panel.show_confirm(month12_place, 3)
+		return
 	if _activity_busy or _action_window == null or not _action_window.active:
 		return
 	_activity_busy = true
@@ -2615,6 +2705,8 @@ func _open_due_event_for_active_zone() -> bool:
 
 func _begin_interaction() -> void:
 	if _month12_active:
+		# 首月的 E 只有一件事：走进亮着的门，开进门确认页。
+		_enter_month12_place()
 		return
 	if not _nearby_npc.is_empty():
 		var npc_id := String(_nearby_npc.get("id", ""))
@@ -2667,19 +2759,24 @@ func _on_memo_recorded(event_id: String, memo: Dictionary) -> void:
 
 ## ---------- 十二个月开场（E01 入职说明会 + 王哥带巡） ----------
 
-## ---------- 十二个月首月（剧情册 A→G：说明会 / 带巡 / 手册 / E02 / 自由安排 / 月末） ----------
+## ---------- 十二个月首月（说明会 / A 区一站带巡 / 可选手册 / E02 / 一次自由活动 / 月末） ----------
 
-const MONTH12_PHONE_TEXT := "今天会上的安排先让王哥接。你这周先把开发环境装好，把手册第一章看完；王哥会给你一项准备任务，先整理编排层现状和实现方案；下周我再给你排开发任务。"
-## 带巡路线：id 对应 E01_TOUR.stops 里的停靠点，pos 是地图上的落点。
-## 台词全部来自 stops[].beats，这里只补"到哪了"的引路句。
+const MONTH12_PHONE_TEXT := "这周先把开发环境装好，具体开发任务下周再安排。遇到问题可以找王哥。"
+## 首月只走一次带巡停靠点：A 区门口。其他地点留给 E02 后的自由活动。
 const MONTH12_TOUR := [
 	{"id": "a_gate", "pos": Vector2(464, 272), "name": "A 区", "zone": "A",
 		"lead": "王哥带你走进 A 区总部。"},
-	{"id": "heart_lake", "pos": Vector2(860, 770), "name": "心湖步道", "zone": "H",
-		"lead": "顺着水道往前走，前面就是心湖。"},
-	{"id": "b_desk", "pos": Vector2(1008, 240), "name": "B 区工位", "zone": "B",
-		"lead": "绕回 B 区，你的工位就在里面。"},
 ]
+const MONTH12_PLACE_POSITIONS := {
+	"m1_rooftop": Vector2(464, 272),
+	"m1_lakeside": Vector2(860, 770),
+	"m1_tool": Vector2(1008, 240),
+}
+## 跨组周会的桌子：E02 要玩家走到这儿，所以这门口的门不能压灰。
+const MONTH12_E02_DESK := Vector2(416, 241)
+## 门离剧情落点多近算"挡在剧情路上"：带巡那一站和周会桌子只差 60 像素，
+## 再小就兜不住；再大就会把所有门都算成剧情门。
+const PLACE_STORY_KEEP_OPEN := 150.0
 const MONTH12_MONTH_CARDS := {
 	"A": "第 1 月：你在会上把那份方案说清楚了。",
 	"B": "第 1 月：那份方案的文档里有了你的名字。",
@@ -2830,12 +2927,14 @@ func _start_month_opening() -> void:
 	_tutorial_complete = true
 	WorldClock.set_running(false)
 	if _town_ui_v2 != null:
-		# 首月界面：精力条/月历/手机/手册/查看先藏，按剧情节点逐个解锁。
+		# 首月先聚焦职位卡和当前任务；手机、手册、月历按流程需要再开放。
 		_town_ui_v2.set_energy_visible(false)
 		_town_ui_v2.set_month_visible(false)
 		_town_ui_v2.set_phone_visible(false)
+		_town_ui_v2.set_phone_red_dot(false)
 		_town_ui_v2.set_manual_visible(false)
-		_town_ui_v2.set_view_visible(false)
+		_town_ui_v2.set_archive_visible(false)
+		_town_ui_v2.set_view_visible(true)
 		_town_ui_v2.set_act_label("第一月 · 入职")
 		# 左上角那格从「幕名」切成日期读数：第一月 · 上旬 · 白天。开局这一拍不播过场。
 		_set_date(1, "early", "morning")
@@ -2844,6 +2943,8 @@ func _start_month_opening() -> void:
 	# 首月把入口传送门全部收掉：不是自由活动，别让玩家误入别的区。
 	for marker in _entrance_markers:
 		(marker as Node2D).visible = false
+	# 先载入首月三个活动去处；它们的门会在 E02 结算后一起出现。
+	_load_month12_places()
 	_refresh_objective_hint()
 	_present_month12_event("E01")
 
@@ -2893,16 +2994,16 @@ func _on_month12_handbook_closed(_records: Dictionary) -> void:
 	_month12_flags["handbook_read"] = true
 	if _town_ui_v2 != null:
 		_town_ui_v2.set_manual_visible(true)
-	if _month12_phase == "handbook":
-		_show_reminder_toast("手册看完了", "右下角手册入口留着，随时能再翻")
-		call_deferred("_start_month12_e02")
+
+
+
 
 
 ## 场次推进：谁结算完，下一步去哪个节点。
 func _advance_month12_story() -> void:
 	match _month12_phase:
 		"e01_panel":
-			# B 段（入职说明会）结束 → 四角导览 → C 带巡。
+			# 入职说明会结束 → 简短 HUD 引导 → A 区一站带巡。
 			_month12_phase = "hud_tour"
 			call_deferred("_schedule_hud_tour")
 		"tour_panel":
@@ -2932,10 +3033,10 @@ func _goto_month12_stop(index: int) -> void:
 	_set_objective("第一天", "跟着王哥走", "黄线尽头就是下一段话 · %s" % String(stop["name"]), String(stop["name"]), true)
 	if _town_ui_v2 != null:
 		_town_ui_v2.set_task_card("带巡 · %s" % String(stop["name"]), "第 1 月 · 入职第一天")
-		_town_ui_v2.set_task_note("跟着王哥走，先认路")
+		_town_ui_v2.set_task_note("第 %d/%d 站 · 沿黄线到%s" % [index + 1, MONTH12_TOUR.size(), String(stop["name"])])
 	_lay_month12_guide(true)
 	if index == 0:
-		_show_reminder_toast("跟着王哥走", "WASD、方向键或左下角摇杆移动")
+		_show_reminder_toast("跟着王哥走", "沿黄线到站，剧情会自动继续")
 
 
 ## 首月路线点如果落在草地/树丛上，就先吸到最近的可走矩形中心，
@@ -2976,7 +3077,7 @@ func _present_month12_stop() -> void:
 	_present_month12_event("E01_TOUR", {
 		"beats": picked,
 		"title": "带巡 · %s" % String(stop["name"]),
-		"location": "A 区到 B 区",
+		"location": "A 区总部",
 		"locationId": String(stop.get("zone", "A")),
 		"day": 1,
 		"hour": 10,
@@ -2987,38 +3088,20 @@ func _present_month12_stop() -> void:
 func _advance_month12_tour() -> void:
 	if _month12_tour_index == 0:
 		_unlock_month_phone()
-		_show_month_phone_tutorial()
+		_show_reminder_toast("手机有消息", "右下角手机带红点，点开查看；不回也没关系")
 	if _month12_tour_index < MONTH12_TOUR.size() - 1:
 		call_deferred("_goto_month12_stop", _month12_tour_index + 1)
 	else:
 		call_deferred("_start_month12_handbook")
 
 
-## 手机第一次出现：用项目里已有的「工作手机」讲解卡（PhoneInboxPanel 的教程卡）。
-func _show_month_phone_tutorial() -> void:
-	if _month_phone_tutorial == null:
-		_month_phone_tutorial = PHONE_INBOX.new()
-		_month_phone_tutorial.name = "Month12PhoneTutorial"
-		_month_phone_tutorial.tutorial_only = true
-		_month_phone_tutorial.tutorial_open_requested.connect(_open_ui_phone)
-		_month_phone_tutorial.tutorial_skipped.connect(_on_month_phone_tutorial_closed)
-		_month_phone_tutorial.tutorial_completed.connect(_on_month_phone_tutorial_closed)
-		add_child(_month_phone_tutorial)
-	_month_phone_tutorial.open_tutorial()
-
-
-func _on_month_phone_tutorial_closed() -> void:
-	_show_reminder_toast("手机有消息", "右下角手机带红点，点开看，回不回都行")
-
-
-## 王哥带巡走到「找人直接发消息」那一拍：右下角手机解锁 + 红点。
+## 到达 A 区后：工作手机收到新消息并亮红点。
 func _unlock_month_phone() -> void:
 	_month_phone_messages = [{"speaker": "npc", "text": MONTH12_PHONE_TEXT}]
 	_month_phone_unread = true
 	_month_phone_replied = false
 	_month_phone_reply_options = [
 		{"id": "ack_env", "text": "收到，我先装环境"},
-		{"id": "ack_manual", "text": "好，我先看手册"},
 	]
 	if _town_ui_v2 != null:
 		_town_ui_v2.set_phone_visible(true)
@@ -3030,27 +3113,28 @@ func _unlock_month_phone() -> void:
 
 func _start_month12_handbook() -> void:
 	_month12_phase = "handbook"
-	# 上午→午后已经不播了（时段卡删了），这里只留"等上一段面板关掉再开手册"这一道闸。
+	# 上午→午后不播时段卡；这里等带巡结束后开放手册入口并继续主线。
 	_date_then(1, "early", "afternoon", _month12_handbook_step)
 
 
-## 闸门放开后才做的事：收掉黄线、给目标、开手册。
+## 带巡结束后收掉黄线、展示可选手册入口，再把主线接到 E02。
 func _month12_handbook_step() -> void:
 	_month12_waypoint = Vector2(-99999, -99999)
 	if _guide_line != null:
 		_guide_line.clear()
-	_set_objective("第一天", "翻桌上的《新员工手册》", "第一章 1.1、1.2", "B 区", false)
 	if _town_ui_v2 != null:
-		_town_ui_v2.set_task_card("手册 · 第一章", "第 1 月 · B 区工位")
-		_town_ui_v2.set_task_note("工位上那本，翻一遍")
-	_open_month12_handbook()
+		_town_ui_v2.set_manual_visible(true)
+		_town_ui_v2.set_task_card("带巡完成", "第 1 月 · 接下来去跨组周会")
+		_town_ui_v2.set_task_note("手册可随时查看；跟黄线去跨组周会")
+	# 手册是可选入口：不自动弹全文，不等待阅读完成。
+	call_deferred("_start_month12_e02")
 
 
 # ---------------------------------------------------------------- E E02
 
 func _start_month12_e02() -> void:
 	_month12_phase = "e02_walk"
-	# 上旬 → 中旬：首月唯一一次跨旬。等手册面板彻底关掉再跳，跳完再铺去 A 区的黄线。
+	# 上旬 → 中旬：首月唯一一次跨旬；过场结束后铺去 A 区周会桌的黄线。
 	_date_then(1, "mid", "morning", _after_month12_xun_card)
 
 
@@ -3060,7 +3144,7 @@ func _after_month12_xun_card() -> void:
 	if _town_ui_v2 != null:
 		_town_ui_v2.set_task_card("第一次被轻视", "第 1 月 · A 区总部")
 		_town_ui_v2.set_task_note("周三上午 · 跟着黄线走")
-	_month12_waypoint = Vector2(416, 241)
+	_month12_waypoint = MONTH12_E02_DESK
 	_lay_month12_guide(true)
 
 
@@ -3094,27 +3178,250 @@ func _present_month12_e02() -> void:
 	_month12_phase = "e02_panel"
 
 
-# ---------------------------------------------------------------- F 自由安排
+# ---------------------------------------------------------------- F 自由安排（到访制）
+# E02 结算后同时开放三处活动地点；玩家自己走到其中一处，再看活动确认页。
+# 月末按钮也在此时出现，玩家可以做一项活动，也可以直接结束本月。
 
 func _start_month12_activity() -> void:
 	_month12_phase = "activity"
-	# 上午→午后不播了；这里只等 E02 那段结算画面收掉再开面板。
+	# 上午→午后不播了；这里只等 E02 那段结算画面收掉再让门亮起来。
 	_date_then(1, "mid", "afternoon", _month12_activity_step, 1)
 
 
-## 闸门放开后才开自由安排面板。
+## E02 结算后：三扇门一起开，给一句常驻提示，剩下的时间玩家自己走。
 func _month12_activity_step() -> void:
-	_set_objective("本周自由安排", "选一项：小工具 / 天台 / 不安排", "本周 1 个行动点；不用完月底清零", "自由安排", false)
+	_open_month12_places()
+	_set_objective("本周自由安排", "去亮着的地方看看", "本周 1 个行动点；不用完月底清零", "自由安排", false)
 	if _town_ui_v2 != null:
-		_town_ui_v2.set_task_card("本周自由安排 · 1 点", "第 1 月 · E02 之后")
-		_town_ui_v2.set_task_note("还剩 1 点 · 去亮着的地方")
-	if _month12_activity_panel == null:
-		_month12_activity_panel = MONTH12_ACTIVITY.new()
-		_month12_activity_panel.name = "Month12Activity"
-		_month12_activity_panel.option_chosen.connect(_on_month12_activity_chosen)
-		_month12_activity_panel.finished.connect(_on_month12_activity_finished)
-		add_child(_month12_activity_panel)
-	_month12_activity_panel.open()
+		_town_ui_v2.set_task_card("本周自由安排 · 1 点", "第 1 月 · 门口亮起来了")
+		_town_ui_v2.set_task_note("走近亮着的门，按 E 进去")
+	_show_reminder_toast("门口亮了", "三个地方随你挑一个，或者结束这个月")
+	_show_end_month_button(true)
+
+
+func _load_month12_places() -> void:
+	if not _month12_places.is_empty():
+		return
+	var parsed = JSON.parse_string(FileAccess.get_file_as_string(MONTH12_PLACES_PATH))
+	if parsed is Dictionary:
+		_month12_places = (parsed as Dictionary).get("activities", []) as Array
+
+
+func _month12_place_by_id(activity_id: String) -> Dictionary:
+	for value in _month12_places:
+		if value is Dictionary and String((value as Dictionary).get("id", "")) == activity_id:
+			return value
+	return {}
+
+
+## 按活动 ID 的地点坐标放门；不做一键传送列表。
+func _month12_place_position(activity_id: String) -> Vector2:
+	if not MONTH12_PLACE_POSITIONS.has(activity_id):
+		return Vector2.ZERO
+	return _snap_month12_point(MONTH12_PLACE_POSITIONS[activity_id])
+
+
+## 活动门按地点坐标出现；进入自由活动后统一开放。
+func _unlock_month12_place(activity_id: String) -> void:
+	_load_month12_places()
+	var activity := _month12_place_by_id(activity_id)
+	if activity.is_empty():
+		return
+	if _month12_place_portals.has(activity_id):
+		return
+	var portal := TOWN_PORTAL.new()
+	portal.name = "PlacePortal_%s" % activity_id
+	portal.position = _month12_place_position(activity_id)
+	portal.z_index = 44
+	add_child(portal)
+	_month12_place_portals[activity_id] = portal
+	_refresh_month12_place_seals()
+	ApiClient.record_event("m01_place_unlocked", {"activityId": activity_id})
+
+
+## E02 做完后：三扇门一起亮起来。
+func _open_month12_places() -> void:
+	_load_month12_places()
+	_month12_places_open = true
+	for activity in _month12_places:
+		if activity is Dictionary:
+			_unlock_month12_place(String((activity as Dictionary).get("id", "")))
+	_refresh_month12_place_seals()
+
+
+## 这个月还有哪几个点是剧情要玩家亲自走到的：A 区带巡点和 E02 周会桌。
+func _month12_story_points() -> Array:
+	var points: Array = []
+	if _month12_phase in ["hud_tour", "tour", "tour_panel"]:
+		for index in range(_month12_tour_index, MONTH12_TOUR.size()):
+			points.append(MONTH12_TOUR[index]["pos"] as Vector2)
+	elif _month12_phase == "handbook" and _month12_tour_index < MONTH12_TOUR.size():
+		points.append(MONTH12_TOUR[_month12_tour_index]["pos"] as Vector2)
+	if _month12_e02_choice.is_empty():
+		points.append(MONTH12_E02_DESK)
+	return points
+
+
+## 首月正常路线在 E02 后一次创建并开放全部活动门；封条状态仅保留给剧情提前建门的兼容路径。
+## set_sealed 自己会去重，因此门状态刷新不会重复播放动画。
+func _refresh_month12_place_seals() -> void:
+	if _month12_place_portals.is_empty():
+		return
+	var story_points := _month12_story_points()
+	for portal in _month12_place_portals.values():
+		var door := portal as Node2D
+		if door == null:
+			continue
+		var want_sealed := not _month12_places_open
+		for point in story_points:
+			if door.position.distance_to(point as Vector2) < PLACE_STORY_KEEP_OPEN:
+				want_sealed = false
+				break
+		door.set_sealed(want_sealed)
+
+
+## 屏幕下方那颗 E：只对「已解锁 + 已撕条 + 本周点数还在」的门亮。
+func _update_month12_place_prompt() -> void:
+	_month12_nearby_place = ""
+	if _interaction_button == null:
+		return
+	if _player == null or _month12_activity_taken or _month12_phase != "activity":
+		_interaction_button.hide()
+		return
+	var best := PLACE_REACH_DISTANCE
+	for activity_id in _month12_place_portals:
+		var portal := _month12_place_portals[activity_id] as Node2D
+		if portal == null or bool(portal.sealed):
+			continue
+		var distance := _player.position.distance_to(portal.position)
+		if distance <= best:
+			best = distance
+			_month12_nearby_place = String(activity_id)
+	if _month12_nearby_place.is_empty():
+		_interaction_button.hide()
+		return
+	var activity := _month12_place_by_id(_month12_nearby_place)
+	_interaction_button.text = "按 E 进去 · %s" % String(activity.get("name", ""))
+	_interaction_button.show()
+
+
+## 按 E 进的是这个区的室内（现成室内图），进去之后右边才列可做的事——
+## 和旧版一样的顺序，不在门口给选项（2026-10-27 反馈）。
+func _enter_month12_place() -> void:
+	if _month12_nearby_place.is_empty():
+		return
+	var activity := _month12_place_by_id(_month12_nearby_place)
+	if activity.is_empty():
+		return
+	var zone := _zone_by_code(String(activity.get("locationId", "")))
+	if zone.is_empty():
+		return
+	if _interaction_button != null:
+		_interaction_button.hide()
+	_enter_month12_interior(zone, String(activity.get("scene", "")))
+	_show_month12_place_list(String(zone.get("code", "")))
+
+
+## 只借旧版"进室内"的演出与出口，不碰主线事件判定（那套在首月不该跑）。
+## scene_path 非空 = 这个活动有自己的场景图（天台、心湖），用它，不用区的办公大堂图。
+func _enter_month12_interior(zone: Dictionary, scene_path := "") -> void:
+	if _player == null or _interior_preview == null:
+		return
+	_portal_return_position = _player.position
+	_active_zone = zone
+	_nearby_zone = {}
+	_zone_entered_msec = Time.get_ticks_msec()
+	ApiClient.record_event("region_entered", {"regionId": String(zone.get("code", ""))})
+	if _zone_status != null:
+		_zone_status.hide()
+	if _dialog_label != null:
+		_dialog_label.hide()
+	for marker in _location_markers:
+		marker.hide()
+	var texture_path := scene_path
+	if texture_path.is_empty():
+		texture_path = String(INTERIOR_ASSETS.get(String(zone.get("code", "")), ""))
+	# 活动图和人站的位置得配套：这批图的地板在画面下半部，先换动线再摆人。
+	_interior_preview.use_activity_layout(not scene_path.is_empty())
+	if not texture_path.is_empty():
+		_interior_preview.present(zone, texture_path)
+		_interior_preview.set_phase(String(WorldClock.snapshot().get("phaseId", "work")))
+	_interior_preview.suppress_interior_npc(not scene_path.is_empty())
+	_interior_preview.enable_exploration()
+	if not scene_path.is_empty():
+		_month12_scene_npcs_hidden = true
+		for npc in _npc_instances:
+			(npc["character"] as CanvasItem).visible = false
+			(npc["name_tag"] as CanvasItem).visible = false
+
+
+## 从活动场景出来：把同事们的可见性还原成"在镇上"的默认状态。
+func _restore_month12_scene_npcs() -> void:
+	if not _month12_scene_npcs_hidden:
+		return
+	_month12_scene_npcs_hidden = false
+	for npc in _npc_instances:
+		(npc["character"] as CanvasItem).visible = true
+		(npc["name_tag"] as CanvasItem).visible = true
+
+
+## 室内右侧那张活动列表：数据来自十二个月的去处表，不读旧 48 个月的配置。
+func _show_month12_place_list(zone_code: String) -> void:
+	if _activity_panel == null:
+		return
+	var rows: Array = []
+	for value in _month12_places:
+		if not (value is Dictionary):
+			continue
+		var act := value as Dictionary
+		if String(act.get("locationId", "")) != zone_code:
+			continue
+		var shots: Array = (act.get("card", {}) as Dictionary).get("shots", []) as Array
+		var thumb := String(act.get("scene", ""))
+		if thumb.is_empty() and not shots.is_empty():
+			thumb = "res://assets/ui/place_cards/%s" % String(shots[0])
+		rows.append({
+			"id": String(act.get("id", "")),
+			"title": String(act.get("name", "自由活动")),
+			"image": thumb,
+		})
+	if rows.is_empty():
+		_activity_panel.hide_panel()
+		return
+	_activity_panel.show_for_region(zone_code, rows, 0 if _month12_activity_taken else 1, 1)
+
+
+## 做完了：旗标与上报原样保住，再走结果演出。
+func _on_month12_place_confirmed(activity_id: String) -> void:
+	var activity := _month12_place_by_id(activity_id)
+	if activity.is_empty():
+		return
+	_month12_activity_taken = true
+	_month12_nearby_place = ""
+	if _interaction_button != null:
+		_interaction_button.hide()
+	_on_month12_activity_chosen(activity_id)
+	if _month12_place_panel != null:
+		_month12_place_panel.close()
+	# 做完先退出室内，回到镇上再播结果——不然结果图叠在室内预览上。
+	_exit_zone()
+	_present_month12_place_outcome(activity)
+
+
+## 结果演出：一张真实截图 + 两句结果（复用旧版周末场景面板，图没了也不拦流程）。
+func _present_month12_place_outcome(activity: Dictionary) -> void:
+	if _weekend_scene_panel == null:
+		call_deferred("_start_month12_close")
+		return
+	var shots: Array = (activity.get("card", {}) as Dictionary).get("shots", []) as Array
+	var image := String(activity.get("scene", ""))
+	if image.is_empty() and not shots.is_empty():
+		image = "res://assets/ui/place_cards/%s" % String(shots[0])
+	_weekend_scene_panel.present({
+		"title": String(activity.get("name", "自由活动")),
+		"image": image,
+		"lines": [String(activity.get("outcome", "")), "本周安排完了，可以结束这个月。"],
+	})
 
 
 func _on_month12_activity_chosen(option_id: String) -> void:
@@ -3122,10 +3429,14 @@ func _on_month12_activity_chosen(option_id: String) -> void:
 	ApiClient.record_event("m01_activity", {"activityId": option_id})
 
 
-func _on_month12_activity_finished() -> void:
-	if _month12_activity_panel != null:
-		_month12_activity_panel.close()
+func _on_end_month_pressed() -> void:
+	_show_end_month_button(false)
 	call_deferred("_start_month12_close")
+
+
+func _show_end_month_button(value: bool) -> void:
+	if _end_month_button != null:
+		_end_month_button.visible = value
 
 
 # ---------------------------------------------------------------- G 月末回顾
@@ -3143,10 +3454,14 @@ func _after_month12_night_card() -> void:
 		_town_ui_v2.set_task_card("月末回顾", "第 1 月")
 		_town_ui_v2.set_task_note("这个月安排完了")
 	var card := String(MONTH12_MONTH_CARDS.get(_month12_e02_choice, "第 1 月：你先把手上的工作交掉了。"))
+	if _town_ui_v2 != null:
+		# 档案这颗钮在月末这一刻才给：这个月记下的第一条就是它，卡上直接有入口。
+		_town_ui_v2.set_archive_visible(true)
 	if _month12_close_panel == null:
 		_month12_close_panel = MONTH12_CLOSE.new()
 		_month12_close_panel.name = "Month12Close"
 		_month12_close_panel.finished.connect(_on_month12_close_finished)
+		_month12_close_panel.archive_requested.connect(_open_archive_from_close_card)
 		add_child(_month12_close_panel)
 	_month12_close_panel.open(card)
 
@@ -3155,13 +3470,15 @@ func _on_month12_close_finished() -> void:
 	if _month12_close_panel != null:
 		_month12_close_panel.close()
 	_month12_phase = "done"
-	# 下旬 / 月末 → 下个月：最重的一档，整格像撕日历那样翻过去。
+	if _town_ui_v2 != null:
+		_town_ui_v2.set_month_visible(true)
+	# 月末回顾关闭后开放月历；档案入口已在回顾卡中提供。
 	_set_date(2, "early", "morning")
 	_town_ui_v2.set_task_card("第 1 月完成", "第 2 月制作中")
 	_town_ui_v2.set_task_note("下个月再开始")
 	_set_objective("第 1 月完成", "第 2 月还在制作中", "这个月的选择已经记下", "", false)
 	_save_month12_progress()
-	_show_reminder_toast("第 1 月完成", "选择与行动已保存")
+	_show_reminder_toast("第 1 月完成", "月历和档案入口已开放；本月选择与行动已保存")
 
 
 func _finish_month12() -> void:
@@ -3231,30 +3548,22 @@ func _start_hud_tour() -> void:
 		return
 	var job := _hud_control("_job_label")
 	var task := _hud_control("_task_panel")
-	var settings := _hud_control("_settings_button")
 	if not job.has_area() or not task.has_area():
 		return
 	var steps: Array = [
 		{
 			"rect": job,
 			"title": "左上 · 你的岗位",
-			"body": "上面那条是当前章节；\n点下面这张卡，看员工档案：岗位、能力、转正进度。",
+			"body": "职位卡可以打开员工档案，查看岗位和评估安排。先认识入口，结束导览后再看。",
 			"place": "below",
 		},
 		{
 			"rect": task,
 			"title": "右上 · 当前要做的事",
-			"body": "这里写这一拍要做什么。\n跟着地上的黄线走。",
+			"body": "任务卡写着当前目的地。按 WASD／方向键，或拖左下角摇杆；沿黄线到终点，剧情会自动继续。",
 			"place": "left",
 		},
 	]
-	if settings.has_area():
-		steps.append({
-			"rect": settings,
-			"title": "右下 · 设置",
-			"body": "齿轮是设置。手机和月历会随剧情出现。\n靠近人和门时，屏幕下方会出现 E，按 E 互动。",
-			"place": "above",
-		})
 	_hud_tour_active = true
 	_hud_tour.start(steps)
 
@@ -3265,20 +3574,6 @@ func _hud_control(var_name: String) -> Rect2:
 		return (control as Control).get_global_rect()
 	return Rect2()
 
-
-func _rect_union(rects: Array) -> Rect2:
-	var result := Rect2()
-	var has := false
-	for value in rects:
-		var rect: Rect2 = value
-		if rect.size.x <= 0.0 or rect.size.y <= 0.0:
-			continue
-		if not has:
-			result = rect
-			has = true
-		else:
-			result = result.merge(rect)
-	return result if has else Rect2()
 
 func _on_story_choice_confirmed(event_id: String, choice_id: String, duration_minutes: int) -> void:
 	if _month12_active:

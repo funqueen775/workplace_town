@@ -29,9 +29,9 @@
       "month": 1,
       "anchor": "shell_toast",
       "trigger": "node_completed:E01_TOUR",
-      "title": "桌上有本手册",
-      "sub": "先看第一章 1.1、1.2",
-      "dismissOn": "handbook_closed",
+      "title": "手册可以随时看",
+      "sub": "不看也能继续",
+      "dismissOn": "node_started:E02",
       "persist": true,
       "once": true
     },
@@ -74,10 +74,10 @@
       "anchor": "shell_toast",
       "trigger": "place_unlocked",
       "title": "有地方能去了",
-      "sub": "门上贴着封条，忙完就能进",
+      "sub": "门口现在是灰的，忙完就亮",
       "dismissOn": "node_completed:M01_ACTIVITY",
       "persist": true,
-      "once": false
+      "once": true
     },
     {
       "id": "m01_ap_site",
