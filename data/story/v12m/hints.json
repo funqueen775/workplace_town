@@ -1,0 +1,94 @@
+{
+  "flowVersion": "12m_v1",
+  "hints": [
+    {
+      "id": "m01_walk",
+      "month": 1,
+      "anchor": "shell_toast",
+      "trigger": "node_started:E01_TOUR",
+      "title": "跟着王哥走",
+      "sub": "WASD 或左下角摇杆",
+      "dismissOn": "first_move",
+      "replace": "m01_line",
+      "persist": true,
+      "once": true
+    },
+    {
+      "id": "m01_line",
+      "month": 1,
+      "anchor": "shell_toast",
+      "trigger": "node_started:E01_TOUR",
+      "title": "跟着黄线走",
+      "sub": "黄线尽头就是下一段话",
+      "dismissOn": "node_completed:E01_TOUR",
+      "persist": true,
+      "once": true
+    },
+    {
+      "id": "m01_handbook",
+      "month": 1,
+      "anchor": "shell_toast",
+      "trigger": "node_completed:E01_TOUR",
+      "title": "桌上有本手册",
+      "sub": "先看第一章 1.1、1.2",
+      "dismissOn": "handbook_closed",
+      "persist": true,
+      "once": true
+    },
+    {
+      "id": "m01_ap",
+      "month": 1,
+      "anchor": "objective",
+      "trigger": "node_completed:E02",
+      "title": "这周剩 1 点",
+      "sub": "去亮着的地方看看",
+      "until": "month_closed",
+      "persist": true,
+      "once": true
+    },
+    {
+      "id": "m01_ap_gone",
+      "month": 1,
+      "anchor": "shell_toast",
+      "trigger": "activity_done",
+      "title": "这周安排完了",
+      "sub": "可以结束这个月",
+      "autoDismissMs": 2500,
+      "persist": false,
+      "once": false
+    },
+    {
+      "id": "m01_ap_skipped",
+      "month": 1,
+      "anchor": "shell_toast",
+      "trigger": "activity_skipped",
+      "title": "这周不安排也行",
+      "sub": "可以结束这个月",
+      "autoDismissMs": 2500,
+      "persist": false,
+      "once": false
+    },
+    {
+      "id": "m01_unlock",
+      "month": 1,
+      "anchor": "shell_toast",
+      "trigger": "place_unlocked",
+      "title": "有地方能去了",
+      "sub": "门上贴着封条，忙完就能进",
+      "dismissOn": "node_completed:M01_ACTIVITY",
+      "persist": true,
+      "once": false
+    },
+    {
+      "id": "m01_ap_site",
+      "month": 1,
+      "anchor": "shell_toast",
+      "trigger": "portal_reached",
+      "title": "到了，按 E 进去",
+      "sub": "里面才是要做的事",
+      "dismissOn": "node_completed:M01_ACTIVITY",
+      "persist": true,
+      "once": false
+    }
+  ]
+}

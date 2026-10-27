@@ -1,0 +1,105 @@
+{
+  "flowVersion": "12m_v1",
+  "activities": [
+    {
+      "id": "m1_tool",
+      "name": "组内小工具",
+      "locationId": "B",
+      "location": "B 区工位",
+      "apCost": 1,
+      "slots": 1,
+      "hCost": 0,
+      "stateDelta": {
+        "S": 1
+      },
+      "rewardFlag": "m01_activity_tool",
+      "evidenceEligible": false,
+      "repeatRule": "once_per_month",
+      "outcome": "你花了些时间写完脚本。小赵试了一遍：“这个能用，发我一下。”",
+      "mode": "solo",
+      "portal": {
+        "zoneId": "B"
+      },
+      "placeLine": "把重复的检查做成一个小工具。",
+      "card": {
+        "title": "解锁 · B 区",
+        "lines": [
+          "你的工位，也是做小工具的地方。",
+          "把重复的检查做成工具，会花掉你一点时间。",
+          "手上那件事做到一半、又烦了的时候。"
+        ],
+        "shots": [
+          "place_card_tool_1.png"
+        ],
+        "pages": 1
+      },
+      "unlockHook": "unlock_b",
+      "gatedBy": "month_required"
+    },
+    {
+      "id": "m1_rooftop",
+      "name": "天台休息",
+      "locationId": "A",
+      "location": "A 区天台",
+      "apCost": 1,
+      "slots": 1,
+      "hCost": 1,
+      "stateDelta": {
+        "H": 1
+      },
+      "rewardFlag": "m01_activity_rooftop",
+      "evidenceEligible": false,
+      "repeatRule": "once_per_month",
+      "outcome": "你在天台待了会儿。回工位时，待办还在，但你没那么急着盯着它们。",
+      "mode": "solo",
+      "portal": {
+        "zoneId": "A"
+      },
+      "placeLine": "上来吹吹风，什么都不用想。",
+      "card": {
+        "title": "解锁 · A 区",
+        "lines": [
+          "开会、评审都在这栋楼里。",
+          "楼上天台能待一会儿，会花掉你一点时间。",
+          "今天先认路，忙完随时能来。"
+        ],
+        "shots": [
+          "place_card_rooftop_1.png"
+        ],
+        "pages": 1
+      },
+      "unlockHook": "unlock_a",
+      "gatedBy": "month_required"
+    },
+    {
+      "id": "m1_lakeside",
+      "name": "湖边散步",
+      "locationId": "E",
+      "location": "心湖步道",
+      "description": "沿湖走一圈。",
+      "apCost": 1,
+      "slots": 1,
+      "outcome": "你走了两圈。回来的时候，那件事还在，但你能想下去了。",
+      "mode": "solo",
+      "portal": {
+        "landmark": "heart_lake"
+      },
+      "hCost": 0,
+      "placeLine": "沿湖走一圈，不赶时间。",
+      "card": {
+        "title": "解锁 · 心湖",
+        "lines": [
+          "沿湖走一圈，不赶时间。",
+          "走完这一圈，手上的事不会变少。",
+          "脑子太吵、又不想说话的时候来。"
+        ],
+        "shots": [
+          "place_card_lake_1.png"
+        ],
+        "pages": 1
+      },
+      "unlockHook": "unlock_lake",
+      "gatedBy": "month_required"
+    }
+  ]
+}

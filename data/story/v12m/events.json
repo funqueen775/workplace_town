@@ -1,0 +1,412 @@
+{
+  "flowVersion": "12m_v1",
+  "nodes": [
+    {
+      "id": "E01",
+      "month": 1,
+      "order": 10,
+      "nodeType": "main_story",
+      "required": true,
+      "title": "入职说明会",
+      "locationId": "B",
+      "location": "B 区训练室门口",
+      "durationMinutes": 60,
+      "situation": "weak",
+      "autoComplete": true,
+      "beats": [
+        {
+          "type": "narration",
+          "text": "入职第一天。你按通知来到 B 区训练室，参加新员工入职说明会。"
+        },
+        {
+          "type": "narration",
+          "text": "站在白板前的是陈工，我们组的负责人，他正在讲今年的评估安排。投影上还停在“欢迎加入”，桌上的手册没人翻开。"
+        },
+        {
+          "type": "say",
+          "speaker": "陈工",
+          "text": "一年有两次重要评估：第六月做转正评估，看你是否达到当前岗位要求；第十二月做年度晋升评估，看你能否承担更高一级的职责。",
+          "emphasis": ["第六月", "第十二月"]
+        },
+        {
+          "type": "say",
+          "speaker": "陈工",
+          "text": "这两次评估不是一回事，转正通过不代表晋升。晋升看你能不能独立扛一块事，加班时间不算。",
+          "emphasis": ["转正通过不代表晋升", "加班时间不算"]
+        },
+        {
+          "type": "say",
+          "speaker": "陈工",
+          "text": "写你做过的事，别写你想做的事。谁做的，名字就写谁的。",
+          "emphasis": ["谁做的，名字就写谁的"]
+        },
+        {
+          "type": "say",
+          "speaker": "陈工",
+          "text": "先翻手册第一章，尤其是提交前那三问。"
+        },
+        {
+          "type": "narration",
+          "text": "陈工看了一眼时间，把笔记本合上。"
+        },
+        {
+          "type": "say",
+          "speaker": "陈工",
+          "text": "我还有个会。你们先跟王哥认认路。"
+        },
+        {
+          "type": "narration",
+          "text": "几个新人跟着起身。"
+        },
+        {
+          "type": "say",
+          "speaker": "小赵",
+          "text": "他每年都这么开场。你好，我是小赵，工位在你旁边。"
+        },
+        {
+          "type": "say",
+          "speaker": "王哥",
+          "text": "我是王哥，技术导师。走，我带你们转一圈。"
+        }
+      ],
+      "choices": [],
+      "timeBand": "morning",
+      "phase": "early",
+      "reportUse": "story_only"
+    },
+    {
+      "id": "E01_TOUR",
+      "month": 1,
+      "order": 20,
+      "nodeType": "main_story",
+      "required": true,
+      "title": "带巡与首次手机消息",
+      "locationId": "A",
+      "location": "A 区到 B 区",
+      "durationMinutes": 45,
+      "situation": "weak",
+      "autoComplete": true,
+      "choices": [],
+      "timeBand": "morning",
+      "phase": "early",
+      "reportUse": "story_only",
+      "stops": [
+        {
+          "id": "a_gate",
+          "at": {
+            "zoneId": "A"
+          },
+          "label": "A 区门口",
+          "beats": [
+            {
+              "type": "say",
+              "speaker": "王哥",
+              "text": "这栋楼是 A 区总部，管人事、审批和跨组的事，开会、签字、找负责人都来这儿。陈工他们的办公室在楼上。",
+              "hook": "unlock_a"
+            },
+            {
+              "type": "say",
+              "speaker": "王哥",
+              "text": "以后找人先发消息，别在走廊喊。对了，手机给你——报到那天领的，一直没发到你手上。"
+            },
+            {
+              "type": "narration",
+              "text": "你接过工作手机。图标轻轻呼吸着，出现红点；不弹窗拦路。"
+            },
+            {
+              "type": "say",
+              "speaker": "王哥",
+              "pos": "right",
+              "text": "现在就有，你打开看看。不想回就先放着。"
+            }
+          ]
+        },
+        {
+          "id": "heart_lake",
+          "at": {
+            "landmark": "heart_lake"
+          },
+          "label": "心湖步道",
+          "beats": [
+            {
+              "type": "narration",
+              "text": "过水道，上心湖步道。风比里面凉。"
+            },
+            {
+              "type": "say",
+              "speaker": "王哥",
+              "pos": "right",
+              "text": "想一个人待着就来这儿。我第一年在这儿吃了两个月外卖。",
+              "hook": "unlock_lake"
+            },
+            {
+              "type": "say",
+              "speaker": "小赵",
+              "pos": "center",
+              "text": "我也在。下回一起。"
+            }
+          ]
+        },
+        {
+          "id": "b_desk",
+          "at": {
+            "zoneId": "B"
+          },
+          "label": "B 区工位",
+          "beats": [
+            {
+              "type": "narration",
+              "text": "回到 B 区，王哥指了指工位上的手册。"
+            },
+            {
+              "type": "say",
+              "speaker": "王哥",
+              "pos": "right",
+              "text": "手册在你桌上。先看第一章。我三点还有个会，你自己坐会儿。",
+              "hook": "unlock_b"
+            }
+          ]
+        }
+      ],
+      "mode": "on_foot"
+    },
+    {
+      "id": "M01_PHONE_1",
+      "month": 1,
+      "order": 25,
+      "nodeType": "phone_batch",
+      "required": false,
+      "batchId": "m01_batch_chengong",
+      "senderId": "chen_gong",
+      "senderName": "陈工",
+      "senderRole": "邻组 Leader",
+      "messages": [
+        {
+          "id": "m01_chen_1",
+          "text": "今天会上的安排先让王哥接。你这周先把开发环境装好，把手册第一章看完。"
+        },
+        {
+          "id": "m01_chen_2",
+          "text": "王哥会给你一项准备任务，先整理编排层现状和实现方案；下周我再给你排开发任务。"
+        }
+      ],
+      "replyOptions": [
+        {
+          "id": "ack_env",
+          "text": "收到，我先装环境"
+        },
+        {
+          "id": "ack_manual",
+          "text": "好，我先看手册"
+        },
+        {
+          "id": "later",
+          "text": "稍后再说"
+        }
+      ],
+      "timeBand": "morning",
+      "phase": "early",
+      "reportUse": "story_only",
+      "deliveredDuring": "E01_TOUR"
+    },
+    {
+      "id": "M01_HANDBOOK_1",
+      "month": 1,
+      "order": 30,
+      "nodeType": "handbook",
+      "required": false,
+      "chapterId": "ch1",
+      "pages": [
+        {
+          "pageId": "1.1",
+          "title": "提交之前，先答三个问题",
+          "bodyKey": "tech.1.1"
+        },
+        {
+          "pageId": "1.2",
+          "title": "生成式工具辅助的代码需要标注",
+          "bodyKey": "tech.1.2"
+        },
+        {
+          "pageId": "post",
+          "title": "后记",
+          "bodyKey": "afterword"
+        }
+      ],
+      "timeBand": "afternoon",
+      "phase": "early",
+      "reportUse": "story_only",
+      "sourceChapterId": "tech",
+      "bodySource": "res://data/story/employee_handbook.json",
+      "closeLabel": "合上手册"
+    },
+    {
+      "id": "E02",
+      "month": 1,
+      "order": 40,
+      "nodeType": "main_story",
+      "required": true,
+      "title": "第一次被轻视",
+      "locationId": "A",
+      "location": "A 总部 · 跨组周会",
+      "durationMinutes": 45,
+      "situation": "medium",
+      "beats": [
+        {
+          "type": "narration",
+          "text": "第二次跨组周会。排期表上没有你的名字，尽管上周那份方案是你整理的。",
+          "emphasis": ["排期表上没有你的名字"]
+        },
+        {
+          "type": "say",
+          "speaker": "同事",
+          "text": "数据清洗这块，谁能顺手接一下？"
+        },
+        {
+          "type": "narration",
+          "text": "陈工看了你一眼，又转回白板。"
+        },
+        {
+          "type": "say",
+          "speaker": "陈工",
+          "text": "小王，这块你跟进一下。"
+        },
+        {
+          "type": "say",
+          "speaker": "王哥",
+          "text": "这份方案是你上周整理的。刚才陈工照着讲了一遍，纪要却没记你的名字，跟进人还写了我。你听出来了吧。"
+        }
+      ],
+      "prompt": "你要怎么处理？",
+      "choices": [
+        {
+          "id": "A",
+          "text": "当场说明",
+          "outcome": "陈工停了一下：“行，你把那段依赖关系讲清楚。”你把自己的部分讲完，纪要里补上了你的名字。",
+          "apCost": 0,
+          "stateDelta": {
+            "D": 2
+          },
+          "riskDelta": 0,
+          "flags": [
+            "m01_e02_spoke_in_meeting"
+          ],
+          "competency": [
+            {
+              "dimension": "D",
+              "anchor": 4,
+              "behaviorCode": "d_claim_authorship_in_room",
+              "result": "会上澄清并补名"
+            }
+          ],
+          "reportUse": "evidence"
+        },
+        {
+          "id": "B",
+          "text": "会后留记录",
+          "outcome": "陈工回了“收到了”。没人当场解释谁该讲，但版本记录留下了你的名字。",
+          "apCost": 0,
+          "stateDelta": {
+            "D": 1
+          },
+          "riskDelta": 0,
+          "flags": [
+            "m01_e02_sent_signed_document"
+          ],
+          "competency": [
+            {
+              "dimension": "D",
+              "anchor": 3,
+              "behaviorCode": "d_sign_document_after_meeting",
+              "result": "留下署名记录"
+            }
+          ],
+          "reportUse": "evidence"
+        },
+        {
+          "id": "C",
+          "text": "先完成手头工作",
+          "outcome": "会议纪要上的跟进人还是王哥。你把手头工作交了，那份方案没有进入本次纪要。",
+          "apCost": 0,
+          "stateDelta": {
+            "O": 1,
+            "D": 0
+          },
+          "riskDelta": 0,
+          "flags": [
+            "m01_e02_deferred"
+          ],
+          "competency": [
+            {
+              "dimension": "O",
+              "anchor": 3,
+              "behaviorCode": "o_deliver_on_time_but_unlogged",
+              "result": "按期交付，署名未留"
+            }
+          ],
+          "reportUse": "evidence"
+        }
+      ],
+      "timeBand": "morning",
+      "phase": "mid",
+      "reportUse": "evidence",
+      "zoneCut": "A",
+      "whenText": "周三上午"
+    },
+    {
+      "id": "M01_ACTIVITY",
+      "month": 1,
+      "order": 80,
+      "nodeType": "activity",
+      "required": false,
+      "activityIds": [
+        "m1_tool",
+        "m1_rooftop",
+        "m1_lakeside"
+      ],
+      "allowSkip": true,
+      "skipFlag": "m01_activity_skipped",
+      "endMonthLabel": "结束本月",
+      "timeBand": "afternoon",
+      "phase": "mid",
+      "reportUse": "story_only",
+      "entryMode": "on_site",
+      "budget": {
+        "ap": 1,
+        "slots": 1
+      }
+    },
+    {
+      "id": "M01_CLOSE",
+      "month": 1,
+      "order": 90,
+      "nodeType": "month_close",
+      "required": true,
+      "defaultText": "第 1 月：你在这里上了第一个月的班。",
+      "autoSave": true,
+      "cards": [
+        {
+          "when": {
+            "flag": "m01_e02_spoke_in_meeting"
+          },
+          "text": "第 1 月：你在会上把那份方案说清楚了。"
+        },
+        {
+          "when": {
+            "flag": "m01_e02_sent_signed_document"
+          },
+          "text": "第 1 月：那份方案的文档里有了你的名字。"
+        },
+        {
+          "when": {
+            "flag": "m01_e02_deferred"
+          },
+          "text": "第 1 月：你先把手上的工作交掉了。"
+        }
+      ],
+      "timeBand": "night",
+      "phase": "mid",
+      "reportUse": "story_only"
+    }
+  ]
+}

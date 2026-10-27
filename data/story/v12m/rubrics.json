@@ -1,0 +1,100 @@
+{
+  "flowVersion": "12m_v1",
+  "dimensions": {
+    "S": {
+      "name": "技能判断",
+      "anchors": {
+        "0": "多次严重失误且未纠正",
+        "1": "需要持续逐步指导",
+        "2": "部分达到但不稳定",
+        "3": "不同情境独立达到",
+        "4": "复杂或信息不全仍能闭环"
+      }
+    },
+    "O": {
+      "name": "独立交付",
+      "anchors": {
+        "0": "无法交付",
+        "1": "需持续指导",
+        "2": "部分达到但不稳定",
+        "3": "独立按期交付",
+        "4": "复杂情境闭环并可复用"
+      }
+    },
+    "N": {
+      "name": "协作与交接",
+      "anchors": {
+        "0": "协作造成明显损害",
+        "1": "需持续推动",
+        "2": "部分达到但不稳定",
+        "3": "能写清待定项、责任人、下次确认",
+        "4": "跨角色闭环并留下可复用交接"
+      }
+    },
+    "D": {
+      "name": "署名与证据表达",
+      "anchors": {
+        "0": "反复失实且不纠正",
+        "1": "需持续提醒",
+        "2": "部分达到但不稳定",
+        "3": "能准确标注并留痕",
+        "4": "在压力下仍能准确归属并纠正"
+      }
+    }
+  },
+  "m6": {
+    "direct": {
+      "minEach": 3,
+      "minTotal": 14,
+      "requireAllSufficient": true
+    },
+    "deferred": {
+      "minTotal": 11,
+      "maxTotal": 13,
+      "minThreeAtLeast": 3,
+      "minRemaining": 2
+    },
+    "nearMiss": {
+      "minTotal": 14,
+      "exactlyOneAtTwo": true
+    },
+    "notConfirmed": {
+      "anyBelow": 2,
+      "totalBelow": 11
+    }
+  },
+  "m7": {
+    "minShortDimension": 3,
+    "minTotal": 13,
+    "minAnyDimension": 2
+  },
+  "bt": {
+    "minIndependentEvents": 3,
+    "minContextTypes": 2,
+    "coefficients": {
+      "q": 1.0,
+      "r": 1.0,
+      "d": 1.0,
+      "s": 1.0
+    },
+    "provisional": true
+  },
+  "moral": {
+    "minCount": 3,
+    "minAbsNet": 3,
+    "maxDisplay": 2
+  },
+  "report": {
+    "forbiddenWords": [
+      "总是",
+      "从不",
+      "天生",
+      "只能做",
+      "伪装指数",
+      "演得好",
+      "淘汰",
+      "失败者"
+    ],
+    "maxSuggestions": 2
+  }
+}
