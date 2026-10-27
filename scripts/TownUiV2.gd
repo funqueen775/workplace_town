@@ -5,8 +5,12 @@ extends CanvasLayer
 ## HUD、员工档案和主线任务册使用 assets/ui/rework_v1 的分件；外部数据和信号协议不变。
 
 signal profile_requested
+signal archive_requested
+signal memory_wall_requested
+signal standing_requested
 signal task_requested
 signal phone_requested
+signal manual_requested
 signal calendar_requested
 signal task_calendar_requested(target_month: int)
 signal settings_requested
@@ -15,6 +19,8 @@ signal advance_requested
 signal month_requested(target_month: int)
 signal chat_requested(person: String)
 signal phone_message_submitted(npc_id: String, message: String)
+## 12 个月首月手机：固定回复选项（回一句 → 二选一），不走自由输入。
+signal phone_reply_selected(chat_id: String, reply_id: String, reply_text: String)
 signal save_requested
 signal load_requested
 signal title_requested
@@ -34,9 +40,14 @@ const HUD_ENERGY := preload("res://assets/ui/rework_v1/hud/components/04_精力�
 const HUD_HONEY_FULL := preload("res://assets/ui/rework_v1/hud/components/05_蜂蜜罐_满.png")
 const HUD_HONEY_EMPTY := preload("res://assets/ui/rework_v1/hud/components/06_蜂蜜罐_空.png")
 const HUD_TASK := preload("res://assets/ui/rework_v1/hud/components/07_任务名称_空白小底板.png")
+const HUD_PIN := preload("res://assets/ui/rework_v1/hud/components/08_任务_定位图标.png")
 const HUD_VIEW := preload("res://assets/ui/rework_v1/hud/components/09_查看按钮_无字.png")
 const HUD_PHONE := preload("res://assets/ui/rework_v1/hud/components/10_手机按钮_无红点.png")
 const HUD_CALENDAR := preload("res://assets/ui/rework_v1/hud/components/12_日历_固定图标按钮.png")
+## 手册 / 档案两颗圆钮：与手机、日历同一套画法（米色圆牌 + 木边 + 走线虚圈 + 左下两片叶）。
+## 以前手册是代码画的深底白字圆，跟手机那颗完全不像，一排摆在一起像两套 UI。
+const HUD_MANUAL := preload("res://assets/ui/rework_v1/hud/components/14_手册按钮_圆钮.png")
+const HUD_ARCHIVE := preload("res://assets/ui/rework_v1/hud/components/15_档案按钮_圆钮.png")
 const HUD_ADVANCE := preload("res://assets/ui/rework_v1/hud/components/13_推进月份_无字标签.png")
 const HUD_TASK_PANEL := preload("res://assets/ui/rework_v1/hud/revisions/03_主线任务空白面板.png")
 const HUD_SETTINGS := preload("res://assets/ui/rework_v1/hud/reference_full_v1/08_设置按钮.png")
@@ -136,16 +147,28 @@ const SETTINGS_TITLE := preload("res://assets/ui/rework_v1/profile/components/01
 
 var _hud: Control
 var _act_label: Label
+## 左上角日期栏：第几月 / 上中下旬 / 白天夜晚，三格各站各位，谁变了谁动。
+var _date_mode := false
+var _date_month_cell: Label
+var _date_xun_cell: Label
+var _date_band_cell: Label
+var _date_separators: Array[Label] = []
 var _job_label: Button
 var _energy_label: Label
 var _task_title: Label
 var _task_meta: Label
+var _task_note: Label
+var _task_caption: Label
+var _archive_button: Button
 var _month_button: Button
 var _root: Control
 var _view: String = ""
 var _energy_panel: Control
 var _task_panel: Control
 var _phone_button: Button
+var _phone_dot: Panel
+var _manual_button: Button
+var _view_button: Button
 var _settings_button: Button
 var _honey_icons: Array[TextureRect] = []
 var _player_portrait: TextureRect
@@ -154,7 +177,9 @@ var _phone_payload: Dictionary = {}
 var _active_chat_id := ""
 var _calendar_year := 0
 var _selected_month := 1
-var _settings := {"music": 0.65, "sound": 0.7, "text_speed": 1, "large_text": false, "reduced_motion": false, "fullscreen": false}
+var _settings := {"music": 0.65, "sound": 0.7, "text_speed": 1, "large_text": false, "reduced_motion": false, "cutscenes": 0, "fullscreen": false}
+## 数值型设置项：选中态按「等于第几档」判，不是按真假判。
+const SETTINGS_INT_KEYS := ["text_speed", "cutscenes"]
 var _trimmed_textures: Dictionary = {}
 
 
@@ -168,19 +193,20 @@ func _ready() -> void:
 func refresh(snapshot: Dictionary, event: Dictionary, energy := 0, energy_max := 3) -> void:
 	_layout_hud()
 	var month := int(snapshot.get("month", 1))
-	_act_label.text = String(event.get("actTitle", "第一幕 · 进入行业"))
+	# 十二个月流程下左上角那格是日期栏，不再回写幕名，否则会把「第几月」刷掉。
+	if not _date_mode:
+		_act_label.text = String(event.get("actTitle", "第一幕 · 进入行业"))
 	var state := ApiClient.server_state()
-	_job_label.text = "当前职位  %s" % _profile_role(int(state.get("level", 1)))
+	_job_label.text = "当前职位  %s  ›" % _profile_role(int(state.get("level", 1)))
 	_energy_label.text = "精力  %d/%d" % [energy, energy_max]
 	for index in _honey_icons.size():
 		_honey_icons[index].texture = HUD_HONEY_FULL if index < energy else HUD_HONEY_EMPTY
 	_month_button.text = "第 %d 月" % month
 	if event.is_empty():
-		_task_title.text = "主线已完成"
-		_task_meta.text = "继续探索小镇"
+		set_task_card("主线已完成", "继续探索小镇")
 	else:
-		_task_title.text = String(event.get("title", "下一主线"))
-		_task_meta.text = "第 %d 月 · %s 区" % [int(event.get("month", month)), String(event.get("locationId", "?"))]
+		set_task_card(String(event.get("title", "下一主线")),
+			"第 %d 月 · %s 区" % [int(event.get("month", month)), String(event.get("locationId", "?"))])
 
 
 func open_view(view: String, payload: Dictionary = {}) -> void:
@@ -285,7 +311,8 @@ func _build_hud() -> void:
 	_act_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_act_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	act.add_child(_act_label)
-	var profile := _art_button(HUD_JOB, "当前职位  实习开发师", Vector2(36, 132), Vector2(440, 96))
+	_build_date_cells(act)
+	var profile := _art_button(HUD_JOB, "当前职位  实习开发师  ›", Vector2(36, 132), Vector2(440, 96))
 	profile.pressed.connect(func(): profile_requested.emit())
 	_hud.add_child(profile)
 	_job_label = profile
@@ -306,23 +333,117 @@ func _build_hud() -> void:
 	_task_panel = task
 	_hud.add_child(task)
 	_art(HUD_TASK_PANEL, Vector2.ZERO, task.size, task)
-	var caption := _label("下一主线", 24)
-	caption.position = Vector2(50, 38); caption.size = Vector2(270, 40); task.add_child(caption)
+	# 面板是张 1254 见方的空白纸：虚线内框归一化后约 左 0.116 / 右 0.885 / 上 0.088 / 下 0.913，
+	# 落到 390×380 上就是 x 45..345、y 33..347。下面四行全部按这个内框排，
+	# 不再出现"标题飘在纸上、下面一大片空"。
+	# 起点 104 是给左上角那条红丝带让位：丝带压在 x 55..95，字从它右边开始。
+	var caption := _label("本月主线", 24)
+	caption.position = Vector2(104, 38); caption.size = Vector2(216, 40); task.add_child(caption)
+	_task_caption = caption
+	# 标题底下一条圆角暖黄条，与交付稿同一层结构（标题压在条上，不直接落纸）。
+	_art(HUD_TASK, Vector2(44, 84), Vector2(302, 82), task)
 	_task_title = _label("第一次被轻视", 31)
-	_task_title.position = Vector2(50, 94); _task_title.size = Vector2(290, 82); _task_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; task.add_child(_task_title)
+	_task_title.position = Vector2(54, 96); _task_title.size = Vector2(282, 60)
+	_task_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_task_title.clip_text = true
+	_task_title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	task.add_child(_task_title)
+	_art(HUD_PIN, Vector2(56, 188), Vector2(32, 32), task)
 	_task_meta = _label("第 2 月 · A 区", 23)
-	_task_meta.position = Vector2(52, 196); _task_meta.size = Vector2(290, 38); task.add_child(_task_meta)
+	_task_meta.position = Vector2(96, 186); _task_meta.size = Vector2(250, 36)
+	_task_meta.clip_text = true; _task_meta.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	task.add_child(_task_meta)
+	# 第三行：这个月自己的时间还剩多少 / 没有时间安排时说什么。
+	_task_note = _label("", 22)
+	_task_note.position = Vector2(56, 228); _task_note.size = Vector2(290, 34)
+	_task_note.add_theme_color_override("font_color", Color("8a4a2e"))
+	_task_note.clip_text = true; _task_note.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	task.add_child(_task_note)
 	var check := _art_button(HUD_VIEW, "查看", Vector2(52, 278), Vector2(286, 64))
+	_view_button = check
 	check.pressed.connect(func(): task_requested.emit()); task.add_child(check)
 	var phone := _art_button(HUD_PHONE, "", Vector2.ZERO, Vector2(104, 104))
 	_phone_button = phone
 	phone.pressed.connect(func(): phone_requested.emit()); _hud.add_child(phone)
+	# 12 个月流程：手机不是开局就有，王哥那封来信到了才解锁（见 set_phone_visible）。
+	phone.visible = false
 	_month_button = _art_button(HUD_CALENDAR, "", Vector2.ZERO, Vector2(104, 104))
 	_month_button.pressed.connect(func(): calendar_requested.emit()); _hud.add_child(_month_button)
 	var settings := _art_button(HUD_SETTINGS, "", Vector2.ZERO, Vector2(104, 104))
 	_settings_button = settings
 	settings.pressed.connect(func(): settings_requested.emit()); _hud.add_child(settings)
+	# 手册入口：首月 D 段之后才出现。图上已经画好一本合上的手册，不再叠字。
+	_manual_button = _art_button(HUD_MANUAL, "", Vector2.ZERO, Vector2(104, 104))
+	_manual_button.pressed.connect(func(): manual_requested.emit())
+	_hud.add_child(_manual_button)
+	_manual_button.visible = false
+	# 档案：把原来那两颗没有字的深色圆钮（记忆墙 / 你的处境）收进来。
+	_archive_button = _art_button(HUD_ARCHIVE, "", Vector2.ZERO, Vector2(104, 104))
+	_archive_button.pressed.connect(func(): archive_requested.emit())
+	_hud.add_child(_archive_button)
+	# 三个纯图标按钮必须带字：手机/手册/档案/月历/设置只靠图标，玩家猜不出来。
+	_hud_caption(phone, "手机")
+	_hud_caption(_manual_button, "手册")
+	_hud_caption(_archive_button, "档案")
+	_hud_caption(_month_button, "月历")
+	_hud_caption(settings, "设置")
 	_layout_hud()
+
+
+## 左上角日期栏的三格。底板图不动，只在里面排三段独立 Label：
+## 谁变了谁动、没变的原地不动，玩家眼角一扫就知道时间走到哪了。
+func _build_date_cells(banner: Control) -> void:
+	_date_month_cell = _date_cell("第一月", 30, Vector2(58, 26), Vector2(132, 46), banner)
+	_date_xun_cell = _date_cell("上旬", 30, Vector2(210, 26), Vector2(108, 46), banner)
+	_date_band_cell = _date_cell("白天", 26, Vector2(338, 28), Vector2(118, 44), banner)
+	_date_separators.append(_date_cell("·", 28, Vector2(188, 26), Vector2(24, 46), banner))
+	_date_separators.append(_date_cell("·", 28, Vector2(316, 26), Vector2(24, 46), banner))
+	for cell in [_date_month_cell, _date_xun_cell, _date_band_cell] + _date_separators:
+		cell.visible = false
+
+
+func _date_cell(text: String, font_size: int, at: Vector2, size_value: Vector2, parent: Control) -> Label:
+	var label := _label(text, font_size)
+	label.position = at
+	label.size = size_value
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	parent.add_child(label)
+	return label
+
+
+## 静默写入三格（开局那一拍用，不播过场）。
+func set_date(month: int, xun: String, band: String) -> void:
+	if _date_month_cell == null:
+		return
+	_date_mode = true
+	_act_label.visible = false
+	_date_month_cell.text = month_text(month)
+	_date_xun_cell.text = xun
+	_date_band_cell.text = band
+	for cell in [_date_month_cell, _date_xun_cell, _date_band_cell] + _date_separators:
+		cell.visible = true
+		cell.modulate.a = 1.0
+		cell.rotation_degrees = 0.0
+		cell.scale = Vector2.ONE
+
+
+func date_month_cell() -> Label:
+	return _date_month_cell
+
+
+func date_xun_cell() -> Label:
+	return _date_xun_cell
+
+
+func date_band_cell() -> Label:
+	return _date_band_cell
+
+
+func month_text(month: int) -> String:
+	var digits := ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十", "十一", "十二"]
+	if month >= 1 and month <= digits.size():
+		return "第%s月" % digits[month - 1]
+	return "第 %d 月" % month
 
 
 func _layout_hud() -> void:
@@ -336,6 +457,12 @@ func _layout_hud() -> void:
 		_task_panel.position = Vector2(viewport_size.x - _task_panel.size.x - 30, 24)
 	if _phone_button != null:
 		_phone_button.position = Vector2(viewport_size.x - 372, viewport_size.y - 132)
+	if _manual_button != null:
+		_manual_button.position = Vector2(viewport_size.x - 496, viewport_size.y - 132)
+	if _archive_button != null:
+		# 一排五颗：档案 · 手册 · 手机 · 月历 · 设置。E 互动键在屏幕正中下方（右边到 1135），
+		# 最左这颗的左边界 1196，不会压上。
+		_archive_button.position = Vector2(viewport_size.x - 620, viewport_size.y - 132)
 	if _month_button != null:
 		_month_button.position = Vector2(viewport_size.x - 248, viewport_size.y - 132)
 	if _settings_button != null:
@@ -404,6 +531,21 @@ func _build_profile(page: Panel, _payload: Dictionary) -> void:
 			_art(PROFILE_HEART_FULL if heart < relation_level else PROFILE_HEART_EMPTY, Vector2(505 + heart * 25, y + 19), Vector2(21, 20), page)
 		if relation_level >= 4:
 			_art(PROFILE_RECOGNITION, Vector2(651, y + 9), Vector2(21, 22), page)
+
+	# 底部两个入口：原来挂在地图右上角那两颗没有字的深色圆钮上，玩家猜不出来。
+	# 现在收进档案页，名字直接写在按钮上。
+	var wall := _button("记忆墙 · 攒下的便签", Vector2(285, 62), "paper")
+	wall.position = Vector2(95, 534); wall.add_theme_font_size_override("font_size", 19)
+	wall.pressed.connect(func():
+		close_view()
+		memory_wall_requested.emit())
+	page.add_child(wall)
+	var standing := _button("你的处境 · 站在哪里", Vector2(270, 62), "paper")
+	standing.position = Vector2(400, 534); standing.add_theme_font_size_override("font_size", 19)
+	standing.pressed.connect(func():
+		close_view()
+		standing_requested.emit())
+	page.add_child(standing)
 
 func _profile_snapshot() -> Dictionary:
 	var snapshot := WorldClock.snapshot()
@@ -587,7 +729,8 @@ func _build_phone(page: Panel, payload: Dictionary) -> void:
 	_art(PHONE_FRAME, Vector2.ZERO, page.size, page)
 	var heading := _label("小熊手机", 38); heading.position = Vector2(222, 46); heading.size = Vector2(280, 58); heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; page.add_child(heading)
 	if payload.has("chat_name"):
-		var back := _button("返回同事", Vector2(170, 52), "gold"); back.position = Vector2(108, 133); back.pressed.connect(func(): open_view("phone", _phone_payload)); page.add_child(back)
+		if not bool(payload.get("month12", false)):
+			var back := _button("返回同事", Vector2(170, 52), "gold"); back.position = Vector2(108, 133); back.pressed.connect(func(): open_view("phone", _phone_payload)); page.add_child(back)
 		var name := _label(String(payload["chat_name"]), 31); name.position = Vector2(126, 239); name.size = Vector2(430, 56); page.add_child(name)
 		var conversation := ScrollContainer.new(); conversation.position = Vector2(128, 316); conversation.size = Vector2(440, 230); page.add_child(conversation)
 		var messages := VBoxContainer.new(); messages.custom_minimum_size.x = 420; messages.add_theme_constant_override("separation", 14); conversation.add_child(messages)
@@ -605,6 +748,29 @@ func _build_phone(page: Panel, payload: Dictionary) -> void:
 			messages.add_child(line)
 		if bool(payload.get("chat_pending", false)):
 			messages.add_child(_label("等待回复…", 23))
+		var reply_options: Array = payload.get("reply_options", []) as Array
+		if not reply_options.is_empty():
+			# 12 个月首月：固定回复选项 + 稍后再说；不出现自由输入框。
+			var option_box := VBoxContainer.new()
+			option_box.position = Vector2(128, 560)
+			option_box.size = Vector2(440, 190)
+			option_box.add_theme_constant_override("separation", 10)
+			page.add_child(option_box)
+			for value in reply_options:
+				if not (value is Dictionary):
+					continue
+				var option := Dictionary(value)
+				var option_button := _button(String(option.get("text", "")), Vector2(440, 50), "green")
+				option_button.add_theme_font_size_override("font_size", 20)
+				var reply_id := String(option.get("id", ""))
+				var reply_text := String(option.get("text", ""))
+				option_button.pressed.connect(func(): phone_reply_selected.emit(String(payload.get("chat_id", "")), reply_id, reply_text))
+				option_box.add_child(option_button)
+			var later := _button("稍后再说", Vector2(440, 46), "paper")
+			later.add_theme_font_size_override("font_size", 19)
+			later.pressed.connect(close_view)
+			option_box.add_child(later)
+			return
 		var input := LineEdit.new(); input.position = Vector2(128, 574); input.size = Vector2(440, 54); input.placeholder_text = "输入要说的话"; input.max_length = 500; input.add_theme_font_override("font", FONT); input.add_theme_font_size_override("font_size", 21)
 		var input_style := _button_style(PAPER); input_style.set_corner_radius_all(6); input_style.set_content_margin_all(10); input.add_theme_stylebox_override("normal", input_style); input.add_theme_stylebox_override("focus", input_style); input.add_theme_color_override("font_color", INK); input.add_theme_color_override("font_placeholder_color", WOOD); page.add_child(input)
 		var send := _button("发送", Vector2(172, 54), "green"); send.position = Vector2(262, 645); send.disabled = bool(payload.get("chat_pending", false)); page.add_child(send)
@@ -704,7 +870,8 @@ func _build_settings(page: Panel) -> void:
 	var reading := _label("显示与阅读", 24); reading.position = Vector2(130, 289); reading.size = Vector2(250, 38); page.add_child(reading)
 	_settings_options(page, "文字速度", ["慢", "中", "快"], "text_speed", 334)
 	_settings_options(page, "字体大小", ["标准", "大"], "large_text", 388)
-	_settings_toggle(page, "减少动态效果", "reduced_motion", 445)
+	# 「减少动态效果」升级成三档：关闭 = 原来那档，所有过场一律 0.15 秒硬切不出字。
+	_settings_options(page, "过场动画", ["完整", "简洁", "关闭"], "cutscenes", 445)
 	_settings_toggle(page, "全屏显示", "fullscreen", 499)
 	var save_title := _label("存档", 24); save_title.position = Vector2(130, 553); save_title.size = Vector2(160, 35); page.add_child(save_title)
 	for index in 4:
@@ -731,11 +898,12 @@ func _settings_slider(page: Panel, title: String, key: String, y: float, texture
 
 func _settings_options(page: Panel, title: String, options: Array, key: String, y: float) -> void:
 	var label := _label(title, 20); label.position = Vector2(130, y); label.size = Vector2(165, 42); page.add_child(label)
+	var is_int_option := SETTINGS_INT_KEYS.has(key)
 	for index in options.size():
-		var selected := (int(_settings[key]) == index) if key == "text_speed" else (bool(_settings[key]) == (index == 1))
+		var selected := (int(_settings[key]) == index) if is_int_option else (bool(_settings[key]) == (index == 1))
 		var button := _button(String(options[index]), Vector2(118, 42), "gold" if selected else "paper")
 		button.position = Vector2(305 + index * 110, y)
-		button.pressed.connect(func(): _settings[key] = index if key == "text_speed" else index == 1; open_view("settings"))
+		button.pressed.connect(func(): _settings[key] = index if is_int_option else index == 1; open_view("settings"))
 		page.add_child(button)
 
 
@@ -756,6 +924,8 @@ func _apply_volume() -> void:
 
 
 func _apply_settings() -> void:
+	# 旧的 reduced_motion 字段留着，由过场档位派生：剧情面板等老代码不用改。
+	_settings["reduced_motion"] = int(_settings.get("cutscenes", 0)) == 2
 	_apply_volume()
 	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN if bool(_settings["fullscreen"]) else DisplayServer.WINDOW_MODE_WINDOWED)
 	var config := ConfigFile.new()
@@ -771,6 +941,7 @@ func _load_settings() -> void:
 		for key in _settings:
 			_settings[key] = config.get_value("display", key, _settings[key])
 	_apply_volume()
+	_settings["reduced_motion"] = int(_settings.get("cutscenes", 0)) == 2
 	preferences_changed.emit(_settings.duplicate())
 
 
@@ -792,6 +963,123 @@ func _plate(size_value: Vector2) -> Panel:
 
 func _button(value: String, size_value: Vector2, kind: String) -> Button:
 	var button := Button.new(); button.text = value; button.size = size_value; button.add_theme_font_override("font", FONT); button.add_theme_font_size_override("font_size", 21); button.add_theme_color_override("font_color", INK); button.add_theme_stylebox_override("normal", _button_style(GOLD if kind == "gold" else GREEN if kind == "green" else PAPER)); return button
+
+
+func _hud_caption(button: Button, text: String) -> void:
+	var label := _label(text, 18)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.position = Vector2(0, -28)
+	label.size = Vector2(button.size.x, 26)
+	label.add_theme_color_override("font_color", Color("f6e7c8"))
+	label.add_theme_color_override("font_outline_color", Color("23170f"))
+	label.add_theme_constant_override("outline_size", 4)
+	button.add_child(label)
+
+
+## 12 个月流程的手机解锁接口：开局隐藏，来信后亮出红点。
+func set_phone_visible(value: bool) -> void:
+	if _phone_button != null:
+		_phone_button.visible = value
+
+
+## 首月界面按剧情节点解锁：精力条 / 月历 / 手册 / 查看先藏。
+func set_energy_visible(value: bool) -> void:
+	if _energy_panel != null:
+		_energy_panel.visible = value
+
+
+func set_month_visible(value: bool) -> void:
+	if _month_button != null:
+		_month_button.visible = value
+
+
+func set_manual_visible(value: bool) -> void:
+	if _manual_button != null:
+		_manual_button.visible = value
+
+
+func set_view_visible(value: bool) -> void:
+	if _view_button != null:
+		_view_button.visible = value
+
+
+func set_act_label(text: String) -> void:
+	if _act_label != null and not _date_mode:
+		_act_label.text = text
+
+
+## 首月任务卡直接写当前节点，不再提前露旧主线的标题。
+func set_task_card(title: String, meta: String) -> void:
+	if _task_title != null:
+		_task_title.text = title
+		# 标题条只有 282 宽：31 号字最多放 9 个字。长标题不缩字号就会被省略号咬掉后半句，
+		# 而"咬掉后半句"在玩家眼里等于任务没显示全。
+		var size := 31
+		if title.length() > 11:
+			size = 22
+		elif title.length() > 9:
+			size = 26
+		_task_title.add_theme_font_size_override("font_size", size)
+	if _task_meta != null:
+		_task_meta.text = meta
+
+
+## 任务卡第三行：这个月自己的时间。没有安排时间的月份也要有一句，不留空。
+func set_task_note(text: String) -> void:
+	if _task_note != null:
+		_task_note.text = text
+
+
+func set_task_caption(text: String) -> void:
+	if _task_caption != null:
+		_task_caption.text = text
+
+
+## 档案圆钮本体：处境警示点挂在它上面（WorkplaceTown._attach_standing_badge）。
+func archive_button() -> Button:
+	return _archive_button
+
+
+## 手机解锁提醒：没有震动就用呼吸式缩放，直到玩家点开手机。
+var _phone_attention: Tween
+
+
+func start_phone_attention() -> void:
+	if _phone_button == null or _phone_attention != null:
+		return
+	_phone_button.pivot_offset = _phone_button.size * 0.5
+	_phone_attention = _phone_button.create_tween().set_loops()
+	_phone_attention.tween_property(_phone_button, "scale", Vector2(1.08, 1.08), 0.55) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_phone_attention.tween_property(_phone_button, "scale", Vector2.ONE, 0.55) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+
+func stop_phone_attention() -> void:
+	if _phone_attention != null:
+		_phone_attention.kill()
+		_phone_attention = null
+	if _phone_button != null:
+		_phone_button.scale = Vector2.ONE
+
+
+func set_phone_red_dot(value: bool) -> void:
+	if _phone_button == null:
+		return
+	if _phone_dot == null:
+		_phone_dot = Panel.new()
+		_phone_dot.name = "PhoneRedDot"
+		_phone_dot.position = Vector2(74, 6)
+		_phone_dot.size = Vector2(22, 22)
+		_phone_dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var style := StyleBoxFlat.new()
+		style.bg_color = Color("e5503f")
+		style.border_color = Color("fff3dc")
+		style.set_border_width_all(2)
+		style.set_corner_radius_all(11)
+		_phone_dot.add_theme_stylebox_override("panel", style)
+		_phone_button.add_child(_phone_dot)
+	_phone_dot.visible = value
 
 
 func _label(value: String, font_size: int) -> Label:
@@ -838,6 +1126,17 @@ func _ability_mark_texture(texture: Texture2D, region: Rect2) -> AtlasTexture:
 		atlas.region = region
 		_trimmed_textures[texture] = atlas
 	return _trimmed_textures[texture]
+
+
+func _circle_style(bg: Color, border: Color) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = bg
+	style.border_color = border
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(52)
+	style.shadow_color = Color(0, 0, 0, 0.30)
+	style.shadow_size = 6
+	return style
 
 
 func _panel_style() -> StyleBoxFlat:
