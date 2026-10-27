@@ -351,6 +351,14 @@ def main() -> int:
         for shot in card.get("shots") or []:
             if not (PLACE_SHOTS / str(shot)).exists():
                 errors.append(f"活动 {activity.get('id')} 的讲解卡配图找不到文件：assets/ui/place_cards/{shot}")
+        # 第 31 条：进门得有一件能按的东西，而且卡上要告诉玩家按什么
+        obj = str(activity.get("object", ""))
+        if not obj:
+            errors.append(f"活动 {activity.get('id')} 没有 object：进门之后玩家找不到能按的东西")
+        if not activity.get("againLine"):
+            errors.append(f"活动 {activity.get('id')} 没有 againLine：第二次去是空场景")
+        if obj and lines and obj not in str(lines[-1]):
+            errors.append(f"活动 {activity.get('id')} 的卡片最后一行没提到「{obj}」，玩家进门不知道该按什么")
     # 第 29 条：贴封条的地点，所在月必须有必玩主线，否则封条永远不存在
     required_months = {int(n.get("month", 0)) for n in nodes if n.get("required") and str(n.get("nodeType")) == "main_story"}
     for node in nodes:
@@ -496,12 +504,25 @@ def main() -> int:
         phase = node.get("duePhase")
         if phase and str(phase) not in {"early", "mid", "late"}:
             errors.append(f"{node['id']} 的 duePhase 非法：{phase}")
-    # 第 28 条：地点讲解卡同样不许出现事件标题
+    # 第 28 条：地点讲解卡与“今天”卡同样不许出现事件标题
     for activity in (activities or {}).get("activities", []):
         for line in ((activity.get("card") or {}).get("lines") or []):
             for plot in spoilers:
                 if plot in str(line):
                     errors.append(f"活动 {activity.get('id')} 的讲解卡提前泄露主线标题「{plot}」：{line}")
+    for node in nodes:
+        today = node.get("todayCard") or {}
+        lines = today.get("lines") or []
+        if today and (not today.get("title") or not lines or not today.get("shots")):
+            errors.append(f"{node['id']} 的“今天”卡缺 title、lines 或 shots")
+        if len(lines) > 3:
+            errors.append(f"{node['id']} 的“今天”卡有 {len(lines)} 行，上限 3 行")
+        for line in lines:
+            if visible_length(str(line)) > 22:
+                errors.append(f"{node['id']} 的“今天”卡某行超过 22 字：{line}")
+            for plot in spoilers:
+                if plot in str(line):
+                    errors.append(f"{node['id']} 的“今天”卡提前泄露主线标题「{plot}」：{line}")
 
     for node in nodes:
         if str(node.get("nodeType")) != "phone_batch":

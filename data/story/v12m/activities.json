@@ -26,7 +26,7 @@
         "lines": [
           "你的工位，也是做小工具的地方。",
           "把重复的检查做成工具，会花掉你一点时间。",
-          "手上那件事做到一半、又烦了的时候。"
+          "坐下，打开你自己那台电脑。"
         ],
         "shots": [
           "place_card_tool_1.png"
@@ -34,7 +34,9 @@
         "pages": 1
       },
       "unlockHook": "unlock_b",
-      "gatedBy": "month_required"
+      "gatedBy": "month_required",
+      "object": "你自己那台电脑",
+      "againLine": "脚本还在跑，你顺手看了两眼报错。"
     },
     {
       "id": "m1_rooftop",
@@ -61,7 +63,7 @@
         "lines": [
           "开会、评审都在这栋楼里。",
           "楼上天台能待一会儿，会花掉你一点时间。",
-          "今天先认路，忙完随时能来。"
+          "想一个人待着，就去坐栏杆边那把折叠椅。"
         ],
         "shots": [
           "place_card_rooftop_1.png"
@@ -69,7 +71,9 @@
         "pages": 1
       },
       "unlockHook": "unlock_a",
-      "gatedBy": "month_required"
+      "gatedBy": "month_required",
+      "object": "栏杆边那把折叠椅",
+      "againLine": "椅子还在老地方，风也还是那样。"
     },
     {
       "id": "m1_lakeside",
@@ -91,7 +95,7 @@
         "lines": [
           "沿湖走一圈，不赶时间。",
           "走完这一圈，手上的事不会变少。",
-          "脑子太吵、又不想说话的时候来。"
+          "栈道边那张石凳，坐着最舒服。"
         ],
         "shots": [
           "place_card_lake_1.png"
@@ -99,7 +103,9 @@
         "pages": 1
       },
       "unlockHook": "unlock_lake",
-      "gatedBy": "month_required"
+      "gatedBy": "month_required",
+      "object": "栈道边那张石凳",
+      "againLine": "石凳有点凉，湖心的熊石像还是那个姿势。"
     }
   ]
 }
