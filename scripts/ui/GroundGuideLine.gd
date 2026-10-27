@@ -48,10 +48,11 @@ func _process(delta: float) -> void:
 
 
 ## 铺一条新路径。points 至少两个点，世界坐标。
+## 故意不重置 _flow：黄线现在会跟着玩家每走半步重铺一次（见 WorkplaceTown._lay_month12_guide），
+## 每次重铺都把相位归零的话，虚线会在原地一跳一跳，看着像卡了。
 func set_path(points: PackedVector2Array, urgent: bool = false) -> void:
 	_points = points
 	_urgent = urgent
-	_flow = 0.0
 	_rebuild_metrics()
 	_has_path = _total_length >= MIN_VISIBLE_LENGTH
 	queue_redraw()

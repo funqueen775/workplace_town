@@ -82,6 +82,9 @@ const MAP_ZOOM_MAX_FACTOR := 2.6
 const MAP_ZOOM_MIN_FACTOR := 1.0 / OUTDOOR_EXPLORATION_ZOOM
 ## 地面引导线：玩家挪出这么远才重算路径。太小会每帧重跑 BFS，太大线头会跟人脱开。
 const GUIDE_REPATH_DISTANCE := 10.0
+## 首月带巡的黄线：比旧线放宽一点（18 像素 ≈ 角色走半步）。
+## 玩家走路时大约每半步重铺一次路，看上去是"线在跟着我改"，又不会抖。
+const MONTH12_GUIDE_REPATH := 18.0
 ## 引导线拐角切圆弧的采样段数。只影响观感：4 段已经看不出折角。
 const GUIDE_CORNER_STEPS := 4
 const INTERIOR_ASSETS := {
@@ -197,6 +200,8 @@ var _month_opening_events: Dictionary = {}
 var _month12_active := false
 var _month12_phase := ""
 var _month12_waypoint := Vector2(-99999, -99999)
+## 上一次给黄线铺路时玩家站在哪儿：离它超过 MONTH12_GUIDE_REPATH 就重新寻路。
+var _month12_guide_from := Vector2(-99999, -99999)
 var _month12_tour_index := 0
 var _month12_e02_choice := ""
 var _month12_flags: Dictionary = {}
@@ -2802,7 +2807,7 @@ func _play_date_debug_step() -> void:
 		4:
 			_set_date(2, "early", "morning")
 		_:
-			_set_date(2, "early", "afternoon")
+			_set_date(2, "mid", "morning")
 
 
 func _start_month_opening() -> void:
@@ -2928,8 +2933,7 @@ func _goto_month12_stop(index: int) -> void:
 	if _town_ui_v2 != null:
 		_town_ui_v2.set_task_card("带巡 · %s" % String(stop["name"]), "第 1 月 · 入职第一天")
 		_town_ui_v2.set_task_note("跟着王哥走，先认路")
-	if _guide_line != null and _player != null:
-		_guide_line.set_path(_build_guide_path(_player.position, _month12_waypoint), true)
+	_lay_month12_guide(true)
 	if index == 0:
 		_show_reminder_toast("跟着王哥走", "WASD、方向键或左下角摇杆移动")
 
@@ -3026,12 +3030,12 @@ func _unlock_month_phone() -> void:
 
 func _start_month12_handbook() -> void:
 	_month12_phase = "handbook"
-	# 带巡那段话没收干净就不播；播完「午后」再收黄线、给目标、开手册。
-	_date_then(1, "early", "afternoon", _after_month12_noon_card)
+	# 上午→午后已经不播了（时段卡删了），这里只留"等上一段面板关掉再开手册"这一道闸。
+	_date_then(1, "early", "afternoon", _month12_handbook_step)
 
 
-## 「午后」这张小卡播完之后才做的事。
-func _after_month12_noon_card() -> void:
+## 闸门放开后才做的事：收掉黄线、给目标、开手册。
+func _month12_handbook_step() -> void:
 	_month12_waypoint = Vector2(-99999, -99999)
 	if _guide_line != null:
 		_guide_line.clear()
@@ -3057,8 +3061,7 @@ func _after_month12_xun_card() -> void:
 		_town_ui_v2.set_task_card("第一次被轻视", "第 1 月 · A 区总部")
 		_town_ui_v2.set_task_note("周三上午 · 跟着黄线走")
 	_month12_waypoint = Vector2(416, 241)
-	if _guide_line != null and _player != null:
-		_guide_line.set_path(_build_guide_path(_player.position, _month12_waypoint), true)
+	_lay_month12_guide(true)
 
 
 func _present_month12_e02() -> void:
@@ -3095,12 +3098,12 @@ func _present_month12_e02() -> void:
 
 func _start_month12_activity() -> void:
 	_month12_phase = "activity"
-	# 中旬里从上午挪到午后：等 E02 那段结算画面收掉再播，顺手把剩 1 点行动力带上。
-	_date_then(1, "mid", "afternoon", _after_month12_activity_card, 1)
+	# 上午→午后不播了；这里只等 E02 那段结算画面收掉再开面板。
+	_date_then(1, "mid", "afternoon", _month12_activity_step, 1)
 
 
-## 时段卡播完之后才开自由安排面板。
-func _after_month12_activity_card() -> void:
+## 闸门放开后才开自由安排面板。
+func _month12_activity_step() -> void:
 	_set_objective("本周自由安排", "选一项：小工具 / 天台 / 不安排", "本周 1 个行动点；不用完月底清零", "自由安排", false)
 	if _town_ui_v2 != null:
 		_town_ui_v2.set_task_card("本周自由安排 · 1 点", "第 1 月 · E02 之后")
@@ -3181,12 +3184,30 @@ func _save_month12_progress() -> void:
 
 
 ## 每帧：首月的黄线由这里驱动，到点即播下一段。
+## 黄线跟着人实时改道。
+##
+## 以前只在目标出现那一刻铺一次路，之后每帧只把线头挪到玩家脚下：
+## 玩家一旦没按原路走（绕开长椅、从另一侧过来），线就会从他现在的位置拉一条直线
+## 插回老路的第二个拐点 —— 看着就像一条横穿草坪的假路。
+## 现在每帧比一次"人离上次铺线时站的地方有多远"，超过一小步就用当前站位重新寻路；
+## 没超过仍然只挪线头（便宜，也不会让虚线相位在世界坐标里抖）。
+func _lay_month12_guide(force := false) -> void:
+	if _guide_line == null or _player == null or _month12_waypoint.x < -90000.0:
+		return
+	if force or _month12_guide_from.x < -90000.0 \
+			or _player.position.distance_to(_month12_guide_from) > MONTH12_GUIDE_REPATH:
+		_month12_guide_from = _player.position
+		_guide_line.set_path(_build_guide_path(_player.position, _month12_waypoint), true)
+	else:
+		_guide_line.set_origin(_player.position)
+
+
 func _update_month12_waypoint() -> void:
 	if _month12_waypoint.x < -90000.0:
 		return
 	if _guide_line == null or _player == null:
 		return
-	_guide_line.set_origin(_player.position)
+	_lay_month12_guide()
 	if _player.position.distance_to(_month12_waypoint) > 70.0:
 		return
 	match _month12_phase:
