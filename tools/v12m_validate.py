@@ -290,17 +290,20 @@ def main() -> int:
             for dimension in (choice.get("stateDelta") or {}):
                 if str(dimension) not in {"S", "O", "N", "D", "H", "risk"}:
                     errors.append(f"{node_id} 选项 {choice.get('id')} 的 stateDelta 键越界：{dimension}")
-            # 能力五格（开发文档 4.19）：标签攒点、第 5 格只认剧情点亮。
-            tags = choice.get("abilityTags")
-            if tags is not None:
-                if not isinstance(tags, dict):
-                    errors.append(f"{node_id} 选项 {choice.get('id')} 的 abilityTags 必须是对象")
+            # 能力五格（4.19）：三选一的必玩选项必须显式写能力标签。
+            # 允许写空对象——"这一选什么都不长"也是一个决定，但不能不填，
+            # 否则十二个月铺完，五格里有几格是没人填过的空洞。
+            if str(node.get("nodeType")) == "main_story" and len(choices or []) == 3:
+                if not isinstance(choice.get("abilityTags"), dict):
+                    errors.append(f"{node_id} 选项 {choice.get('id')} 没写 abilityTags："
+                                  "每个必玩选项都要显式决定这一选长哪一格（不填报，不长写空对象）")
                 else:
-                    for key, value in tags.items():
+                    for key, value in choice["abilityTags"].items():
                         if str(key) not in ABILITIES:
                             errors.append(f"{node_id} 选项 {choice.get('id')} 的能力标签越界：{key}")
                         if not isinstance(value, int) or not 1 <= value <= 2:
                             errors.append(f"{node_id} 选项 {choice.get('id')} 的能力标签一次只能给 1–2 点：{key}={value}")
+            # 第 5 格只认剧情点亮（4.19）：写了就必须是合法能力名。
             peak = choice.get("abilityPeak")
             if peak is not None:
                 if not isinstance(peak, list) or not peak:

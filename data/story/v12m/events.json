@@ -222,7 +222,10 @@
               "result": "会上澄清并补名"
             }
           ],
-          "reportUse": "evidence"
+          "reportUse": "evidence",
+          "abilityTags": {
+            "expression": 2
+          }
         },
         {
           "id": "B",
@@ -247,7 +250,10 @@
               "result": "留下署名记录"
             }
           ],
-          "reportUse": "evidence"
+          "reportUse": "evidence",
+          "abilityTags": {
+            "integrity": 2
+          }
         },
         {
           "id": "C",
@@ -273,7 +279,10 @@
               "result": "按期交付，署名未留"
             }
           ],
-          "reportUse": "evidence"
+          "reportUse": "evidence",
+          "abilityTags": {
+            "resilience": 1
+          }
         }
       ],
       "timeBand": "morning",
@@ -463,7 +472,13 @@
           "text": "出了问题怎么退回上一版，写在第二栏。别写「加监控」，那不是退路。",
           "emphasis": [
             "别写「加监控」，那不是退路"
-          ]
+          ],
+          "hook": "door_library"
+        },
+        {
+          "type": "say",
+          "speaker": "陈工",
+          "text": "旧事故单在图书馆二楼，自己去翻。"
         },
         {
           "type": "narration",
@@ -515,7 +530,10 @@
               "result": "两套都跑过再判断"
             }
           ],
-          "reportUse": "evidence"
+          "reportUse": "evidence",
+          "abilityTags": {
+            "technical": 2
+          }
         },
         {
           "id": "B",
@@ -541,7 +559,10 @@
               "result": "先交付再补验证"
             }
           ],
-          "reportUse": "evidence"
+          "reportUse": "evidence",
+          "abilityTags": {
+            "technical": 1
+          }
         },
         {
           "id": "C",
@@ -567,12 +588,75 @@
               "result": "借用旧经验"
             }
           ],
-          "reportUse": "evidence"
+          "reportUse": "evidence",
+          "abilityTags": {
+            "collaboration": 2
+          }
         }
       ],
       "walk": true,
       "day": 8,
       "hour": 10
+    },
+    {
+      "id": "M02_LIBRARY",
+      "month": 2,
+      "order": 145,
+      "nodeType": "main_story",
+      "required": true,
+      "title": "翻旧事故单",
+      "locationId": "D",
+      "location": "树影书院二楼",
+      "durationMinutes": 40,
+      "situation": "weak",
+      "autoComplete": true,
+      "choices": [],
+      "timeBand": "morning",
+      "phase": "early",
+      "reportUse": "story_only",
+      "walk": true,
+      "enterPlace": "m2_library",
+      "doorHook": "door_library",
+      "visit": {
+        "name": "图书馆二楼",
+        "object": "靠窗那摞旧事故单",
+        "rowNote": "翻旧事故单",
+        "placeLine": "翻一翻上一版翻车那张单。"
+      },
+      "beats": [
+        {
+          "type": "narration",
+          "text": "图书馆二楼的灯是感应的，你走过去才亮一排。"
+        },
+        {
+          "type": "narration",
+          "text": "旧事故单按季度装订。最上面那本的封皮上写着两年前的冬天。"
+        },
+        {
+          "type": "narration",
+          "text": "你要找的那一栏写着「已处理」，处理方式只有三个字：加监控。",
+          "emphasis": [
+            "加监控"
+          ]
+        },
+        {
+          "type": "narration",
+          "text": "后面夹着一张回滚记录。按下那一栏是空的，值班表那一格也是空的。",
+          "emphasis": [
+            "按下那一栏是空的"
+          ]
+        },
+        {
+          "type": "narration",
+          "text": "你把那页拍下来。楼下有关门声，管理员在催了。"
+        },
+        {
+          "type": "narration",
+          "text": "陈工那句「那不是退路」，你这一趟算是听懂了。"
+        }
+      ],
+      "day": 8,
+      "hour": 11
     },
     {
       "id": "M02_WEEK_1",
@@ -791,7 +875,10 @@
               "result": "写清范围与未把握处"
             }
           ],
-          "reportUse": "evidence"
+          "reportUse": "evidence",
+          "abilityTags": {
+            "integrity": 2
+          }
         },
         {
           "id": "B",
@@ -816,7 +903,8 @@
               "result": "删掉参与说明"
             }
           ],
-          "reportUse": "evidence"
+          "reportUse": "evidence",
+          "abilityTags": {}
         },
         {
           "id": "C",
@@ -841,7 +929,8 @@
               "result": "含糊表述"
             }
           ],
-          "reportUse": "evidence"
+          "reportUse": "evidence",
+          "abilityTags": {}
         }
       ],
       "day": 14,
@@ -1484,6 +1573,501 @@
       "deliveredDuring": "M03_CLOSE",
       "day": 26,
       "hour": 20
+    },
+    {
+      "id": "M04_OPEN",
+      "month": 4,
+      "order": 200,
+      "nodeType": "main_story",
+      "required": true,
+      "title": "共享表上的 41 条",
+      "locationId": "B",
+      "location": "B 区工位",
+      "durationMinutes": 20,
+      "situation": "weak",
+      "autoComplete": true,
+      "beats": [
+        {
+          "type": "narration",
+          "text": "上个月合同签了，那套拣货问答月底上了线。两周过去，共享表上多了 41 条工单。"
+        },
+        {
+          "type": "narration",
+          "text": "物流 33 条，“不像我们说话的方式”6 条，剩下 2 条暂时没人能复现。"
+        },
+        {
+          "type": "say",
+          "speaker": "王哥",
+          "text": "我试了四十分钟，也没复现出来。"
+        },
+        {
+          "type": "say",
+          "speaker": "王哥",
+          "text": "现在全靠人试。灵活是灵活，谁觉得自己测得准，就按谁的算。",
+          "emphasis": [
+            "谁觉得自己测得准，就按谁的算"
+          ]
+        },
+        {
+          "type": "narration",
+          "text": "建评测集要两周。这两周里还压着客户上月在展厅提的第二期需求。看板右下角写着负责人：小林。"
+        },
+        {
+          "type": "say",
+          "speaker": "王哥",
+          "text": "你可以欠需求，也可以欠测试。反正债主迟早会来。",
+          "emphasis": [
+            "反正债主迟早会来"
+          ]
+        },
+        {
+          "type": "narration",
+          "text": "王哥把看板转过来。评测集和客户第二期占着同一格。"
+        }
+      ],
+      "choices": [],
+      "timeBand": "morning",
+      "phase": "early",
+      "reportUse": "story_only",
+      "todayCard": {
+        "title": "第四月 · 评测集",
+        "lines": [
+          "共享表上多了 41 条工单，2 条没人能复现。",
+          "建评测集要两周，客户第二期也压在这两周。",
+          "王哥把看板转过来，两格占的是同两周。"
+        ],
+        "shots": [
+          "place_card_tool_1.png"
+        ]
+      }
+    },
+    {
+      "id": "E05",
+      "month": 4,
+      "order": 210,
+      "nodeType": "main_story",
+      "required": true,
+      "title": "先做哪一个",
+      "locationId": "B",
+      "location": "B 区工位",
+      "durationMinutes": 90,
+      "situation": "medium",
+      "autoComplete": false,
+      "beats": [
+        {
+          "type": "narration",
+          "text": "看板上有两格亮着：评测集，客户第二期。它们占的是同两周。"
+        },
+        {
+          "type": "say",
+          "speaker": "王哥",
+          "text": "两条都不能拖，但这两周只有你一个人。先做哪一条，你说。"
+        }
+      ],
+      "prompt": "这两周先做哪一个？",
+      "choices": [
+        {
+          "id": "A",
+          "text": "建完整评测集（两周补齐，客户第二期延到下月，请王哥确认排期）",
+          "outcome": "两周里你把 41 条整理并扩成 118 条测试记录，其中 9 条仍无法复现。第二周开始有人来借这张表——第一次不是来找你要代码。王哥：客户那边我来沟通，第二期延到下月，排期我来改。",
+          "emphasis": [
+            "第一次不是来找你要代码"
+          ],
+          "apCost": 0,
+          "stateDelta": {
+            "S": 2,
+            "O": -1,
+            "H": -1,
+            "risk": -2
+          },
+          "riskDelta": -2,
+          "flags": [
+            "m04_e05_full_evalset"
+          ],
+          "competency": [
+            {
+              "dimension": "S",
+              "anchor": 4,
+              "behaviorCode": "m04_e05_full_evalset",
+              "result": "把工单整理成可复现的评测集，并主动改排期"
+            }
+          ],
+          "abilityTags": {
+            "technical": 2
+          },
+          "reportUse": "evidence"
+        },
+        {
+          "id": "B",
+          "text": "先不建，这单按期交出去",
+          "outcome": "这单按期交了，陈工在群里回了个“好”。那张表还没填表头。第三周新增工单里又有 5 条没能复现，连同原有 2 条，共 7 条待复现。",
+          "emphasis": [
+            "那张表还没填表头"
+          ],
+          "apCost": 0,
+          "stateDelta": {
+            "O": 2,
+            "S": -1,
+            "risk": 3
+          },
+          "riskDelta": 3,
+          "flags": [
+            "m04_e05_no_evalset"
+          ],
+          "competency": [
+            {
+              "dimension": "O",
+              "anchor": 3,
+              "behaviorCode": "m04_e05_ship_without_evalset",
+              "result": "不建评测集，按期交付但把复现债留给后面"
+            }
+          ],
+          "abilityTags": {
+            "collaboration": 1
+          },
+          "reportUse": "evidence"
+        },
+        {
+          "id": "C",
+          "text": "先建最小版（先盖住客户最常提的几类，再灰度）",
+          "outcome": "200 条测试用例里有 60 条是你一行行补的。灰度第三天覆盖了物流类常见问题，另外两类仍没有结论。",
+          "emphasis": [
+            "另外两类仍没有结论"
+          ],
+          "apCost": 0,
+          "stateDelta": {
+            "O": 1,
+            "S": 1,
+            "H": -1
+          },
+          "riskDelta": 0,
+          "flags": [
+            "m04_e05_partial_evalset"
+          ],
+          "competency": [
+            {
+              "dimension": "S",
+              "anchor": 2,
+              "behaviorCode": "m04_e05_partial_evalset",
+              "result": "只做覆盖最常见类别的最小评测集"
+            }
+          ],
+          "abilityTags": {
+            "technical": 1
+          },
+          "reportUse": "evidence"
+        }
+      ],
+      "timeBand": "morning",
+      "phase": "early",
+      "reportUse": "evidence",
+      "zoneCut": "B",
+      "whenText": "上旬 · 周一"
+    },
+    {
+      "id": "M04_NOTICE",
+      "month": 4,
+      "order": 220,
+      "nodeType": "main_story",
+      "required": true,
+      "title": "两周之后",
+      "locationId": "B",
+      "location": "B 区工位",
+      "durationMinutes": 10,
+      "situation": "weak",
+      "autoComplete": true,
+      "beats": [
+        {
+          "type": "narration",
+          "text": "两周过去。看板右下角那一格被人动过，客户第二期挪到了下月。"
+        },
+        {
+          "type": "card",
+          "text": "【通知】周五 10:00 · A 区复盘会议室 · 上线两周失败率复盘。主持：陈工。材料：无。"
+        },
+        {
+          "type": "say",
+          "speaker": "王哥",
+          "text": "我到时候只讲一句关于时间点的话。别的你自己讲。",
+          "emphasis": [
+            "别的你自己讲"
+          ]
+        }
+      ],
+      "choices": [],
+      "timeBand": "morning",
+      "phase": "mid",
+      "reportUse": "story_only"
+    },
+    {
+      "id": "E07",
+      "month": 4,
+      "order": 230,
+      "nodeType": "main_story",
+      "required": true,
+      "title": "复盘会",
+      "locationId": "A",
+      "location": "A 区复盘会议室",
+      "durationMinutes": 90,
+      "situation": "strong",
+      "autoComplete": false,
+      "walk": true,
+      "beats": [
+        {
+          "type": "narration",
+          "text": "复盘会议室里有九个人。陈工打开投影时站在最靠门的一侧。"
+        },
+        {
+          "type": "narration",
+          "text": "投影停在一条红色曲线上。工单失败率 18%（初算，口径未核）。",
+          "emphasis": [
+            "18%（初算，口径未核）"
+          ]
+        },
+        {
+          "type": "say",
+          "speaker": "小林",
+          "text": "接口昨天还能用。今天算法侧一更新，整条链就断了。"
+        },
+        {
+          "type": "say",
+          "speaker": "陈工",
+          "text": "算法侧，谁说的？"
+        },
+        {
+          "type": "say",
+          "speaker": "小林",
+          "text": "我只是说时间点对得上。那次提交的编号，是我贴在周报上的。"
+        },
+        {
+          "type": "say",
+          "speaker": "王哥",
+          "text": "时间点不是证据。",
+          "emphasis": [
+            "时间点不是证据"
+          ]
+        },
+        {
+          "type": "say",
+          "speaker": "老周",
+          "text": "十分钟后我要结论，不要阵营。"
+        },
+        {
+          "type": "narration",
+          "text": "桌上的监控截图就在你手边。小林没有看它，她在看你。"
+        }
+      ],
+      "prompt": "这十分钟，你怎么说？",
+      "choices": [
+        {
+          "id": "A",
+          "text": "举起截图，把时间和版本说清楚",
+          "outcome": "会议室安静了两秒，陈工念出截图上的时间。散会后你自己发了纪要，“责任人”一栏填了你的名字，没人让你填。",
+          "emphasis": [
+            "没人让你填"
+          ],
+          "apCost": 0,
+          "stateDelta": {
+            "D": 2,
+            "N": -1
+          },
+          "riskDelta": 0,
+          "flags": [
+            "m04_e07_clarified_in_room"
+          ],
+          "competency": [
+            {
+              "dimension": "D",
+              "anchor": 4,
+              "behaviorCode": "m04_e07_clarified_in_room",
+              "result": "当场用截图把时间与版本对齐，主动署名"
+            }
+          ],
+          "abilityTags": {
+            "integrity": 2
+          },
+          "reportUse": "evidence"
+        },
+        {
+          "id": "B",
+          "text": "不翻旧账，要求按流程核对整条链",
+          "outcome": "老周合上笔：“今天先写流程责任，个人责任会后谈。”两小时后纪要发出，“待定项”后面有三个人的名字。",
+          "emphasis": [
+            "先写流程责任"
+          ],
+          "apCost": 0,
+          "stateDelta": {
+            "D": 1,
+            "N": 1,
+            "O": 1,
+            "S": -1
+          },
+          "riskDelta": 0,
+          "flags": [
+            "m04_e07_process_review"
+          ],
+          "competency": [
+            {
+              "dimension": "N",
+              "anchor": 3,
+              "behaviorCode": "m04_e07_process_review",
+              "result": "把归因拉回流程核对，不当场指人"
+            }
+          ],
+          "abilityTags": {
+            "collaboration": 2
+          },
+          "reportUse": "evidence"
+        },
+        {
+          "id": "C",
+          "text": "先认下来：这次我没把流程和版本核清楚",
+          "outcome": "会议七分钟就结束了。小林在群里发了“辛苦了”，没有 @ 你。第二天陈工让你讲那段链路，你讲了十一分钟，没人打断，也没人接话。",
+          "emphasis": [
+            "也没人接话"
+          ],
+          "apCost": 0,
+          "stateDelta": {
+            "H": -1,
+            "D": -2,
+            "risk": 1
+          },
+          "riskDelta": 1,
+          "flags": [
+            "m04_e07_admitted_verification_gap"
+          ],
+          "competency": [
+            {
+              "dimension": "D",
+              "anchor": 1,
+              "behaviorCode": "m04_e07_admitted_verification_gap",
+              "result": "当场认下自己没核清版本与流程"
+            }
+          ],
+          "abilityTags": {},
+          "reportUse": "evidence"
+        }
+      ],
+      "timeBand": "morning",
+      "phase": "mid",
+      "reportUse": "evidence",
+      "zoneCut": "A",
+      "whenText": "中旬 · 周五"
+    },
+    {
+      "id": "M04_PHONE",
+      "month": 4,
+      "order": 240,
+      "nodeType": "phone_batch",
+      "required": false,
+      "batchId": "m04_batch_xiaolin",
+      "senderId": "xiao_lin",
+      "senderName": "小林",
+      "senderRole": "产品",
+      "messages": [
+        {
+          "id": "m04_lin_a1",
+          "when": {
+            "flag": "m04_e05_full_evalset"
+          },
+          "text": "你那张表至少能看出哪一段坏了。"
+        },
+        {
+          "id": "m04_lin_a2",
+          "when": {
+            "flag": "m04_e05_full_evalset"
+          },
+          "text": "时间点是隔壁组数工单数出来的。我以为你自己会讲。"
+        },
+        {
+          "id": "m04_lin_c1",
+          "when": {
+            "flag": "m04_e05_partial_evalset"
+          },
+          "text": "你那张表至少能看出哪一段坏了。"
+        },
+        {
+          "id": "m04_lin_c2",
+          "when": {
+            "flag": "m04_e05_partial_evalset"
+          },
+          "text": "时间点是隔壁组数工单数出来的。我以为你自己会讲。"
+        },
+        {
+          "id": "m04_lin_b1",
+          "when": {
+            "flag": "m04_e05_no_evalset"
+          },
+          "text": "曲线是人家数出来的，你连一张表都没有。"
+        },
+        {
+          "id": "m04_lin_b2",
+          "when": {
+            "flag": "m04_e05_no_evalset"
+          },
+          "text": "行，现在也不用讲。下周再说。"
+        }
+      ],
+      "replyOptions": [
+        {
+          "id": "ack",
+          "text": "知道了。"
+        }
+      ],
+      "timeBand": "night",
+      "phase": "mid",
+      "reportUse": "story_only",
+      "deliveredDuring": "E07"
+    },
+    {
+      "id": "M04_CLOSE",
+      "month": 4,
+      "order": 250,
+      "nodeType": "month_close",
+      "required": true,
+      "defaultText": "第 4 月：曲线是别人数出来的，你那张表还在填。",
+      "autoSave": true,
+      "cards": [
+        {
+          "when": {
+            "flag": "m04_e07_clarified_in_room"
+          },
+          "text": "第 4 月：这件事你站住了。"
+        },
+        {
+          "when": {
+            "flag": "m04_e07_process_review"
+          },
+          "text": "第 4 月：你守住了一点东西，和老周近了一些。"
+        },
+        {
+          "when": {
+            "flag": "m04_e07_admitted_verification_gap"
+          },
+          "text": "第 4 月：有个地方你自己知道让了一步，你有点撑不住。"
+        },
+        {
+          "when": {
+            "flag": "m04_e05_full_evalset"
+          },
+          "text": "那张表你还在填。"
+        },
+        {
+          "when": {
+            "flag": "m04_e05_no_evalset"
+          },
+          "text": "那张表你没建。"
+        },
+        {
+          "when": {
+            "flag": "m04_e05_partial_evalset"
+          },
+          "text": "那张表只填了一半。"
+        }
+      ],
+      "timeBand": "night",
+      "phase": "late",
+      "reportUse": "story_only"
     }
   ]
 }
