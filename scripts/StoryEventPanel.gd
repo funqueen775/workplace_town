@@ -439,6 +439,7 @@ func _show_say(beat: Dictionary) -> void:
 		_add_speaker_portrait(portrait_name, expression)
 	_add_asset_name_plate(bubble, profile, speaker_id)
 	_add_dialogue_hint(bubble)
+	_add_term_dot(bubble, text)
 
 
 ## 旁白拍：没有名字、没有立绘聚焦。玩家在看场景，不是在看人。
@@ -453,6 +454,7 @@ func _show_narration(text: String, emphasis: Array = []) -> void:
 	_typewriter_rich = body
 	_start_typewriter(text)
 	_add_dialogue_hint(bubble)
+	_add_term_dot(bubble, text)
 
 
 ## 可交互拍：不推进剧情，等玩家去碰它。
@@ -823,6 +825,110 @@ func _add_dialogue_hint(frame: Control) -> void:
 	label.size = Vector2(150.0, 30.0)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	frame.add_child(label)
+
+
+# ---------------------------------------------------------------- 行话小圆点
+#
+# 只做一件事：台词里冒出一个玩家不可能懂的专业词，给一句人话。
+# 不记录听过没听过、不进档案页、不呼吸提示。全年就六个词（data/story/v12m/terms.json），
+# 不点什么都不发生，点一下浮一句，再点任意地方收起。
+
+const TERMS_PATH := "res://data/story/v12m/terms.json"
+const TERM_DOT_SIZE := 46.0
+
+var _terms: Array = []
+var _term_card: Control
+
+
+func _load_terms() -> void:
+	if not _terms.is_empty():
+		return
+	var parsed = JSON.parse_string(FileAccess.get_file_as_string(TERMS_PATH))
+	if parsed is Dictionary:
+		_terms = (parsed as Dictionary).get("terms", []) as Array
+
+
+func _matched_term(text: String) -> Dictionary:
+	_load_terms()
+	for value in _terms:
+		if not (value is Dictionary):
+			continue
+		var term := value as Dictionary
+		var word := String(term.get("word", ""))
+		if not word.is_empty() and text.contains(word):
+			return term
+	return {}
+
+
+func _add_term_dot(frame: Control, text: String) -> void:
+	var term := _matched_term(text)
+	if term.is_empty():
+		return
+	var dot := Button.new()
+	dot.name = "TermDot"
+	dot.text = "？"
+	dot.position = Vector2(frame.size.x - TERM_DOT_SIZE - 26.0, 22.0)
+	dot.size = Vector2(TERM_DOT_SIZE, TERM_DOT_SIZE)
+	dot.add_theme_font_override("font", FONT)
+	dot.add_theme_font_size_override("font_size", 24)
+	dot.add_theme_color_override("font_color", Color("fff4d5"))
+	dot.add_theme_stylebox_override("normal", _term_dot_style(Color("b95035")))
+	dot.add_theme_stylebox_override("hover", _term_dot_style(Color("cf6247")))
+	dot.add_theme_stylebox_override("pressed", _term_dot_style(Color("8f3a26")))
+	dot.pressed.connect(_toggle_term_card.bind(frame, term))
+	frame.add_child(dot)
+
+
+func _term_dot_style(background: Color) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = background
+	style.set_corner_radius_all(int(TERM_DOT_SIZE / 2.0))
+	style.set_border_width_all(2)
+	style.border_color = Color("f6e6bd")
+	style.shadow_color = Color(0, 0, 0, 0.40)
+	style.shadow_size = 4
+	return style
+
+
+func _toggle_term_card(frame: Control, term: Dictionary) -> void:
+	if _term_card != null and is_instance_valid(_term_card):
+		_term_card.queue_free()
+		_term_card = null
+		return
+	var word := String(term.get("word", ""))
+	var plain := String(term.get("plain", ""))
+	var width := maxf(380.0, FONT.get_string_size(plain, HORIZONTAL_ALIGNMENT_LEFT, -1, 26).x + 72.0)
+	var card := Panel.new()
+	card.name = "TermCard"
+	card.size = Vector2(width, 106.0)
+	card.position = Vector2(round((frame.size.x - width) * 0.5), -card.size.y - 16.0)
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color("fff3dc")
+	style.border_color = Color("5b321f")
+	style.set_border_width_all(3)
+	style.set_corner_radius_all(6)
+	style.shadow_color = Color(0, 0, 0, 0.42)
+	style.shadow_size = 8
+	card.add_theme_stylebox_override("panel", style)
+	var title := _label(word, 24, Color("b95035"), true)
+	title.position = Vector2(26, 14)
+	title.size = Vector2(width - 52, 32)
+	card.add_child(title)
+	var body := _label(plain, 26, Color("4a2b1a"))
+	body.position = Vector2(26, 52)
+	body.size = Vector2(width - 52, 44)
+	card.add_child(body)
+	var close := Button.new()
+	close.flat = true
+	close.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
+	close.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	close.pressed.connect(func():
+		if is_instance_valid(card):
+			card.queue_free()
+		_term_card = null)
+	card.add_child(close)
+	frame.add_child(card)
+	_term_card = card
 
 
 # ---------------------------------------------------------------- 零件

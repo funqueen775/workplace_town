@@ -138,6 +138,8 @@ def main() -> int:
     activities = strict_load(DATA / "activities.json", errors)
     hints = strict_load(DATA / "hints.json", errors)
     rubrics = strict_load(DATA / "rubrics.json", errors)
+    terms_path = DATA / "terms.json"
+    terms = strict_load(terms_path, errors) if terms_path.exists() else {}
     if errors:
         for line in errors:
             print(f"ERROR {line}")
@@ -457,6 +459,32 @@ def main() -> int:
     hint_ids: set[str] = set()
     all_hint_ids = {str(hint.get("id")) for hint in (hints or {}).get("hints", [])}
     hint_hooks: set[str] = set()
+    # 行话小圆点（4.17）：全年只留六个词，每个词都得真的在已铺剧情里出现过。
+    story_text = ""
+    for node in nodes:
+        for beat in all_beats(node):
+            story_text += f"{beat.get('text', '')}{beat.get('label', '')}"
+        for choice in node.get("choices", []) or []:
+            # 选项本身和它的结果句也算：「尽商业上合理努力」就是写在 B 选项的结果里的，
+            # 玩家是在那一句上看到小圆点的。
+            story_text += f"{choice.get('text', '')}{choice.get('outcome', '')}"
+    seen_words: set[str] = set()
+    for term in (terms or {}).get("terms", []) or []:
+        word = str(term.get("word", ""))
+        plain = str(term.get("plain", ""))
+        if not word or not plain:
+            errors.append(f"terms.json 词条缺 word 或 plain：{term}")
+            continue
+        if word in seen_words:
+            errors.append(f"terms.json 词条重复：{word}")
+        seen_words.add(word)
+        if visible_length(word) > 10:
+            errors.append(f"词条「{word}」超过 10 字，气泡上挂不下")
+        if visible_length(plain) > 22:
+            errors.append(f"词条「{word}」的人话超过 22 字：{plain}")
+        if word not in story_text:
+            warnings.append(f"词条「{word}」在已铺的剧情里还没出现（等它出现那天才会挂点）")
+
     teach_per_month: dict[int, int] = {}
     for hint in (hints or {}).get("hints", []):
         hint_id = str(hint.get("id"))
