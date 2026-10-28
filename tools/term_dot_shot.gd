@@ -41,26 +41,40 @@ func _ready() -> void:
 	_panel.call("_next_beat")
 	await get_tree().create_timer(2.2).timeout
 	await _shot("term_dot_idle")
-	var dot := _find(_panel, "TermDot")
-	if dot == null:
-		print("NO_DOT 小圆点没挂上")
+	var rich := _find_rich(_panel)
+	if rich == null:
+		print("NO_RICH 找不到正文")
 	else:
-		dot.emit_signal("pressed")
+		var click := InputEventMouseButton.new()
+		click.button_index = MOUSE_BUTTON_LEFT
+		click.pressed = true
+		click.position = rich.get_global_position() + Vector2(60.0, 20.0)
+		# ① 鼠标停在那个词上再点：开解释，而且不许顺手翻页
+		rich.emit_signal("meta_hover_started", "term")
+		var before := int(_panel.get("_beat_index"))
+		rich.gui_input.emit(click)
 		await get_tree().create_timer(0.5).timeout
 		await _shot("term_dot_open")
+		print("点词：纸片开了吗=", _panel.get("_term_card") != null,
+			" 有没有翻页=", int(_panel.get("_beat_index")) != before)
+		# ② 鼠标不在词上，点在文字里：照旧"点击继续"
+		rich.emit_signal("meta_hover_ended", "term")
+		before = int(_panel.get("_beat_index"))
+		rich.gui_input.emit(click)
+		await get_tree().create_timer(0.4).timeout
+		print("点文字别处：继续了吗=", int(_panel.get("_beat_index")) != before)
 	print("TERM_SHOT_DONE")
 	get_tree().quit(0)
 
 
-func _find(root: Node, node_name: String) -> Node:
+func _find_rich(root: Node) -> RichTextLabel:
 	for child in root.get_children():
-		if child.name == node_name:
-			return child
-		var found := _find(child, node_name)
+		if child is RichTextLabel and not (child as RichTextLabel).text.is_empty():
+			return child as RichTextLabel
+		var found := _find_rich(child)
 		if found != null:
 			return found
 	return null
-
 
 func _shot(name: String) -> void:
 	await RenderingServer.frame_post_draw

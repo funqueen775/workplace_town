@@ -843,6 +843,13 @@ const TERM_DOT_SIZE := 46.0
 
 var _terms: Array = []
 var _term_card: Control
+## 当前这一拍的气泡和可点的词：台词里那个词本身也能点，靠这两个变量找到该给谁开纸片。
+var _term_frame: Control
+var _term_current: Dictionary
+## 鼠标此刻是不是停在那个词上（这一版 RichTextLabel 没有"某点在哪个链接上"的查询，
+## 只能靠悬停信号自己记）。
+var _term_hot := false
+var _term_last_toggle := 0
 ## 第一次遇到能点的词时给一句一次性的说明：不解释的话玩家根本不知道有这功能。
 var _term_hint_seen := false
 
@@ -868,6 +875,8 @@ func _matched_term(text: String) -> Dictionary:
 
 
 func _add_term_dot(frame: Control, term: Dictionary) -> void:
+	_term_frame = frame
+	_term_current = term
 	if term.is_empty():
 		return
 	var dot := Button.new()
@@ -912,6 +921,37 @@ func _add_term_hint(frame: Control, dot: Button) -> void:
 	fade.tween_callback(func():
 		if is_instance_valid(hint):
 			hint.queue_free())
+
+
+## 点在那个词上：开 / 收那张纸片。
+func _on_term_meta(_meta) -> void:
+	# 触屏没有"悬停"，只有 meta_clicked；鼠标那边已经在 _on_term_body_input 里处理过了，
+	# 200 毫秒内不重复翻面，否则一次点击会开完又关。
+	if Time.get_ticks_msec() - _term_last_toggle < 200:
+		return
+	_open_term_card()
+
+
+## 词以外的地方点了还是"点击继续"——不能因为文字接了鼠标，整段对话就卡住。
+func _on_term_body_input(event: InputEvent, label: RichTextLabel) -> void:
+	var pressed := false
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		pressed = true
+	elif event is InputEventScreenTouch and event.pressed:
+		pressed = true
+	if not pressed:
+		return
+	if not _term_hot:
+		_advance()
+		return
+	_term_last_toggle = Time.get_ticks_msec()
+	_open_term_card()
+
+
+func _open_term_card() -> void:
+	if _term_frame == null or not is_instance_valid(_term_frame) or _term_current.is_empty():
+		return
+	_toggle_term_card(_term_frame, _term_current)
 
 
 func _term_dot_style(background: Color) -> StyleBoxFlat:
@@ -1228,6 +1268,14 @@ func _emphasis_label(text: String, font_size: int, emphasis: Array, spacing: int
 	rich.add_theme_font_size_override("bold_font_size", size)
 	rich.add_theme_color_override("default_color", Color("56301e"))
 	rich.text = _markup(text, emphasis, term_word)
+	if not term_word.is_empty() and text.contains(term_word):
+		# 词本身可点：接到链接上就开解释；点在别处仍然照旧"点击继续"。
+		rich.mouse_filter = Control.MOUSE_FILTER_STOP
+		rich.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		rich.meta_clicked.connect(_on_term_meta)
+		rich.meta_hover_started.connect(func(_meta): _term_hot = true)
+		rich.meta_hover_ended.connect(func(_meta): _term_hot = false)
+		rich.gui_input.connect(_on_term_body_input.bind(rich))
 	return rich
 
 
@@ -1236,7 +1284,9 @@ func _markup(text: String, emphasis: Array, term_word: String = "") -> String:
 	# 一个意思是"这句要记住"，一个意思是"这个词可以点"，不能长一个样。
 	var pre := text
 	if not term_word.is_empty() and pre.contains(term_word):
-		pre = pre.replace(term_word, "[color=#%s][u]%s[/u][/color]" % [TERM_INK.to_html(false), term_word])
+		# [url] 包一层：玩家点的是这个词本身，不是只能去摸角上那颗点。
+		pre = pre.replace(term_word,
+			"[url=term][color=#%s][u]%s[/u][/color][/url]" % [TERM_INK.to_html(false), term_word])
 	var phrases: Array[String] = []
 	for value in emphasis:
 		var phrase := String(value)
