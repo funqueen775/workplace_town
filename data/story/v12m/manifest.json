@@ -2,7 +2,9 @@
   "flowVersion": "12m_v1",
   "months": 12,
   "authoredMonths": [
-    1
+    1,
+    2,
+    3
   ],
   "hInit": 6,
   "hMax": 6,
@@ -35,7 +37,28 @@
     "M01_HANDBOOK_1",
     "E02",
     "M01_ACTIVITY",
-    "M01_CLOSE"
+    "M01_CLOSE",
+    "M02_OPEN",
+    "E04",
+    "E03",
+    "M02_WEEK_1",
+    "M02_WEEK_4",
+    "M02_WEEK_4B",
+    "M02_WEEK_4C",
+    "M02_WEEK_7",
+    "M02_HANDBOOK_2",
+    "M02_PHONE_2",
+    "M02_CLOSE",
+    "M03_PHONE_1",
+    "M03_OPEN",
+    "E10",
+    "M03_WRAP",
+    "M03_ACTIVITY",
+    "M03_BRIDGE",
+    "M03_MID",
+    "E12",
+    "M03_CLOSE",
+    "M03_PHONE_3"
   ],
   "limits": {
     "npcInvitePerMonth": 1,
@@ -73,6 +96,12 @@
       "name": "老周",
       "role": "老同事",
       "inRelationSystem": true
+    },
+    {
+      "id": "fang_manager",
+      "name": "方经理",
+      "role": "客户 · 禾丰仓配",
+      "inRelationSystem": false
     }
   ],
   "landmarks": [

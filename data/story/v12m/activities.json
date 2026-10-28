@@ -6,6 +6,7 @@
       "name": "组内小工具",
       "locationId": "B",
       "location": "B 区工位",
+      "description": "把重复的检查做成一个小工具。",
       "apCost": 1,
       "slots": 1,
       "hCost": 0,
@@ -22,7 +23,7 @@
       },
       "placeLine": "把重复的检查做成一个小工具。",
       "card": {
-        "title": "解锁 · B 区",
+        "title": "B 区工位",
         "lines": [
           "你的工位，也是做小工具的地方。",
           "把重复的检查做成工具，会花掉你一点时间。",
@@ -33,7 +34,7 @@
         ],
         "pages": 1
       },
-      "unlockHook": "unlock_b",
+      "unlockAfter": "E02",
       "gatedBy": "month_required",
       "object": "你自己那台电脑",
       "againLine": "脚本还在跑，你顺手看了两眼报错。"
@@ -43,6 +44,8 @@
       "name": "天台休息",
       "locationId": "A",
       "location": "A 区天台",
+      "description": "上天台吹吹风，暂时离开手头的工作。",
+      "scene": "res://assets/weekend_scenes/rooftop.png",
       "apCost": 1,
       "slots": 1,
       "hCost": 1,
@@ -59,7 +62,7 @@
       },
       "placeLine": "上来吹吹风，什么都不用想。",
       "card": {
-        "title": "解锁 · A 区",
+        "title": "A 区天台",
         "lines": [
           "开会、评审都在这栋楼里。",
           "楼上天台能待一会儿，会花掉你一点时间。",
@@ -70,7 +73,7 @@
         ],
         "pages": 1
       },
-      "unlockHook": "unlock_a",
+      "unlockAfter": "E02",
       "gatedBy": "month_required",
       "object": "栏杆边那把折叠椅",
       "againLine": "椅子还在老地方，风也还是那样。"
@@ -80,6 +83,7 @@
       "name": "湖边散步",
       "locationId": "E",
       "location": "心湖步道",
+      "scene": "res://assets/weekend_scenes/lakeside_day.png",
       "description": "沿湖走一圈。",
       "apCost": 1,
       "slots": 1,
@@ -91,7 +95,7 @@
       "hCost": 0,
       "placeLine": "沿湖走一圈，不赶时间。",
       "card": {
-        "title": "解锁 · 心湖",
+        "title": "心湖步道",
         "lines": [
           "沿湖走一圈，不赶时间。",
           "走完这一圈，手上的事不会变少。",
@@ -102,10 +106,43 @@
         ],
         "pages": 1
       },
-      "unlockHook": "unlock_lake",
+      "unlockAfter": "E02",
       "gatedBy": "month_required",
       "object": "栈道边那张石凳",
       "againLine": "石凳有点凉，湖心的熊石像还是那个姿势。"
+    },
+    {
+      "id": "m3_waterway",
+      "name": "水巷外摆",
+      "locationId": "C",
+      "location": "C 区水巷外摆",
+      "scene": "res://assets/场景内部图/创意水巷.png",
+      "description": "在吧台前坐一会儿。",
+      "apCost": 1,
+      "slots": 1,
+      "outcome": "凳子有点晃，咖啡一般，但话比咖啡多。",
+      "mode": "solo",
+      "portal": {
+        "zoneId": "C"
+      },
+      "hCost": 0,
+      "placeLine": "坐一下午，不加分，也不掉东西。",
+      "card": {
+        "title": "水巷外摆",
+        "lines": [
+          "谈完客户的人都在这排坐着。",
+          "坐一下午不加分，也不掉东西。",
+          "去坐吧台前那把高脚凳。"
+        ],
+        "shots": [
+          "place_card_waterway_1.png"
+        ],
+        "pages": 1
+      },
+      "gatedBy": "month_required",
+      "object": "吧台前那把高脚凳",
+      "againLine": "凳子有点晃，咖啡还是那个味。",
+      "unlockHook": "unlock_waterway"
     }
   ]
 }

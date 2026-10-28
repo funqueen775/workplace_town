@@ -431,6 +431,10 @@ def main() -> int:
             walk_flags(card.get("when"), collected)
         for choice in node.get("choices", []) or []:
             walk_flags(choice.get("variantWhen"), collected)
+        # 手机里一条消息可以按旗标只在某一支发出去（月末那句按当月选择变文案）；
+        # 整批仍算一批，所以这些旗标要算"有消费者"。
+        for message in node.get("messages", []) or []:
+            walk_flags(message.get("when"), collected)
         for flag in node.get("requiresFlags", []) or []:
             collected.append(str(flag))
         referenced.update(collected)

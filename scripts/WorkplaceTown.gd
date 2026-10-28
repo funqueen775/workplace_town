@@ -31,6 +31,8 @@ const MONTH12_ACTIVITY := preload("res://scripts/v12m/Month12ActivityPanel.gd")
 const MONTH12_CLOSE := preload("res://scripts/v12m/Month12ClosePanel.gd")
 const HANDBOOK_PANEL := preload("res://scripts/HandbookPanel.gd")
 const PHONE_INBOX := preload("res://scripts/v12m/PhoneInboxPanel.gd")
+## B 方案：按事件表播一个月（第 2 月起）。
+const MONTH_NODE_RUNNER := preload("res://scripts/v12m/MonthNodeRunner.gd")
 ## 到访制的进门确认页（12 个月 F 段，替代旧的中央菜单）。
 const PLACE_VISIT_PANEL := preload("res://scripts/v12m/PlaceVisitPanel.gd")
 const MONTH12_PLACES_PATH := "res://data/story/v12m/activities.json"
@@ -205,6 +207,11 @@ var _month_opening_events: Dictionary = {}
 ## 旧的 WorldClock 主线/教程/行动力窗口在此期间全部让路。
 var _month12_active := false
 var _month12_phase := ""
+## 当前在播第几个月；第 2 月起由节点播放器驱动。
+var _month12_month := 1
+var _month_runner
+## 月末卡正文：节点播放器按旗标拼好后放这儿，月末卡照常走。
+var _month_close_text_override := ""
 var _month12_waypoint := Vector2(-99999, -99999)
 ## 上一次给黄线铺路时玩家站在哪儿：离它超过 MONTH12_GUIDE_REPATH 就重新寻路。
 var _month12_guide_from := Vector2(-99999, -99999)
@@ -2083,7 +2090,8 @@ func _exit_zone() -> void:
 	_nearby_npc = {}
 	_restore_month12_scene_npcs()
 	_interaction_button.hide()
-	_zone_status.show()
+	if not _month12_active:
+		_zone_status.show()
 	if _interior_preview != null:
 		_interior_preview.dismiss()
 	_place_player_outside_portal(departing_zone)
@@ -2366,6 +2374,9 @@ func _apply_objective_content() -> void:
 	if _zone_status == null:
 		return
 	if _month12_active:
+		# 十二个月整月不用这块旧深色任务卡：每次刷新都按一次隐藏，
+		# 防止哪条旧路径把它 show 回来，从加高后的日期栏后面露一圈黑边。
+		_zone_status.hide()
 		return
 	if not _tutorial_complete and _tutorial_step == 0:
 		_set_objective(
@@ -2924,6 +2935,11 @@ func _start_month_opening() -> void:
 		return
 	_month12_active = true
 	_month12_phase = "e01_panel"
+	# 十二个月有自己的本月主线卡（右上），左上角这块旧的深色任务卡整月不需要：
+	# 直接释放，免得它从加高后的日期栏透明边后面露出一圈深色。
+	if _zone_status != null:
+		_zone_status.queue_free()
+		_zone_status = null
 	_tutorial_complete = true
 	WorldClock.set_running(false)
 	if _town_ui_v2 != null:
@@ -3444,16 +3460,17 @@ func _show_end_month_button(value: bool) -> void:
 func _start_month12_close() -> void:
 	_month12_phase = "close"
 	# 白天 → 夜晚：最小的一档，只在左上角那一格里刷一道光；天暗下去再开月末卡。
-	_date_then(1, "mid", "night", _after_month12_night_card)
+	_date_then(_month12_month, "mid", "night", _after_month12_night_card)
 
 
 ## 入夜那道光刷完之后再开月末回顾卡。
 func _after_month12_night_card() -> void:
-	_set_objective("第 1 月", "月末回顾", "这个月的事都记下了", "", false)
+	_set_objective("第 %d 月" % _month12_month, "月末回顾", "这个月的事都记下了", "", false)
 	if _town_ui_v2 != null:
-		_town_ui_v2.set_task_card("月末回顾", "第 1 月")
+		_town_ui_v2.set_task_card("月末回顾", "第 %d 月" % _month12_month)
 		_town_ui_v2.set_task_note("这个月安排完了")
-	var card := String(MONTH12_MONTH_CARDS.get(_month12_e02_choice, "第 1 月：你先把手上的工作交掉了。"))
+	var card := _month_close_text_override if not _month_close_text_override.is_empty() else String(MONTH12_MONTH_CARDS.get(_month12_e02_choice, "第 1 月：你先把手上的工作交掉了。"))
+	_month_close_text_override = ""
 	if _town_ui_v2 != null:
 		# 档案这颗钮在月末这一刻才给：这个月记下的第一条就是它，卡上直接有入口。
 		_town_ui_v2.set_archive_visible(true)
@@ -3463,7 +3480,7 @@ func _after_month12_night_card() -> void:
 		_month12_close_panel.finished.connect(_on_month12_close_finished)
 		_month12_close_panel.archive_requested.connect(_open_archive_from_close_card)
 		add_child(_month12_close_panel)
-	_month12_close_panel.open(card)
+	_month12_close_panel.open(card, _month12_month)
 
 
 func _on_month12_close_finished() -> void:
@@ -3473,12 +3490,14 @@ func _on_month12_close_finished() -> void:
 	if _town_ui_v2 != null:
 		_town_ui_v2.set_month_visible(true)
 	# 月末回顾关闭后开放月历；档案入口已在回顾卡中提供。
-	_set_date(2, "early", "morning")
-	_town_ui_v2.set_task_card("第 1 月完成", "第 2 月制作中")
-	_town_ui_v2.set_task_note("下个月再开始")
-	_set_objective("第 1 月完成", "第 2 月还在制作中", "这个月的选择已经记下", "", false)
+	# 换月过场播完就直接进下个月的节点表（没填表的月份由播放器收成"制作中"）。
+	var finished_month := _month12_month
+	_town_ui_v2.set_task_card("第 %d 月完成" % finished_month, "下一个月的记录在整理")
+	_town_ui_v2.set_task_note("过场之后继续")
+	_set_objective("第 %d 月完成" % finished_month, "下一个月的记录在整理", "这个月的选择已经记下", "", false)
 	_save_month12_progress()
-	_show_reminder_toast("第 1 月完成", "月历和档案入口已开放；本月选择与行动已保存")
+	_show_reminder_toast("第 %d 月完成" % finished_month, "月历和档案入口已开放；本月选择与行动已保存")
+	_date_then(finished_month + 1, "early", "morning", func(): _start_month_nodes(finished_month + 1))
 
 
 func _finish_month12() -> void:
@@ -3488,7 +3507,7 @@ func _finish_month12() -> void:
 
 func _save_month12_progress() -> void:
 	var payload := {
-		"month": 1,
+		"month": _month12_month,
 		"e02": _month12_e02_choice,
 		"activity": String(_month12_flags.get("activity", "")),
 		"handbookRead": bool(_month12_flags.get("handbook_read", false)),
@@ -3532,6 +3551,9 @@ func _update_month12_waypoint() -> void:
 			_present_month12_stop()
 		"e02_walk":
 			_present_month12_e02()
+		"node_walk":
+			if _month_runner != null:
+				_month_runner.on_walk_arrived()
 		_:
 			pass
 
@@ -3575,7 +3597,200 @@ func _hud_control(var_name: String) -> Rect2:
 	return Rect2()
 
 
+## ---------------------------------------------------------------- B 方案：按月播节点
+
+## 节点上的落点：开场这类"切场"直接摆过去；要走过去的写 walk（E04）。
+const MONTH_NODE_POINTS := {
+	"M02_OPEN": Vector2(1008, 240),
+	"E04": Vector2(416, 241),
+}
+
+
+func _start_month_nodes(month_value: int) -> void:
+	# 新手月从镇上开始：上一个月的收尾提示和室内预览都不该带进下个月。
+	if _toast_tween != null and _toast_tween.is_valid():
+		_toast_tween.kill()
+	if _toast_panel != null:
+		_toast_panel.queue_free()
+		_toast_panel = null
+	if _interior_preview != null and _interior_preview.is_open():
+		# 室内预览可能是上个月留下的（_exit_zone 在区域已清空时会提前返回），直接收掉。
+		_interior_preview.dismiss()
+		_active_zone = {}
+		_nearby_npc = {}
+		_restore_month12_scene_npcs()
+	if _month_runner == null or not is_instance_valid(_month_runner):
+		_month_runner = MONTH_NODE_RUNNER.new()
+		_month_runner.name = "MonthNodeRunner"
+		_month_runner.town = self
+		add_child(_month_runner)
+	var month_nodes := _load_month_nodes(month_value)
+	if month_nodes.is_empty():
+		# 这个月还没填表：按"制作中"收着，别把玩家卡住。
+		_month12_phase = "done"
+		_town_ui_v2.set_task_card("第 %d 月完成" % (month_value - 1), "第 %d 月制作中" % month_value)
+		return
+	_month12_month = month_value
+	_month12_phase = "month_nodes"
+	_month_runner.start(month_value, month_nodes, Callable(_on_month_nodes_finished))
+
+
+func _load_month_nodes(month_value: int) -> Array:
+	var parsed = JSON.parse_string(FileAccess.get_file_as_string(MONTH_OPENING_PATH))
+	if not parsed is Dictionary:
+		return []
+	var out: Array = []
+	for node in ((parsed as Dictionary).get("nodes", []) as Array):
+		if int((node as Dictionary).get("month", 0)) == month_value:
+			out.append((node as Dictionary).duplicate(true))
+	out.sort_custom(func(a, b): return int((a as Dictionary).get("order", 0)) < int((b as Dictionary).get("order", 0)))
+	return out
+
+
+func _on_month_nodes_finished(finished_month: int) -> void:
+	_month12_phase = "done"
+	_month12_waypoint = Vector2(-99999, -99999)
+	if _guide_line != null:
+		_guide_line.clear()
+	_town_ui_v2.set_task_card("第 %d 月完成" % finished_month, "第 %d 月制作中" % (finished_month + 1))
+	_town_ui_v2.set_task_note("下个月再开始")
+	_set_objective("第 %d 月完成" % finished_month, "第 %d 月还在制作中" % (finished_month + 1), "", "", false)
+	_save_month12_progress()
+	_show_reminder_toast("第 %d 月完成" % finished_month, "选择与行动已保存")
+
+
+func runner_has_flag(flag: String) -> bool:
+	return bool(_month12_flags.get(flag, false))
+
+
+func runner_present_story(node: Dictionary) -> void:
+	# 走到就收线：不然相位停在 node_walk，黄线还挂着，下一屏永远轮不到。
+	_month12_waypoint = Vector2(-99999, -99999)
+	if _guide_line != null:
+		_guide_line.clear()
+	if _month12_phase == "node_walk":
+		_month12_phase = "month_nodes"
+	_runner_place_player(node, false)
+	# 落点常常正好压在门口，摆过去之后室内预览可能刚弹出来：再收一次。
+	if _interior_preview != null and _interior_preview.is_open():
+		_interior_preview.dismiss()
+		_active_zone = {}
+		_nearby_npc = {}
+	var data := node.duplicate(true)
+	var month_value := int(data.get("month", _month12_month))
+	data["id"] = "M12_%s" % String(data.get("id", ""))
+	data["month"] = month_value
+	data["day"] = int(data.get("day", 1))
+	data["hour"] = int(data.get("hour", 9))
+	data["actTitle"] = "第 %d 月" % month_value
+	# 十二个月这条线：日期牌只写月 + 旬 + 时段，不摆具体日子和星期。
+	data["dateStyle"] = "xun"
+	data["situation"] = String(data.get("situation", "weak"))
+	data["durationMinutes"] = int(data.get("durationMinutes", 45))
+	if not data.has("choices"):
+		data["choices"] = []
+	_story_event = data
+	_town_ui_v2.set_task_card(String(data.get("title", "")), String(data.get("location", "")))
+	# 时间带不一样才播那道光；同带直接开面板。
+	var time_band := String(data.get("timeBand", "morning"))
+	var band := "夜晚" if time_band == "night" else "白天"
+	if not _date_band.is_empty() and band != _date_band:
+		_date_then(month_value, String(data.get("phase", "early")), time_band, func(): _story_event_panel.present(data))
+		return
+	_story_event_panel.present(data)
+
+
+func runner_walk_to(node: Dictionary) -> void:
+	_runner_place_player(node, false)
+	var point: Vector2 = MONTH_NODE_POINTS.get(String(node.get("id", "")), Vector2(-99999, -99999))
+	if point.x < -90000.0:
+		runner_present_story(node)
+		return
+	_month12_waypoint = _snap_month12_point(point)
+	_month12_phase = "node_walk"
+	_town_ui_v2.set_task_card(String(node.get("title", "")), String(node.get("location", "")))
+	_town_ui_v2.set_task_note("跟着黄线走")
+	if _guide_line != null and _player != null:
+		_guide_line.set_path(_build_guide_path(_player.position, _month12_waypoint))
+
+
+## 切场：开场这类不用玩家走的节点，把人直接摆到落点。
+func _runner_place_player(node: Dictionary, force: bool) -> void:
+	var point: Vector2 = MONTH_NODE_POINTS.get(String(node.get("id", "")), Vector2(-99999, -99999))
+	if point.x < -90000.0 or _player == null:
+		return
+	if bool(node.get("walk", false)) and not force:
+		return
+	_player.position = _snap_month12_point(point)
+
+
+func runner_unlock_handbook(node: Dictionary) -> void:
+	var pages: Array = node.get("pages", [])
+	for page in pages:
+		_month12_flags["handbook_page_%s" % String((page as Dictionary).get("pageId", ""))] = true
+	if _town_ui_v2 != null:
+		_town_ui_v2.set_manual_visible(true)
+	_show_reminder_toast("手册有新页", "第一章后几页散开了，右下角能翻")
+
+
+func runner_deliver_phone(node: Dictionary) -> void:
+	var messages: Array = []
+	for item in (node.get("messages", []) as Array):
+		# 一条消息可以只在某个旗标成立时才发（月末那句按当月选择变文案），
+		# 但整批仍然只算一批：手机每月上限 2 批，不因为多写了两版就变成三批。
+		var when = (item as Dictionary).get("when")
+		if when is Dictionary:
+			var flag := String((when as Dictionary).get("flag", ""))
+			if not flag.is_empty() and not bool(call("runner_has_flag", flag)):
+				continue
+		messages.append({"speaker": "npc", "text": String((item as Dictionary).get("text", ""))})
+	if messages.is_empty():
+		return
+	_month_phone_messages = messages
+	_month_phone_unread = true
+	_month_phone_replied = false
+	_month_phone_reply_options = (node.get("replyOptions", []) as Array).duplicate(true)
+	if _town_ui_v2 != null:
+		_town_ui_v2.set_phone_visible(true)
+		_town_ui_v2.set_phone_red_dot(true)
+		_town_ui_v2.start_phone_attention()
+	_show_reminder_toast("手机有消息", "右下角手机带红点，点开查看；不回也没关系")
+
+
+func runner_open_close(node: Dictionary) -> void:
+	var lines: Array = []
+	for card in (node.get("cards", []) as Array):
+		var when = (card as Dictionary).get("when", {})
+		var flag := String((when as Dictionary).get("flag", "")) if when is Dictionary else ""
+		if flag.is_empty() or bool(_month12_flags.get(flag, false)):
+			lines.append(String((card as Dictionary).get("text", "")))
+	var text := "
+".join(lines) if not lines.is_empty() else String(node.get("defaultText", ""))
+	_month_close_text_override = text
+	_start_month12_close()
+
+
+func _runner_record_choice(choice_id: String) -> void:
+	if _month_runner == null:
+		return
+	var node: Dictionary = _month_runner.current
+	for choice in (node.get("choices", []) as Array):
+		if String((choice as Dictionary).get("id", "")) != choice_id:
+			continue
+		for flag in ((choice as Dictionary).get("flags", []) as Array):
+			_month12_flags[String(flag)] = true
+		ApiClient.record_event("m02_choice", {
+			"node": String(node.get("id", "")),
+			"choiceId": choice_id,
+			"delta": (choice as Dictionary).get("stateDelta", {}),
+		})
+		return
+
+
 func _on_story_choice_confirmed(event_id: String, choice_id: String, duration_minutes: int) -> void:
+	if _month_runner != null and _month_runner.active:
+		_runner_record_choice(String(choice_id))
+		return
 	if _month12_active:
 		_month12_e02_choice = String(choice_id)
 		_month12_flags["e02"] = String(choice_id)
@@ -3595,6 +3810,9 @@ func _on_story_choice_confirmed(event_id: String, choice_id: String, duration_mi
 
 ## 主线结算后由文档配置决定进入行动窗口或直接跳到下一事件。
 func _on_story_outcome_acknowledged(event_id: String, choice_id: String, duration_minutes: int) -> void:
+	if _month_runner != null and _month_runner.active:
+		_month_runner.on_panel_closed()
+		return
 	if _month12_active:
 		_advance_month12_story()
 		return
