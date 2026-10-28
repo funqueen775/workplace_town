@@ -11,6 +11,7 @@ signal standing_requested
 signal task_requested
 signal phone_requested
 signal manual_requested
+## 任何一个整页关掉时发一次：月末卡要趁这一步回到前台。
 signal calendar_requested
 signal task_calendar_requested(target_month: int)
 signal settings_requested
@@ -20,6 +21,7 @@ signal month_requested(target_month: int)
 signal chat_requested(person: String)
 signal phone_message_submitted(npc_id: String, message: String)
 ## 12 个月首月手机：固定回复选项（回一句 → 二选一），不走自由输入。
+signal view_closed
 signal phone_reply_selected(chat_id: String, reply_id: String, reply_text: String)
 signal save_requested
 signal load_requested
@@ -42,15 +44,17 @@ const HUD_HONEY_EMPTY := preload("res://assets/ui/rework_v1/hud/components/06_�
 const HUD_TASK := preload("res://assets/ui/rework_v1/hud/components/07_任务名称_空白小底板.png")
 const HUD_PIN := preload("res://assets/ui/rework_v1/hud/components/08_任务_定位图标.png")
 const HUD_VIEW := preload("res://assets/ui/rework_v1/hud/components/09_查看按钮_无字.png")
-const HUD_PHONE := preload("res://assets/ui/rework_v1/hud/components/10_手机按钮_无红点.png")
-const HUD_CALENDAR := preload("res://assets/ui/rework_v1/hud/components/12_日历_固定图标按钮.png")
+## 圆钮五件（手机/月历/手册/档案/设置）统一重切过：同一张 1280 画布、牌面直径都是 1000，
+## 放进 104 的槽里牌面一样大（原来的图留白和叶片外扩各不相同，直接摆会一大一小）。
+const HUD_PHONE := preload("res://assets/ui/rework_v1/hud/components/16_圆钮统一_phone.png")
+const HUD_CALENDAR := preload("res://assets/ui/rework_v1/hud/components/16_圆钮统一_month.png")
 ## 手册 / 档案两颗圆钮：与手机、日历同一套画法（米色圆牌 + 木边 + 走线虚圈 + 左下两片叶）。
 ## 以前手册是代码画的深底白字圆，跟手机那颗完全不像，一排摆在一起像两套 UI。
-const HUD_MANUAL := preload("res://assets/ui/rework_v1/hud/components/14_手册按钮_圆钮.png")
-const HUD_ARCHIVE := preload("res://assets/ui/rework_v1/hud/components/15_档案按钮_圆钮.png")
+const HUD_MANUAL := preload("res://assets/ui/rework_v1/hud/components/16_圆钮统一_manual.png")
+const HUD_ARCHIVE := preload("res://assets/ui/rework_v1/hud/components/16_圆钮统一_archive.png")
 const HUD_ADVANCE := preload("res://assets/ui/rework_v1/hud/components/13_推进月份_无字标签.png")
 const HUD_TASK_PANEL := preload("res://assets/ui/rework_v1/hud/revisions/03_主线任务空白面板.png")
-const HUD_SETTINGS := preload("res://assets/ui/rework_v1/hud/reference_full_v1/08_设置按钮.png")
+const HUD_SETTINGS := preload("res://assets/ui/rework_v1/hud/components/16_圆钮统一_settings.png")
 const HUD_PLAYER_PORTRAITS := {
 	"avatar_player": preload("res://assets/ui/rework_v1/profile/components/01_基础面板/玩家头像/00dfdf63-089c-42c3-a216-55528c3a04c7.png"),
 	"avatar_xiaoye": preload("res://assets/ui/rework_v1/profile/components/01_基础面板/玩家头像/ce6c3ce3-1671-40c8-a8b2-cd242f7ec842.png"),
@@ -145,6 +149,11 @@ const SETTINGS_BUTTON_REGIONS := [
 const SETTINGS_PANEL := preload("res://assets/ui/rework_v1/profile/components/01_基础面板/空白大底板.png")
 const SETTINGS_TITLE := preload("res://assets/ui/rework_v1/profile/components/01_基础面板/无字标题牌.png")
 
+## 档案页那五排格子的读数来源，由城镇在建树时挂进来
+## （WorkplaceTown.ability_display_levels：起点 + 攒点 + 剧情点亮到顶）。
+## 没挂上就退回旧的下线读法，不挡着别的界面用。
+var ability_source := Callable()
+
 var _hud: Control
 var _act_label: Label
 ## 左上角日期栏：第几月 / 上中下旬 / 白天夜晚，三格各站各位，谁变了谁动。
@@ -188,9 +197,10 @@ func _ready() -> void:
 	_load_settings()
 	_build_hud()
 	_build_overlay()
+	get_viewport().size_changed.connect(_layout_hud)
 
 
-func refresh(snapshot: Dictionary, event: Dictionary, energy := 0, energy_max := 3) -> void:
+func refresh(snapshot: Dictionary, event: Dictionary, energy := 0, energy_max := 3, energy_caption := "精力") -> void:
 	_layout_hud()
 	var month := int(snapshot.get("month", 1))
 	# 十二个月流程下左上角那格是日期栏，不再回写幕名，否则会把「第几月」刷掉。
@@ -198,9 +208,10 @@ func refresh(snapshot: Dictionary, event: Dictionary, energy := 0, energy_max :=
 		_act_label.text = String(event.get("actTitle", "第一幕 · 进入行业"))
 	var state := ApiClient.server_state()
 	_job_label.text = "当前职位  %s  ›" % _profile_role(int(state.get("level", 1)))
-	_energy_label.text = "精力  %d/%d" % [energy, energy_max]
+	_energy_label.text = "%s  %d/%d" % [energy_caption, energy, energy_max]
+	var lit := int(round(float(energy) / maxf(1.0, float(energy_max)) * float(_honey_icons.size())))
 	for index in _honey_icons.size():
-		_honey_icons[index].texture = HUD_HONEY_FULL if index < energy else HUD_HONEY_EMPTY
+		_honey_icons[index].texture = HUD_HONEY_FULL if index < lit else HUD_HONEY_EMPTY
 	_month_button.text = "第 %d 月" % month
 	if event.is_empty():
 		set_task_card("主线已完成", "继续探索小镇")
@@ -293,6 +304,7 @@ func close_view() -> void:
 	_view = ""
 	_active_chat_id = ""
 	_root.hide()
+	view_closed.emit()
 
 
 func is_open() -> bool:
@@ -305,28 +317,43 @@ func _build_hud() -> void:
 	_hud.size = get_viewport().get_visible_rect().size
 	_hud.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_hud)
-	var act := _art(HUD_ACT, Vector2(36, 20), Vector2(520, 98), _hud)
+	# 日期栏：不用那张底板了（它自带的褐色木边 / 叶片裁不干净）。
+	# 直接画一块米色纸牌，边线用比纸略深的米色，整条没有褐色。
+	var act := Panel.new()
+	act.name = "DatePlate"
+	act.position = Vector2(36, 14)
+	act.size = Vector2(520, 116)
+	act.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var plate_style := StyleBoxFlat.new()
+	plate_style.bg_color = Color("f6e6bd")
+	plate_style.border_color = Color("e6cf9e")
+	plate_style.set_border_width_all(2)
+	plate_style.set_corner_radius_all(16)
+	act.add_theme_stylebox_override("panel", plate_style)
+	_hud.add_child(act)
 	_act_label = _label("第一幕 · 进入行业", 28)
 	_act_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_act_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_act_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	act.add_child(_act_label)
 	_build_date_cells(act)
-	var profile := _art_button(HUD_JOB, "当前职位  实习开发师  ›", Vector2(36, 132), Vector2(440, 96))
+	var profile := _art_button(HUD_JOB, "当前职位  实习开发师  ›", Vector2(36, 146), Vector2(440, 96))
 	profile.pressed.connect(func(): profile_requested.emit())
 	_hud.add_child(profile)
 	_job_label = profile
-	_art(HUD_PORTRAIT, Vector2(46, 144), Vector2(72, 72), _hud)
-	_player_portrait = _art(HUD_PLAYER_PORTRAITS.get(PlayerProfile.get_selected_avatar_id(), HUD_PLAYER_PORTRAITS["avatar_player"]), Vector2(53, 151), Vector2(58, 58), _hud)
+	_art(HUD_PORTRAIT, Vector2(46, 158), Vector2(72, 72), _hud)
+	_player_portrait = _art(HUD_PLAYER_PORTRAITS.get(PlayerProfile.get_selected_avatar_id(), HUD_PLAYER_PORTRAITS["avatar_player"]), Vector2(53, 165), Vector2(58, 58), _hud)
 	var energy := _art(HUD_ENERGY, Vector2.ZERO, Vector2(440, 98), _hud)
 	_energy_panel = energy
-	_energy_label = _label("精力  3/3", 28)
+	_energy_label = _label("心情  6/6", 28)
 	_energy_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_energy_label.position = Vector2(24, 14)
-	_energy_label.size = Vector2(240, 68)
+	_energy_label.size = Vector2(220, 68)
 	energy.add_child(_energy_label)
-	for index in 3:
-		var honey := _art(HUD_HONEY_FULL, Vector2(280 + index * 48, 20), Vector2(42, 48), energy)
+	# 六罐：十二个月的心情账本就是 0–6（4.15 第 2 本账），一罐一格。
+	# 旧 48 个月那条线只有 3 点，按比例点亮，不会出现"三罐空三罐"的假满格。
+	for index in 6:
+		var honey := _art(HUD_HONEY_FULL, Vector2(250 + index * 32, 26), Vector2(28, 34), energy)
 		_honey_icons.append(honey)
 	var task := Control.new()
 	task.size = Vector2(390, 380)
@@ -365,14 +392,14 @@ func _build_hud() -> void:
 	var phone := _art_button(HUD_PHONE, "", Vector2.ZERO, Vector2(104, 104))
 	_phone_button = phone
 	phone.pressed.connect(func(): phone_requested.emit()); _hud.add_child(phone)
-	# 12 个月流程：手机不是开局就有，王哥那封来信到了才解锁（见 set_phone_visible）。
+	# 12 个月流程：手机等第一条消息到达后再出现，并亮红点提醒。
 	phone.visible = false
 	_month_button = _art_button(HUD_CALENDAR, "", Vector2.ZERO, Vector2(104, 104))
 	_month_button.pressed.connect(func(): calendar_requested.emit()); _hud.add_child(_month_button)
 	var settings := _art_button(HUD_SETTINGS, "", Vector2.ZERO, Vector2(104, 104))
 	_settings_button = settings
 	settings.pressed.connect(func(): settings_requested.emit()); _hud.add_child(settings)
-	# 手册入口：首月 D 段之后才出现。图上已经画好一本合上的手册，不再叠字。
+	# 手册入口：首月工位流程后出现。图上已经画好一本合上的手册，不再叠字。
 	_manual_button = _art_button(HUD_MANUAL, "", Vector2.ZERO, Vector2(104, 104))
 	_manual_button.pressed.connect(func(): manual_requested.emit())
 	_hud.add_child(_manual_button)
@@ -393,11 +420,15 @@ func _build_hud() -> void:
 ## 左上角日期栏的三格。底板图不动，只在里面排三段独立 Label：
 ## 谁变了谁动、没变的原地不动，玩家眼角一扫就知道时间走到哪了。
 func _build_date_cells(banner: Control) -> void:
-	_date_month_cell = _date_cell("第一月", 30, Vector2(58, 26), Vector2(132, 46), banner)
-	_date_xun_cell = _date_cell("上旬", 30, Vector2(210, 26), Vector2(108, 46), banner)
-	_date_band_cell = _date_cell("白天", 26, Vector2(338, 28), Vector2(118, 44), banner)
-	_date_separators.append(_date_cell("·", 28, Vector2(188, 26), Vector2(24, 46), banner))
-	_date_separators.append(_date_cell("·", 28, Vector2(316, 26), Vector2(24, 46), banner))
+	# 底板右端自带一枚爪印装饰（约在 420 之后），三格文字必须收在 410 以内，
+	# 否则「白天」两个字会压在爪印上（2026-10-27 实机反馈）。
+	# 底板本身不再往高里拉（拉到 120 会从透明边后面露出别的层），
+	# 靠把字加大、三格撑满纸带来"看起来更高"。
+	_date_month_cell = _date_cell("第一月", 36, Vector2(48, 34), Vector2(124, 48), banner)
+	_date_xun_cell = _date_cell("上旬", 36, Vector2(188, 34), Vector2(100, 48), banner)
+	_date_band_cell = _date_cell("白天", 32, Vector2(306, 36), Vector2(100, 44), banner)
+	_date_separators.append(_date_cell("·", 32, Vector2(168, 34), Vector2(22, 48), banner))
+	_date_separators.append(_date_cell("·", 32, Vector2(284, 34), Vector2(22, 48), banner))
 	for cell in [_date_month_cell, _date_xun_cell, _date_band_cell] + _date_separators:
 		cell.visible = false
 
@@ -455,18 +486,26 @@ func _layout_hud() -> void:
 		_energy_panel.position = Vector2((viewport_size.x - _energy_panel.size.x) * 0.5, 18)
 	if _task_panel != null:
 		_task_panel.position = Vector2(viewport_size.x - _task_panel.size.x - 30, 24)
-	if _phone_button != null:
-		_phone_button.position = Vector2(viewport_size.x - 372, viewport_size.y - 132)
-	if _manual_button != null:
-		_manual_button.position = Vector2(viewport_size.x - 496, viewport_size.y - 132)
-	if _archive_button != null:
-		# 一排五颗：档案 · 手册 · 手机 · 月历 · 设置。E 互动键在屏幕正中下方（右边到 1135），
-		# 最左这颗的左边界 1196，不会压上。
-		_archive_button.position = Vector2(viewport_size.x - 620, viewport_size.y - 132)
-	if _month_button != null:
-		_month_button.position = Vector2(viewport_size.x - 248, viewport_size.y - 132)
-	if _settings_button != null:
-		_settings_button.position = Vector2(viewport_size.x - 124, viewport_size.y - 132)
+	_layout_bottom_buttons(viewport_size)
+
+
+## 只给当前可见的图标排槽，按钮组贴右侧，隐藏入口不再留下空位。
+func _layout_bottom_buttons(viewport_size: Vector2) -> void:
+	var buttons: Array[Button] = []
+	for button in [_archive_button, _manual_button, _phone_button, _month_button, _settings_button]:
+		if button != null and button.visible:
+			buttons.append(button)
+	if buttons.is_empty():
+		return
+	var gap := 6.0
+	var right_margin := 12.0
+	var button_width := 104.0
+	var row_width := buttons.size() * button_width + (buttons.size() - 1) * gap
+	var x := viewport_size.x - right_margin - row_width
+	var y := viewport_size.y - 132.0
+	for button in buttons:
+		button.position = Vector2(x, y)
+		x += button_width + gap
 
 
 func _build_overlay() -> void:
@@ -489,10 +528,12 @@ func _build_profile(page: Panel, _payload: Dictionary) -> void:
 	var role := _label("当前职位", 18); role.position = Vector2(270, 105); role.size = Vector2(120, 28); page.add_child(role)
 	var role_name := _label(String(profile["role"]), 27); role_name.position = Vector2(270, 129); role_name.size = Vector2(280, 44); page.add_child(role_name)
 	var assessment_history: Array = profile["assessment_history"]
-	var progress_text := "下次晋升检查  第 %d 月" % int(profile["next_review"]) if profile["next_review"] > 0 else "6 个月晋升检查已全部完成"
+	var progress_text := "下次评估：第 %d 月" % int(profile["next_review"]) if profile["next_review"] > 0 else "阶段评估均已完成"
 	if assessment_history.is_empty():
-		progress_text = "首次晋升检查：第 6 月（尚未开始）"
-	var progress_title := _label(progress_text, 16); progress_title.position = Vector2(271, 172); progress_title.size = Vector2(350, 26); page.add_child(progress_title)
+		progress_text = "首次评估：第 6 月转正（尚未开始）"
+	var progress_title := _label(progress_text, 16); progress_title.position = Vector2(271, 168); progress_title.size = Vector2(350, 21); page.add_child(progress_title)
+	var assessment_note := _label("6月转正看岗位要求；12月晋升看独立负责、不看加班", 13)
+	assessment_note.position = Vector2(271, 189); assessment_note.size = Vector2(350, 16); page.add_child(assessment_note)
 	_art(PROFILE_PROMOTION_TRACK, Vector2(270, 205), Vector2(370, 23), page)
 	if int(profile["cycle_elapsed"]) >= 0:
 		var fill_mask := Control.new(); fill_mask.position = Vector2(270, 205); fill_mask.size = Vector2(370.0 * float(profile["cycle_elapsed"]) / 6.0, 23); fill_mask.clip_contents = true; fill_mask.mouse_filter = Control.MOUSE_FILTER_IGNORE; page.add_child(fill_mask)
@@ -553,10 +594,17 @@ func _profile_snapshot() -> Dictionary:
 	var server: Dictionary = ApiClient.server_state()
 	var level := int(server.get("level", 1))
 	var ability_levels: Dictionary = server.get("abilityLevels", {})
-	var ability_keys := ["technical", "collaboration", "expression", "integrity", "resilience"]
 	var abilities: Array[int] = []
-	for key in ability_keys:
-		abilities.append(clampi(int(ability_levels.get(key, 3)), 1, 5))
+	if ability_source.is_valid():
+		# 城镇自己那本账（起点 + 攒点 + 剧情点亮到顶），见 WorkplaceTown.ability_display_levels。
+		# 没连后端时档案页也照它画，不再退回一个假的"半熟手"。
+		abilities = ability_source.call()
+	else:
+		# 没连后端时按"第一天入职"的起点画，别假装半熟手（与后端基线同一份数）。
+		var ability_baseline := {"technical": 1, "collaboration": 1, "expression": 1, "integrity": 2, "resilience": 1}
+		var ability_keys := ["technical", "collaboration", "expression", "integrity", "resilience"]
+		for key in ability_keys:
+			abilities.append(clampi(int(ability_levels.get(key, ability_baseline[key])), 1, 5))
 	var npc_stages: Dictionary = server.get("npcRelationStage", {})
 	var relations := {}
 	for npc_id in ["wang_ge", "xiao_zhao", "xiao_lin", "lao_zhou"]:
@@ -591,95 +639,202 @@ func _build_task(page: Panel, payload: Dictionary) -> void:
 	var zone := String(event.get("locationId", ""))
 	var location := String(event.get("location", "%s 区" % zone))
 	var people := _task_people(event)
-	var energy := int(payload.get("energy", 0))
 	var current_zone := String(payload.get("current_zone", ""))
 	var month_ready := current_month >= month
 	var location_ready := current_zone == zone
-	var energy_ready := energy >= 1
+	var day := int(event.get("day", 1))
+	var hour := int(event.get("hour", 9))
+	var time_ready := bool(payload.get(
+		"story_time_ready",
+		not WorldClock.running and int(snapshot.get("worldMinute", 0)) >= (((month - 1) * 30 + (day - 1)) * 24 + hour) * 60
+	))
+	var activity_window_active := bool(payload.get("activity_window_active", false))
+	var month12_active := bool(payload.get("month12_active", false))
+	var month12_phase := String(payload.get("month12_phase", ""))
+	var month12_step := _month12_task_step(month12_phase) if month12_active else {}
 	var months_left := maxi(0, month - current_month)
 
 	_art(TASK_BOOK, Vector2(54, 72), Vector2(1292, 727), page)
 	_art(TASK_DECORATION, Vector2(91, 145), Vector2(38, 34), page)
-	var heading := _label("主线任务", 34); heading.position = Vector2(390, 126); heading.size = Vector2(270, 62); page.add_child(heading)
+	var heading := _label("主线任务", 32); heading.position = Vector2(390, 126); heading.size = Vector2(270, 62); page.add_child(heading)
 
-	_art(TASK_TITLE, Vector2(204, 195), Vector2(515, 82), page)
-	var title := _label(String(event.get("title", "主线任务")), 34)
-	title.position = Vector2(240, 204); title.size = Vector2(445, 60)
+	_task_surface(page, Vector2(224, 195), Vector2(475, 82), Color("fff7e7"), Color("dfad72"), 18)
+	var title := _label(String(event.get("title", "主线任务")), 31)
+	title.position = Vector2(245, 204); title.size = Vector2(433, 60)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	page.add_child(title)
 
 	if not month_ready:
-		_art(TASK_LOCK_PANEL, Vector2(286, 270), Vector2(350, 54), page)
+		_task_surface(page, Vector2(286, 270), Vector2(350, 54), Color("f5ead4"), Color("d6b88d"), 14)
 		_art(TASK_LOCK_ICON, Vector2(325, 280), Vector2(31, 31), page)
 		var status := _label("尚未开放", 21); status.position = Vector2(360, 275); status.size = Vector2(220, 42); status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; page.add_child(status)
 
-	_art(TASK_ILLUSTRATION, Vector2(212, 326), Vector2(500, 220), page)
-	_art(TASK_ILLUSTRATION_FRAME, Vector2(202, 316), Vector2(520, 240), page)
-	_art(TASK_STORY, Vector2(202, 552), Vector2(520, 178), page)
-	var story_heading := _label("剧情简介", 22); story_heading.position = Vector2(305, 567); story_heading.size = Vector2(160, 35); page.add_child(story_heading)
+	_art(TASK_ILLUSTRATION, Vector2(194, 326), Vector2(480, 220), page)
+	_art(TASK_ILLUSTRATION_FRAME, Vector2(184, 316), Vector2(500, 240), page)
+	_task_surface(page, Vector2(230, 552), Vector2(430, 178), Color("fff8eb"), Color("e4bd8d"), 16)
+	var story_heading := _label("剧情简介", 21); story_heading.position = Vector2(270, 565); story_heading.size = Vector2(180, 35); page.add_child(story_heading)
 	var story := RichTextLabel.new()
 	story.name = "TaskStoryText"
 	story.text = _task_story(event)
-	story.position = Vector2(305, 620); story.size = Vector2(345, 78)
+	story.position = Vector2(270, 608); story.size = Vector2(345, 105)
 	story.add_theme_font_override("normal_font", FONT)
-	story.add_theme_font_size_override("normal_font_size", 17)
+	story.add_theme_font_size_override("normal_font_size", 16)
 	story.add_theme_color_override("default_color", INK)
 	story.autowrap_mode = TextServer.AUTOWRAP_ARBITRARY
 	story.scroll_active = false
+	story.clip_contents = true
 	story.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	page.add_child(story)
 
 	_task_info_row(page, TASK_CALENDAR_ICON, "开放月份", "第%d月" % month, 706, 185)
 	_task_info_row(page, TASK_LOCATION_ICON, "地点", location, 706, 254)
 	_task_info_row(page, TASK_PEOPLE_ICON, "相关人物", people, 706, 323)
-	_art(TASK_DIVIDER, Vector2(704, 382), Vector2(535, 38), page)
-	_art(TASK_LEAVES, Vector2(706, 423), Vector2(34, 34), page)
-	var condition_heading := _label("开始条件", 27); condition_heading.position = Vector2(751, 416); condition_heading.size = Vector2(200, 46); page.add_child(condition_heading)
-	_art(TASK_CONDITIONS, Vector2(670, 329), Vector2(545, 378), page)
-	_task_condition(page, "到达第%d月" % month, month_ready, 730, 478)
-	_task_condition(page, "前往%s" % location, location_ready, 730, 522)
-	_task_condition(page, "精力至少1点", energy_ready, 730, 566)
+	var divider := ColorRect.new(); divider.position = Vector2(704, 382); divider.size = Vector2(535, 2); divider.color = Color("dfbd91"); divider.mouse_filter = Control.MOUSE_FILTER_IGNORE; page.add_child(divider)
+	var condition_heading := _label("当前流程" if month12_active else "触发条件", 23); condition_heading.position = Vector2(720, 389); condition_heading.size = Vector2(220, 35); page.add_child(condition_heading)
+	_task_surface(page, Vector2(720, 428), Vector2(430, 145), Color("fff8eb"), Color("e4bd8d"), 18)
+	if month12_active:
+		_task_condition(page, String(month12_step.get("title", "按当前任务提示继续")), bool(month12_step.get("done", false)), 746, 446)
+		var step_detail := _label(String(month12_step.get("detail", "完成当前步骤后，首月流程会继续。")), 15)
+		step_detail.position = Vector2(786, 486); step_detail.size = Vector2(340, 42)
+		step_detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		page.add_child(step_detail)
+	else:
+		_task_condition(page, "到达剧情时点（第%d月 %02d日 %02d:00）" % [month, day, hour], time_ready, 746, 434)
+		_task_condition(page, "前往%s" % location, location_ready, 746, 476)
+		_task_condition(page, "当前无进行中的自由活动", not activity_window_active, 746, 518)
 
-	_art(TASK_COUNTDOWN, Vector2(704, 642), Vector2(535, 62), page)
-	_art(TASK_CALENDAR_ICON, Vector2(730, 655), Vector2(34, 34), page)
-	var countdown_text := "任务已到开放月份" if month_ready else "距离开放还有 %d 个月" % months_left
-	var countdown := _label(countdown_text, 23); countdown.position = Vector2(776, 650); countdown.size = Vector2(430, 44); countdown.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; page.add_child(countdown)
+	_task_surface(page, Vector2(720, 579), Vector2(430, 42), Color("f7ecd8"), Color("e0c39c"), 14)
+	_art(TASK_CALENDAR_ICON, Vector2(740, 586), Vector2(28, 28), page)
+	var countdown_text := ""
+	if month12_active:
+		countdown_text = "首月流程已完成" if bool(month12_step.get("done", false)) else "首月引导 · %s" % String(month12_step.get("short", "按当前任务继续"))
+	elif time_ready and activity_window_active:
+		countdown_text = "已到剧情时点 · 完成自由活动后触发"
+	elif time_ready and not location_ready:
+		countdown_text = "已到剧情时点 · 前往%s" % location
+	elif time_ready:
+		countdown_text = "剧情触发条件已满足"
+	elif month_ready:
+		countdown_text = "剧情时点：第%d月 %02d日 %02d:00" % [month, day, hour]
+	else:
+		countdown_text = "距开放还有%d个月 · %02d日 %02d:00" % [months_left, day, hour]
+	var countdown := _label(countdown_text, 19); countdown.position = Vector2(777, 580); countdown.size = Vector2(345, 40); page.add_child(countdown)
 
-	var locate := _art_button(TASK_TRACK, "设为追踪", Vector2(704, 714), Vector2(245, 64))
+	var locate := _task_action_button("设为追踪", Vector2(720, 661), Vector2(215, 52), false)
 	_art(TASK_TRACK_PAW, Vector2(20, 14), Vector2(34, 34), locate)
 	locate.pressed.connect(func(): locate_requested.emit(zone))
 	page.add_child(locate)
 	var advance_label := "查看职业月历" if month_ready else "推进至第%d月" % month
-	var advance := _art_button(TASK_ADVANCE, advance_label, Vector2(968, 714), Vector2(278, 64))
+	var advance := _task_action_button(advance_label, Vector2(944, 661), Vector2(220, 52), true)
 	_art(TASK_CALENDAR_ICON, Vector2(18, 14), Vector2(34, 34), advance)
 	advance.pressed.connect(func(): task_calendar_requested.emit(month))
 	page.add_child(advance)
-	_art(TASK_NOTICE, Vector2(715, 683), Vector2(24, 24), page)
-	var notice := _label("推进前会先打开职业月历确认，不会直接跳过月份。", 15); notice.position = Vector2(746, 677); notice.size = Vector2(500, 34); page.add_child(notice)
+	_art(TASK_NOTICE, Vector2(722, 630), Vector2(18, 18), page)
+	var notice := _label("推进前会先打开职业月历确认，不会直接跳过月份。", 13); notice.position = Vector2(747, 624); notice.size = Vector2(390, 26); page.add_child(notice)
+
+
+func _month12_task_step(phase: String) -> Dictionary:
+	match phase:
+		"e01_panel":
+			return {"title": "完成入职说明会", "short": "完成入职说明会", "detail": "确认本段剧情后，首月引导继续。"}
+		"hud_tour":
+			return {"title": "查看岗位卡与任务卡", "short": "查看界面导览", "detail": "按界面提示完成操作导览。"}
+		"tour":
+			return {"title": "跟随王哥完成带巡", "short": "跟随王哥带巡", "detail": "沿黄线前往下一站，抵达后剧情会自动继续。"}
+		"tour_panel":
+			return {"title": "完成当前带巡对话", "short": "完成带巡对话", "detail": "对话结算后会前往下一站。"}
+		"handbook":
+			return {"title": "准备参加跨组周会", "short": "前往跨组周会", "detail": "员工手册已开放查看；阅读为可选项。"}
+		"e02_walk":
+			return {"title": "前往 A 区跨组周会", "short": "前往跨组周会", "detail": "沿黄线到达会场，剧情会自动开启。"}
+		"e02_panel":
+			return {"title": "完成跨组周会剧情", "short": "完成跨组周会", "detail": "选择并确认后，进入本月自由安排。"}
+		"activity":
+			return {"title": "完成或结束本月自由安排", "short": "自由安排", "detail": "首月有 1 个行动点；可做一项活动，也可直接结束本月。"}
+		"close":
+			return {"title": "完成月末回顾", "short": "完成月末回顾", "detail": "回顾结束后开放月历推进。"}
+		"done":
+			return {"title": "首月流程已完成", "short": "首月已完成", "detail": "可打开职业月历，继续下一月。", "done": true}
+		_:
+			return {"title": "按当前任务提示继续", "short": "按当前任务继续", "detail": "完成当前步骤后，首月流程会继续。"}
 
 
 func _task_info_row(page: Panel, icon: Texture2D, caption: String, value: String, x: float, y: float) -> void:
-	_art(icon, Vector2(x, y + 5), Vector2(38, 38), page)
-	var caption_label := _label(caption, 19); caption_label.position = Vector2(x + 48, y); caption_label.size = Vector2(116, 48); page.add_child(caption_label)
-	_art(TASK_INFO, Vector2(x + 116, y), Vector2(280, 52), page)
-	var value_label := _label(value, 20); value_label.position = Vector2(x + 178, y + 1); value_label.size = Vector2(334, 46); value_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS; page.add_child(value_label)
+	_art(icon, Vector2(x, y + 6), Vector2(34, 34), page)
+	var caption_label := _label(caption, 18); caption_label.position = Vector2(x + 46, y); caption_label.size = Vector2(96, 46); page.add_child(caption_label)
+	_task_surface(page, Vector2(x + 148, y + 2), Vector2(280, 44), Color("fff8eb"), Color("dfbd91"), 13)
+	var value_label := _label(value, 19); value_label.position = Vector2(x + 164, y + 1); value_label.size = Vector2(248, 44); value_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS; page.add_child(value_label)
 
 
 func _task_condition(page: Panel, text: String, ready: bool, x: float, y: float) -> void:
 	var box := Panel.new()
-	box.position = Vector2(x, y)
-	box.size = Vector2(26, 26)
+	box.position = Vector2(x, y + 2)
+	box.size = Vector2(24, 24)
 	var box_style := StyleBoxFlat.new()
 	box_style.bg_color = Color("fff8e8")
-	box_style.border_color = GREEN if ready else Color("a96a39")
-	box_style.set_border_width_all(2)
-	box_style.set_corner_radius_all(4)
+	box_style.border_color = GREEN if ready else Color("bb9165")
+	box_style.set_border_width_all(1)
+	box_style.set_corner_radius_all(5)
 	box.add_theme_stylebox_override("panel", box_style)
 	page.add_child(box)
 	if ready:
-		var check := _label("✓", 22); check.position = Vector2(x - 1, y - 4); check.size = Vector2(28, 30); check.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; page.add_child(check)
-	var label := _label(text, 19); label.position = Vector2(x + 43, y - 6); label.size = Vector2(430, 40); page.add_child(label)
+		var check := _label("✓", 20); check.position = Vector2(x - 1, y - 3); check.size = Vector2(26, 28); check.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; page.add_child(check)
+	var label := _label(text, 18); label.position = Vector2(x + 40, y - 5); label.size = Vector2(340, 36); label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS; page.add_child(label)
+
+
+func _task_surface(parent: Control, at: Vector2, size_value: Vector2, fill: Color, border: Color, radius: int) -> Panel:
+	var panel := Panel.new()
+	panel.position = at
+	panel.size = size_value
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var style := StyleBoxFlat.new()
+	style.bg_color = fill
+	style.border_color = border
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(radius)
+	style.shadow_color = Color(0.28, 0.14, 0.06, 0.08)
+	style.shadow_size = 2
+	panel.add_theme_stylebox_override("panel", style)
+	parent.add_child(panel)
+	return panel
+
+
+func _task_action_button(text: String, at: Vector2, size_value: Vector2, primary: bool) -> Button:
+	var button := Button.new()
+	button.text = text
+	button.position = at
+	button.size = size_value
+	button.add_theme_font_override("font", FONT)
+	button.add_theme_font_size_override("font_size", 19)
+	button.add_theme_color_override("font_color", INK)
+	button.add_theme_color_override("font_hover_color", INK)
+	button.add_theme_color_override("font_pressed_color", INK)
+	button.add_theme_color_override("font_disabled_color", Color("9d8266"))
+	button.add_theme_stylebox_override("normal", _task_action_style(primary))
+	button.add_theme_stylebox_override("hover", _task_action_style(primary, true))
+	button.add_theme_stylebox_override("pressed", _task_action_style(primary, false, true))
+	button.add_theme_stylebox_override("disabled", _task_action_style(false, false, false, true))
+	button.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	return button
+
+
+func _task_action_style(primary: bool, hovered := false, pressed := false, disabled := false) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	if disabled:
+		style.bg_color = Color("eadfc9")
+	else:
+		style.bg_color = Color("edc46f") if primary else Color("fff4de")
+		if hovered:
+			style.bg_color = Color("f4d38d") if primary else Color("fff8ec")
+		elif pressed:
+			style.bg_color = Color("dfb45d") if primary else Color("f3e3c6")
+	style.border_color = Color("bb8754")
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(14)
+	style.content_margin_left = 18
+	style.content_margin_right = 18
+	return style
 
 
 func _task_people(event: Dictionary) -> String:
@@ -819,6 +974,7 @@ func _build_calendar(page: Panel, payload: Dictionary) -> void:
 	_art(CALENDAR_FRAME, Vector2.ZERO, page.size, page)
 	var month := int(payload.get("month", 1))
 	var target_month := int(payload.get("target_month", month))
+	var progression_locked := bool(payload.get("progression_locked", false))
 	if _calendar_year < 0 or _calendar_year > 3:
 		_calendar_year = clampi((month - 1) / 12, 0, 3)
 	var year_start := _calendar_year * 12 + 1
@@ -853,10 +1009,12 @@ func _build_calendar(page: Panel, payload: Dictionary) -> void:
 		card.pressed.connect(func(): _selected_month = displayed_month; open_view("calendar", payload))
 		page.add_child(card)
 	var next := payload.get("next_event", {}) as Dictionary
-	var detail := _label("已选择  第 %d 月\n\n%s\n\n%s" % [_selected_month, String(next.get("title", "暂无主线")) if _selected_month == target_month else "", "未完成的主线和活动将被跳过。" if _selected_month > month else "请选择未来月份"], 22)
+	var detail_note := "完成首月回顾后，可从月历推进月份。" if progression_locked else ("未完成的主线和活动将被跳过。" if _selected_month > month else "请选择未来月份")
+	var detail := _label("已选择  第 %d 月\n\n%s\n\n%s" % [_selected_month, String(next.get("title", "暂无主线")) if _selected_month == target_month else "", detail_note], 22)
 	detail.position = Vector2(870, 228); detail.size = Vector2(326, 270); detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; page.add_child(detail)
-	var next_month := _button("进入下个月", Vector2(290, 54), "gold"); next_month.position = Vector2(882, 534); next_month.disabled = month >= 48; next_month.pressed.connect(func(): month_requested.emit(month + 1)); page.add_child(next_month)
-	var advance := _button("推进至第 %d 月" % _selected_month, Vector2(290, 54), "gold"); advance.position = Vector2(882, 606); advance.disabled = _selected_month <= month; advance.pressed.connect(func(): month_requested.emit(_selected_month)); page.add_child(advance)
+	var next_month := _button("首月完成后可推进" if progression_locked else "进入下个月", Vector2(290, 54), "gold"); next_month.position = Vector2(882, 534); next_month.disabled = progression_locked or month >= 48; next_month.pressed.connect(func(): month_requested.emit(month + 1)); page.add_child(next_month)
+	var advance_text := "首月完成后可跳转" if progression_locked else "推进至第 %d 月" % _selected_month
+	var advance := _button(advance_text, Vector2(290, 54), "gold"); advance.position = Vector2(882, 606); advance.disabled = progression_locked or _selected_month <= month; advance.pressed.connect(func(): month_requested.emit(_selected_month)); page.add_child(advance)
 	var cancel := _button("取消", Vector2(260, 50), "paper"); cancel.position = Vector2(898, 700); cancel.pressed.connect(close_view); page.add_child(cancel)
 
 
@@ -976,10 +1134,11 @@ func _hud_caption(button: Button, text: String) -> void:
 	button.add_child(label)
 
 
-## 12 个月流程的手机解锁接口：开局隐藏，来信后亮出红点。
+## 控制首月手机入口显示；来信时另外用红点提醒。
 func set_phone_visible(value: bool) -> void:
 	if _phone_button != null:
 		_phone_button.visible = value
+		_layout_hud()
 
 
 ## 首月界面按剧情节点解锁：精力条 / 月历 / 手册 / 查看先藏。
@@ -991,11 +1150,20 @@ func set_energy_visible(value: bool) -> void:
 func set_month_visible(value: bool) -> void:
 	if _month_button != null:
 		_month_button.visible = value
+		_layout_hud()
 
 
 func set_manual_visible(value: bool) -> void:
 	if _manual_button != null:
 		_manual_button.visible = value
+		_layout_hud()
+
+
+## 档案圆钮同样按剧情解锁：首月开局先藏，月末第一次有"你的记录"时才给。
+func set_archive_visible(value: bool) -> void:
+	if _archive_button != null:
+		_archive_button.visible = value
+		_layout_hud()
 
 
 func set_view_visible(value: bool) -> void:
@@ -1040,7 +1208,7 @@ func archive_button() -> Button:
 	return _archive_button
 
 
-## 手机解锁提醒：没有震动就用呼吸式缩放，直到玩家点开手机。
+## 手机有新消息时用呼吸式缩放提醒，直到玩家点开手机。
 var _phone_attention: Tween
 
 
