@@ -32,7 +32,8 @@ func _ready() -> void:
 		"choices": [],
 		"beats": [
 			{"type": "say", "speaker": "老周",
-			 "text": "这份材料的口径没写清，40 个人的结果被人当成所有人都会这样。"},
+			 "text": "这份材料的口径没写清，40 个人的结果被人当成所有人都会这样。",
+			 "emphasis": ["40 个人的结果被人当成所有人都会这样"]},
 		],
 	})
 	await get_tree().create_timer(1.2).timeout

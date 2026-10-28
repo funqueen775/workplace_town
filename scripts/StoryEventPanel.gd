@@ -83,6 +83,8 @@ const NOTE_TONE := {
 }
 ## 关键词强调色：比正文深一档的砖红，米色纸面上够跳，又不会被读成"危险"。
 const EMPHASIS_INK := Color("8f3a26")
+## 能点的词用松绿 + 下划线：跟剧情重音（砖棕加粗）一眼分得开。
+const TERM_INK := Color("2f6b5f")
 
 const BUBBLE_FILL := Color(0.05, 0.05, 0.07, 0.95)
 const BUBBLE_FILL_HOT := Color(0.14, 0.13, 0.17, 0.97)
@@ -426,12 +428,9 @@ func _show_say(beat: Dictionary) -> void:
 	var profile := _speaker_profile(speaker_id)
 	var portrait_name := _portrait_name(String(profile.get("name", speaker_id)))
 	var bubble := _make_dialogue_frame(true)
-	# 有词可点时，把那个词本身也标亮：光有一颗点在角上，玩家不知道句里哪个词能点。
+	# 能点的词单独标出来（松绿下划线），不然光有角上一颗点，玩家不知道句里哪个词能点。
 	var term := _matched_term(text)
-	var marks: Array = (beat.get("emphasis", []) as Array).duplicate()
-	if not term.is_empty():
-		marks.append(String(term.get("word", "")))
-	var body := _emphasis_label(text, 30, marks)
+	var body := _emphasis_label(text, 30, beat.get("emphasis", []) as Array, 14, String(term.get("word", "")))
 	body.position = Vector2(520.0, 72.0) if not portrait_name.is_empty() else Vector2(95.0, 72.0)
 	body.size = Vector2(bubble.size.x - body.position.x - 90.0, bubble.size.y - 118.0)
 	bubble.add_child(body)
@@ -453,10 +452,7 @@ func _show_narration(text: String, emphasis: Array = []) -> void:
 	_clear_ui()
 	var bubble := _make_dialogue_frame(false)
 	var term := _matched_term(text)
-	var marks: Array = emphasis.duplicate()
-	if not term.is_empty():
-		marks.append(String(term.get("word", "")))
-	var body := _emphasis_label(text, 29, marks)
+	var body := _emphasis_label(text, 29, emphasis, 14, String(term.get("word", "")))
 	body.position = Vector2(92.0, 62.0)
 	body.size = Vector2(bubble.size.x - 184.0, bubble.size.y - 118.0)
 	bubble.add_child(body)
@@ -896,7 +892,7 @@ func _add_term_dot(frame: Control, term: Dictionary) -> void:
 ## 呼吸四秒后自己停，字跟着淡掉；玩家点过一次之后就再也不出现。
 func _add_term_hint(frame: Control, dot: Button) -> void:
 	# 气泡是浅色纸，米白字会直接融进去——用砖棕，跟那颗点同一个颜色家族。
-	var hint := _label("发亮那个词，点一下", 20, Color("a8552e"), true)
+	var hint := _label("画线那个词，点一下", 20, Color("a8552e"), true)
 	hint.name = "TermHint"
 	hint.position = Vector2(frame.size.x - 470.0, 30.0)
 	hint.size = Vector2(392.0, 30.0)
@@ -1217,7 +1213,7 @@ func _label(value: String, font_size: int, color: Color, bold: bool = false) -> 
 
 ## 台词正文。强调短语来自 beat 的 emphasis 数组（数据里仍是干净原文），
 ## 这里只负责把关键词包成"更重的字重 + 砖红"，其余字保持原样。
-func _emphasis_label(text: String, font_size: int, emphasis: Array, spacing: int = 14) -> RichTextLabel:
+func _emphasis_label(text: String, font_size: int, emphasis: Array, spacing: int = 14, term_word: String = "") -> RichTextLabel:
 	var rich := RichTextLabel.new()
 	rich.bbcode_enabled = true
 	rich.scroll_active = false
@@ -1231,11 +1227,16 @@ func _emphasis_label(text: String, font_size: int, emphasis: Array, spacing: int
 	rich.add_theme_font_size_override("normal_font_size", size)
 	rich.add_theme_font_size_override("bold_font_size", size)
 	rich.add_theme_color_override("default_color", Color("56301e"))
-	rich.text = _markup(text, emphasis)
+	rich.text = _markup(text, emphasis, term_word)
 	return rich
 
 
-func _markup(text: String, emphasis: Array) -> String:
+func _markup(text: String, emphasis: Array, term_word: String = "") -> String:
+	# 能点的词先单独包一层：松绿 + 下划线，跟剧情重音（砖棕加粗）区分开——
+	# 一个意思是"这句要记住"，一个意思是"这个词可以点"，不能长一个样。
+	var pre := text
+	if not term_word.is_empty() and pre.contains(term_word):
+		pre = pre.replace(term_word, "[color=#%s][u]%s[/u][/color]" % [TERM_INK.to_html(false), term_word])
 	var phrases: Array[String] = []
 	for value in emphasis:
 		var phrase := String(value)
@@ -1243,7 +1244,7 @@ func _markup(text: String, emphasis: Array) -> String:
 			phrases.append(phrase)
 	# 长的先包，避免短词把长词劈成两截。
 	phrases.sort_custom(func(a, b): return a.length() > b.length())
-	var result := text
+	var result := pre
 	var done: Array[String] = []
 	for phrase in phrases:
 		var covered := false
