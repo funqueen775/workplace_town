@@ -3,7 +3,7 @@
   "_readme": "周末活动·到达演出（2026-09-18 晚拍板，2026-09-18 深夜 v3）：周五晚（周末月进月）规划周末 → 玩家跟着地面指引逐个走到目的地（区域站按 E 进门 / 户外站走到点上）→ 全屏场景图 + 底部实心黑条大白字逐字演出「做了什么、什么感受」。scenes 的键 = free_time_system.activities.activity_id；lines 每行可为字符串（用默认 image）或 {text, image}（推进到该行换图，同一活动多版本图按剧情进度搭配）。{who} 会替换成同行者显示名。**一格一站、一格一场**：同区两个活动是两场演出，不再拼接成一场。文案红线：不出现 ASCII 数字流水（+1 / 好感 +5 之类），中文数字是叙事不算。D6 雨天共伞是自动触发，不进规划面板。",
   "scenes": {
     "S1_library_study": {
-      "title": "树影书院 · 图书馆",
+      "title": "人事部 · 图书馆",
       "image": "res://assets/weekend_scenes/library.png",
       "lines": [
         { "text": "图书馆的靠窗位还空着。你把文献摊开，笔尖落在纸上的那一刻，整层楼都安静了下来。" },
@@ -19,7 +19,7 @@
       ]
     },
     "S3_rooftop_breeze": {
-      "title": "总部 · 天台",
+      "title": "市场部 · 天台",
       "image": "res://assets/weekend_scenes/rooftop.png",
       "lines": [
         { "text": "天台的风比楼下的野。你靠着栏杆什么也不干，看云把楼群的影子慢慢推过球场。" },
@@ -27,7 +27,7 @@
       ]
     },
     "S4_weekend_overtime": {
-      "title": "科技丘 · 深夜工位",
+      "title": "研发部 · 深夜工位",
       "image": "res://assets/weekend_scenes/night_desk.png",
       "lines": [
         { "text": "周末的工位只剩你一个人。屏幕的光照着键盘，你把攒下的活一件一件清掉。" },
@@ -35,7 +35,7 @@
       ]
     },
     "D1_coffee_chat": {
-      "title": "水巷 · 小馆",
+      "title": "销售部 · 小馆",
       "image": "res://assets/weekend_scenes/canteen.png",
       "lines": [
         { "text": "你约{who}在巷口那家小馆碰头。菜单翻了两遍，最后还是点了最常点的那两样。" },
@@ -51,7 +51,7 @@
       ]
     },
     "D3_lawn_sports": {
-      "title": "训练谷 · 运动场",
+      "title": "财务部 · 运动场",
       "image": "res://assets/weekend_scenes/sports_field.png",
       "lines": [
         { "text": "球场上正缺人。你和{who}一队，跑起来之后谁还记得今天是休息日。" },
@@ -59,7 +59,7 @@
       ]
     },
     "D4_camp_bbq": {
-      "title": "训练谷 · 夜间烧烤草坪",
+      "title": "财务部 · 夜间烧烤草坪",
       "image": "res://assets/weekend_scenes/bbq_lawn.png",
       "lines": [
         { "text": "炭火升起来的时候天刚擦黑。你们围在烤架边，谁翻串、谁刷酱，分工明确。" },
@@ -67,7 +67,7 @@
       ]
     },
     "D5_study_together": {
-      "title": "树影书院 · 自习同桌",
+      "title": "人事部 · 自习同桌",
       "image": "res://assets/weekend_scenes/library.png",
       "lines": [
         { "text": "你和{who}在图书馆拼了同桌。他刷题，你看文献，桌上只有翻页声。" },
@@ -75,7 +75,7 @@
       ]
     },
     "G1_trust_escape_room": {
-      "title": "训练谷 · 密室",
+      "title": "财务部 · 密室",
       "image": "res://assets/weekend_scenes/escape_room.png",
       "lines": [
         { "text": "密室的门在身后锁上的那一刻，你们才开始真正动脑子。线索藏在灯罩里、抽屉夹层，还有一句谁都没在意的台词里。" },
@@ -83,7 +83,7 @@
       ]
     },
     "G2_campfire": {
-      "title": "训练谷 · 篝火夜",
+      "title": "财务部 · 篝火夜",
       "image": "res://assets/weekend_scenes/bbq_lawn.png",
       "lines": [
         { "text": "篝火在训练谷的空地上烧起来，火星往夜空里飘。有人弹琴跑了调，笑声比琴声响。" },
@@ -91,7 +91,7 @@
       ]
     },
     "G3_board_game": {
-      "title": "慢生活园 · 桌游馆",
+      "title": "生产部 · 桌游馆",
       "image": "res://assets/weekend_scenes/board_game.png",
       "lines": [
         {
@@ -113,7 +113,7 @@
       ]
     },
     "G4_annual_show_rehearsal": {
-      "title": "总部 · 年会舞台",
+      "title": "市场部 · 年会舞台",
       "image": "res://assets/weekend_scenes/stage_backstage.png",
       "lines": [
         { "text": "年会节目在台上过第一遍。你在侧幕看着同事们在灯下反复走位——原来大家下班后都藏了一手。" },

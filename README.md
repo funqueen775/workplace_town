@@ -44,23 +44,22 @@ Windows 本地体验：安装 Python 3.10+ 和 Godot 4.7，然后双击根目录
 
 操作：WASD 或方向键移动；手机/模拟器用左下角摇杆；靠近 NPC 后按 E、空格或点击交互按钮。
 
-### Godot 开场（`Intro.tscn`，2026-09-14 已对齐参考图）
+### Godot 开场（`Startup.tscn`）
 
-开场两屏（标题主菜单 → 认识小熊镇三页）是**可交互**的：菜单按钮 / 页签 / 上一页 / 跳过 / 进入小镇都能点，
-版式、色板、文案全部来自 `data/story/intro.json`；瓦顶、宝石、钟楼、藤叶这些装饰件是
-`scripts/ui/IntroDeco.gd` 用代码画的矢量（不用图片素材），坐标 = web 的 CSS 设计值 ×1.2。
-标题底图与两张插图目前是**临时占位**（见 `assets/ui/intro/README.md`），美术交付后同名覆盖即可。
+当前入口为开场漫画 → 标题主菜单 → 小林、老周两道入职情景题 → 选择形象 → 小镇。
+情景题使用已有内景和人物立绘；选择后显示角色回应，预演选择不进入正式测评。
+两题均可跳过并直接进入形象选择。旧版 `Intro.tscn` 和 Web 开场仅作设计参考，不是运行入口。
 
 ```bash
-# 结构验收（headless，改完 intro.json / 场景必跑）
-Godot --headless --path <工程> --script res://tools/verify_intro.gd
-# 截图自检（真渲染，四屏各存一张 PNG，肉眼对照 docs/legacy/开场三屏参考图/）
-Godot --path <工程> --resolution 1920x1080 res://tools/shot_intro.tscn -- --shots title,0,1,2 --shot-dir <输出目录>
+# 启动流程验收
+Godot --headless --path <工程> res://tests/StartupFlowTest.tscn
+# 真渲染截图：标题、两道题、角色选择
+Godot --path <工程> --resolution 1280x720 res://tools/shot_intro.tscn -- --scene res://Startup.tscn --shots title,0,1,avatar --shot-dir <输出目录>
 ```
 
 ## Web 版开场原型（`web/`）
 
-`web/` 是一份独立的 React + Vite 工程，**只用来验证开场三屏的版式、文案与美术方向**，
+`web/` 是一份独立的 React + Vite 历史原型，**只用于参考旧版开场的版式、文案与美术方向**，
 不是游戏本体——游戏本体是 Godot。它与 Godot 运行时互不影响：
 
 - 目录内放了一份空的 `.gdignore`，告诉 Godot **跳过整个 `web/`**，不要把里面的图片当资源导入；
@@ -81,7 +80,7 @@ npm run dev        # http://localhost:5173
 
 运行时读取 `data/town/regions.json`、`data/town/npcs.json`、`data/town/collision.json` 与 `data/town/navigation.json`。`scripts/WorkplaceTown.gd` 负责将其转换为区域触发器、碰撞多边形、可行走区域和 NPC。
 
-区域对应：A 熊起东方总部、B 云栖科技丘、C 创意水巷、D 树影书院、E 松风训练谷、F 观澜会展码头、G 暖邻康护院、H 慢生活园。
+区域对应：A 市场部、B 研发部、C 销售部、D 人事部、E 财务部、F 运营部、G 行政部、H 生产部。
 
 底图：`assets/town/workplace_town_reference.png`。
 
@@ -93,15 +92,14 @@ npm run dev        # http://localhost:5173
 
 `data/town/npcs.json` 是**演员表的唯一来源：开场三屏和地图内 NPC 都读它**（`IntroSequence.gd` 与 `WorkplaceTown.gd` 各读一次）。改演员只改这个 JSON，不要改脚本——两份脚本里的同名数组都只是读不到 JSON 时的兜底。
 
-当前五人（E 松风训练谷 / F 观澜会展码头 / G 暖邻康护院 暂无 NPC）：
+当前四位常驻 NPC（E 财务部 / F 运营部 / G 行政部 / H 生产部暂无常驻 NPC）：
 
 | 区 | 姓名 | 职衔 | 关系系统 |
 | --- | --- | --- | --- |
-| A 熊起东方总部 | 陈工 | 邻组 Leader | **否**——事务型直属上级，无好感度、无熊友卡、不参与邀约 |
-| B 云栖科技丘 | 王哥 | 技术 · 你的导师 | 是 |
-| C 创意水巷 | 小林 | 产品 | 是 |
-| D 树影书院 | 老周 | 资深 | 是 |
-| H 慢生活园 | 小赵 | 实习生 | 是 |
+| A 市场部 | 陈工 | 邻组 Leader | **否**——事务型直属上级，无好感度、无熊友卡、不参与邀约 |
+| B 研发部 | 王哥 | 技术 · 你的导师 | 是 |
+| C 销售部 | 小林 | 产品 | 是 |
+| D 人事部 | 老周 | 资深 | 是 |
 
 ### 两条已定的口径（2026-09-13）
 

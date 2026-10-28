@@ -99,14 +99,14 @@ var WALKABLE_AREAS := [
 	Rect2(350, 780, 1190, 160), Rect2(650, 620, 120, 230), Rect2(1040, 620, 120, 230),
 ]
 var ZONES := [
-	{"id": "a", "code": "A", "name": "启程广场·飓起东方总部", "rect": Rect2(75, 95, 315, 245), "center": Vector2(230, 210), "door": "bottom"},
-	{"id": "b", "code": "B", "name": "云栖科技工厂", "rect": Rect2(760, 80, 320, 205), "center": Vector2(920, 180), "door": "bottom"},
-	{"id": "c", "code": "C", "name": "创意水巷", "rect": Rect2(1450, 150, 390, 250), "center": Vector2(1645, 275), "door": "left"},
-	{"id": "d", "code": "D", "name": "树影书院", "rect": Rect2(55, 420, 330, 250), "center": Vector2(220, 545), "door": "right"},
-	{"id": "e", "code": "E", "name": "松风训练谷", "rect": Rect2(410, 760, 320, 230), "center": Vector2(570, 875), "door": "top"},
-	{"id": "f", "code": "F", "name": "观澜会展码头", "rect": Rect2(255, 820, 330, 230), "center": Vector2(420, 930), "door": "top"},
-	{"id": "g", "code": "G", "name": "暖邻康护院", "rect": Rect2(1320, 650, 360, 300), "center": Vector2(1500, 800), "door": "left"},
-	{"id": "h", "code": "H", "name": "慢生活园·宿舍与桌游馆", "rect": Rect2(760, 760, 390, 250), "center": Vector2(955, 885), "door": "top"},
+	{"id": "a", "code": "A", "name": "市场部", "rect": Rect2(75, 95, 315, 245), "center": Vector2(230, 210), "door": "bottom"},
+	{"id": "b", "code": "B", "name": "研发部", "rect": Rect2(760, 80, 320, 205), "center": Vector2(920, 180), "door": "bottom"},
+	{"id": "c", "code": "C", "name": "销售部", "rect": Rect2(1450, 150, 390, 250), "center": Vector2(1645, 275), "door": "left"},
+	{"id": "d", "code": "D", "name": "人事部", "rect": Rect2(55, 420, 330, 250), "center": Vector2(220, 545), "door": "right"},
+	{"id": "e", "code": "E", "name": "财务部", "rect": Rect2(410, 760, 320, 230), "center": Vector2(570, 875), "door": "top"},
+	{"id": "f", "code": "F", "name": "运营部", "rect": Rect2(255, 820, 330, 230), "center": Vector2(420, 930), "door": "top"},
+	{"id": "g", "code": "G", "name": "行政部", "rect": Rect2(1320, 650, 360, 300), "center": Vector2(1500, 800), "door": "left"},
+	{"id": "h", "code": "H", "name": "生产部", "rect": Rect2(760, 760, 390, 250), "center": Vector2(955, 885), "door": "top"},
 ]
 var NPCS := [
 	{"zone": "a", "name": "陈工", "role": "邻组 Leader", "loadout": "bear_orange_blazer", "route": PackedVector2Array([Vector2(405, 345), Vector2(510, 345), Vector2(510, 390), Vector2(405, 390)]), "prompt": "结论是什么？预算和工期，一句话说完。"},

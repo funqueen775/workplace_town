@@ -69,6 +69,12 @@ func _run() -> void:
 		elif _scene.ends_with("Startup.tscn"):
 			if key == "title":
 				inst.call("_show_login_screen")
+			elif key == "answer1" or key == "answer2":
+				inst.call("_start_intro")
+				inst.call("_go_page", 0 if key == "answer1" else 1)
+				inst.call("_choose_intro_answer", 0)
+			elif key == "avatar":
+				inst.call("_start_avatar_selection")
 			else:
 				inst.call("_start_intro")
 				inst.call("_go_page", int(key))
