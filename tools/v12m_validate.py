@@ -50,6 +50,8 @@ TRIGGER_HEADS = {
 PHONE_FORBIDDEN = {"compose", "input", "chat", "freeText", "typing", "draft"}
 ZONE_IDS = {"A", "B", "C", "D", "E", "F", "G", "H"}
 DIMENSIONS = {"S", "O", "N", "D"}
+## 能力五格的五个名字（开发文档 4.19）：标签和第 5 格点亮都只认这五个。
+ABILITIES = {"technical", "collaboration", "expression", "integrity", "resilience"}
 FORBIDDEN_IN_RESPONSE = {"stateDelta", "competency", "anchor", "coef", "threshold", "rubric", "scores"}
 PUNCTUATION = set("，。、；：？！“”‘’（）《》〈〉…—－·,.；:?!\"'()[]{}<>/\\|-_+*=&%$#@~^ \t\n\r")
 
@@ -288,6 +290,25 @@ def main() -> int:
             for dimension in (choice.get("stateDelta") or {}):
                 if str(dimension) not in {"S", "O", "N", "D", "H", "risk"}:
                     errors.append(f"{node_id} 选项 {choice.get('id')} 的 stateDelta 键越界：{dimension}")
+            # 能力五格（开发文档 4.19）：标签攒点、第 5 格只认剧情点亮。
+            tags = choice.get("abilityTags")
+            if tags is not None:
+                if not isinstance(tags, dict):
+                    errors.append(f"{node_id} 选项 {choice.get('id')} 的 abilityTags 必须是对象")
+                else:
+                    for key, value in tags.items():
+                        if str(key) not in ABILITIES:
+                            errors.append(f"{node_id} 选项 {choice.get('id')} 的能力标签越界：{key}")
+                        if not isinstance(value, int) or not 1 <= value <= 2:
+                            errors.append(f"{node_id} 选项 {choice.get('id')} 的能力标签一次只能给 1–2 点：{key}={value}")
+            peak = choice.get("abilityPeak")
+            if peak is not None:
+                if not isinstance(peak, list) or not peak:
+                    errors.append(f"{node_id} 选项 {choice.get('id')} 的 abilityPeak 必须是非空数组")
+                else:
+                    for name in peak:
+                        if str(name) not in ABILITIES:
+                            errors.append(f"{node_id} 选项 {choice.get('id')} 的第 5 格点亮越界：{name}")
 
     for node in nodes:
         if int(node.get("month", 0)) not in scope:

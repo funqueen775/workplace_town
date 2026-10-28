@@ -511,17 +511,40 @@ class Service:
             "scoringVersion": "v" + str(self.engine.reg.version.get("scoring_cards", "?")),
         }
 
+    # 五格语义（开发文档 4.19）：1 还没人见过你做 / 2 有人带能做 / 3 能独立做小事
+    # / 4 能独立扛一块 / 5 别人来问你。起点是"第一天入职"，不是"半熟手"。
+    ABILITY_BASELINE = {
+        "technical": 1, "collaboration": 1, "expression": 1,
+        "integrity": 2, "resilience": 1,
+    }
+
     @staticmethod
-    def _ability_levels(st: GameState) -> dict[str, int]:
+    def _ability_tier(points: int) -> int:
+        """攒到的能力点数 → 往上长几格（开发文档 4.19，2026-10-28 改贵）：
+        0–1 点不长、2–4 点长 1、5–8 点长 2、9 点以上长 3。
+        全年必玩里能挂标签的选择只有 17 次，旧曲线（1/3/6/10）会让专攻一路的人
+        第 8 月就顶到封顶，后半年变成死条。"""
+        for threshold, tier in ((9, 3), (5, 2), (2, 1)):
+            if points >= threshold:
+                return tier
+        return 0
+
+    def _ability_levels(self, st: GameState) -> dict[str, int]:
         groups = {
-            "technical": ("technical_decision", "architecture"),
+            "technical": ("technical", "technical_decision", "architecture"),
             "collaboration": ("collaboration", "communication"),
-            "expression": ("assertiveness",),
+            "expression": ("expression", "assertiveness"),
             "integrity": ("integrity",),
             "resilience": ("resilience",),
         }
-        return {name: max(1, min(5, 3 + sum(st.competency.get(key, 0) for key in keys)))
-                for name, keys in groups.items()}
+        levels: dict[str, int] = {}
+        for name, keys in groups.items():
+            points = sum(st.ability_points.get(key, 0) for key in keys)
+            # 点数最多抬到第 4 格：第 5 格（"别人来问你"）只由剧情点亮，见 ability_peak。
+            levels[name] = min(4, self.ABILITY_BASELINE[name] + self._ability_tier(points))
+            if name in st.ability_peak:
+                levels[name] = 5
+        return levels
 
     @staticmethod
     def _relation_stages(st: GameState) -> dict[str, str]:
