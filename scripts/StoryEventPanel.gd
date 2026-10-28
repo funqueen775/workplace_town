@@ -838,6 +838,8 @@ const TERM_DOT_SIZE := 46.0
 
 var _terms: Array = []
 var _term_card: Control
+## 第一次遇到能点的词时给一句一次性的说明：不解释的话玩家根本不知道有这功能。
+var _term_hint_seen := false
 
 
 func _load_terms() -> void:
@@ -877,6 +879,35 @@ func _add_term_dot(frame: Control, text: String) -> void:
 	dot.add_theme_stylebox_override("pressed", _term_dot_style(Color("8f3a26")))
 	dot.pressed.connect(_toggle_term_card.bind(frame, term))
 	frame.add_child(dot)
+	if not _term_hint_seen:
+		_term_hint_seen = true
+		_add_term_hint(frame, dot)
+
+
+## 一次性的说明：第一次有词可点时，点在呼吸、旁边写一行"这个词能点"。
+## 呼吸四秒后自己停，字跟着淡掉；玩家点过一次之后就再也不出现。
+func _add_term_hint(frame: Control, dot: Button) -> void:
+	# 气泡是浅色纸，米白字会直接融进去——用砖棕，跟那颗点同一个颜色家族。
+	var hint := _label("这个词能点，问一句人话", 20, Color("a8552e"), true)
+	hint.name = "TermHint"
+	hint.position = Vector2(frame.size.x - 470.0, 30.0)
+	hint.size = Vector2(392.0, 30.0)
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	frame.add_child(hint)
+	if reduced_motion:
+		return
+	dot.pivot_offset = dot.size * 0.5
+	var breathe := dot.create_tween().set_loops()
+	breathe.tween_property(dot, "scale", Vector2(1.16, 1.16), 0.6) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	breathe.tween_property(dot, "scale", Vector2.ONE, 0.6) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	var fade := create_tween()
+	fade.tween_interval(4.0)
+	fade.tween_property(hint, "modulate:a", 0.0, 0.6)
+	fade.tween_callback(func():
+		if is_instance_valid(hint):
+			hint.queue_free())
 
 
 func _term_dot_style(background: Color) -> StyleBoxFlat:
