@@ -1,10 +1,21 @@
 extends Control
 
-# 开场漫画 -> 标题页 -> 三页小镇导览 -> Main.tscn。
+# 开场漫画 -> 标题页 -> 两道入职预演 -> 形象选择 -> Main.tscn。
 const FONT := preload("res://assets/fonts/NotoSansCJKsc-Regular.otf")
 const TITLE_BG := preload("res://assets/town/workplace_town_no_labels.png")
-const TOWN_ART := preload("res://assets/ui/intro/town_1.png")
-const LIFE_ART := preload("res://assets/ui/intro/town_3.png")
+const LIN_ROOM := preload("res://assets/场景内部图/创意水巷.png")
+const ZHOU_ROOM := preload("res://assets/场景内部图/树影图书馆.png")
+const LIN_PORTRAITS := [
+	preload("res://assets/角色立绘/小林/小林_自然.png"),
+	preload("res://assets/角色立绘/小林/小林_认真.png"),
+	preload("res://assets/角色立绘/小林/小林_开心.png"),
+	preload("res://assets/角色立绘/小林/小林_疑惑.png"),
+]
+const ZHOU_PORTRAITS := [
+	preload("res://assets/角色立绘/老周/老周_认真.png"),
+	preload("res://assets/角色立绘/老周/老周_疑惑.png"),
+	preload("res://assets/角色立绘/老周/老周_无奈.png"),
+]
 const HOME_BG := preload("res://assets/town/workplace_town_no_labels.png")
 const HOME_START := preload("res://assets/开始游戏页面/按钮-开始游戏.png")
 const HOME_SETTINGS := preload("res://assets/开始游戏页面/按钮-设置.png")
@@ -12,13 +23,6 @@ const HOME_REPORT := preload("res://assets/开始游戏页面/按钮-我的报�
 const INTRO_DIALOG_BG := preload("res://assets/对话框/角色对话框_空白.png")
 const INTRO_BUTTON_PRIMARY := preload("res://assets/ui/rework_v1/task_book/20_推进按钮底板.png")
 const INTRO_BUTTON_SECONDARY := preload("res://assets/ui/rework_v1/task_book/18_追踪按钮底板.png")
-const INTRO_AVATAR_FRAME := preload("res://assets/ui/rework_v1/profile/components/03_人际关系/NPC_通用头像框.png")
-const INTRO_AVATARS := {
-	"王哥": preload("res://assets/ui/rework_v1/profile/components/03_人际关系/王哥头像.png"),
-	"陈工": preload("res://assets/ui/rework_v1/profile/components/03_人际关系/小赵头像.png"),
-	"小林": preload("res://assets/ui/rework_v1/profile/components/03_人际关系/小林头像.png"),
-	"老周": preload("res://assets/ui/rework_v1/profile/components/03_人际关系/老周头像.png"),
-}
 const OPENING_COMIC_SCENE := preload("res://opening_comic/OpeningComic.tscn")
 const PROFILE_PATH := "user://workplace_town_profile.json"
 # Batch 3（2026-09-17）：「我的报告」接通 —— 面板按需实例化，报告只在服务端算。
@@ -52,35 +56,24 @@ const EXIT_TXT := Color("f3dfbe")
 
 const HOME_SIZE := Vector2(1672, 941)
 
-## 导览三页共用的内容区（相对 frame）：切页不跳版靠它
-## 高度从 460 提到 540 —— 原来页面底部空着 128px，正文因此一直写不长。
-const CONTENT_RECT := Rect2(94, 252, 1512, 540)
-
-## 导览三页文案；旅程的事件、窗口和活动数量从当前主线配置读取。
+## 开场选择只用于预演，不进入正式剧情和测评。
 const PAGES := [
-	{"tab":"小镇介绍", "kicker":"欢迎来到这里", "title":"从第一天入职开始",
-	 "body":"小熊镇以一湖、两环、八组团铺开：湖心办庆典、冲突与结局，东岸智研线走技术与决策，西岸成长生活线走关系、恢复与夜间支线。\n\n八个组团各有各的作息——熊起东方总部管入职与重大决策，云栖科技丘做技术协作，创意水巷对接客户，树影书院负责培训复盘，松风训练谷做团建与信任测试，观澜会展码头办路演，暖邻康护院管员工关怀，慢生活园留给休息和桌游。你会在这些地方经历路演、协作、培训与关怀，也会慢慢认识每天和你一起上班的人。",
-	 "facts":[["8", "个组团"], ["3", "条空间线"], ["4", "位常驻同事"]], "art":TOWN_ART},
-	{"tab":"人物名单", "kicker":"你会遇到的人", "title":"同事各有各的工作",
-	 "body":"他们不是围着玩家转的角色——每人有自己的区域与节奏；靠近、交流、一起解决问题，才会慢慢建立联系。陈工是事务型上级，不进关系系统。",
-	 "cast":true},
-	{"tab":"开始旅程", "kicker":"怎么走完这一程", "title":"选择会留下记录",
-	 "body":"整条旅程横跨 48 个月，职级从 L1 走到 L7：每 6 个月有一次晋升考核窗，不升职，项目就会被别人推进。\n\n主线跟着一个客服 Agent 走完六幕——进入行业、真实需求与成本压力、事故与责任、重构与传承、边界与答辩、传承与新局，%d 个主线事件全部必遇；旅途中有 %d 次自由活动窗口，可从 %d 种区域活动中选择，也可以找同事交流。你的选择、停留与交流会被服务端记录，最终汇成一份只属于你的成长报告。",
-	 "facts":[["", "个月的旅程"], ["", "个主线事件"], ["", "种区域活动"]], "art":LIFE_ART},
-]
-const STORY_CONFIG_PATH := "res://data/story/main_story_v12.json"
-
-## 演员表唯一来源 data/town/npcs.json（V5.27 口径）。旧 8 区 NPC（艾米/林总/周岚/宁宁…）
-## 已于 2026-09-13 作废，别再往回填。每行 = 姓名 / 身份 / 常驻区域 / 头像色 / 一句话性格。
-const CAST := [
-	["王哥", "技术 · 你的导师", "B 区 · 云栖科技丘", "7198b6", "爱泼冷水，但认可扎实的调研。"],
-	["陈工", "邻组 Leader", "A 区 · 熊起东方总部", "5f6b7a", "话少，只问结论和成本。"],
-	["小林", "产品", "C 区 · 创意水巷", "bc825e", "被客户催着走，先塞需求再一起想办法。"],
-	["老周", "资深", "D 区 · 树影书院", "8a786b", "在听，等着看谁认领。"],
+	{"title":"先问什么", "speaker":"小林", "role":"产品同事", "place":"销售部", "room":LIN_ROOM,
+	 "portrait":LIN_PORTRAITS, "question":"客户刚发来新想法，但我们还不知道他最在意什么。你会先？",
+	 "choices":["问清真正需求", "找同事估算", "做个草案给客户看"],
+	 "replies":["好，我把客户叫回来，我们先问明白。", "我去约大家，先看看这事需要多少时间。", "可以，先让客户看到一个能讨论的东西。"],
+	 "expressions":[3, 1, 2]},
+	{"title":"从哪里开始", "speaker":"老周", "role":"资深同事", "place":"人事部", "room":ZHOU_ROOM,
+	 "portrait":ZHOU_PORTRAITS, "question":"大家对同一件事有不同说法。复盘该从哪里开始？",
+	 "choices":["先听各方说法", "先整理事实", "先提出自己的判断"],
+	 "replies":["先听完，再看哪些地方说得不一样。", "有了事实，讨论才不会只剩立场。", "说说看。也别忘了听听别人的依据。"],
+	 "expressions":[1, 0, 2]},
 ]
 
 var _mode := "title"
 var _page := 0
+var _last_intro_page := 0
+var _intro_answers := [-1, -1]
 var _fonts: Dictionary = {}
 var _report_panel: CanvasLayer
 var _settings_panel: CanvasLayer
@@ -290,247 +283,104 @@ func _open_report() -> void:
 		add_child(_report_panel)
 	_report_panel.open()
 
-# ------------------------------------------------------------------ 导览三页
-# 【2026-09-15 排版重排】三个坑一起修掉，动这块之前先读完：
-#  1. **属性顺序**：`Label.size` 必须写在 `autowrap_mode` **之后**；`TextureRect.size` 必须写在
-#     `expand_mode` **之后**。反了的话，设 size 那一刻的最小尺寸还是"整行宽度 / 纹理原始尺寸"，
-#     size 会被顶大、之后再也不会重算 —— 正文 620 实测变 838（压住右侧插图 104px）、插图 636×454
-#     实测变 660×495（溢出木框），两个 bug 都是这个顺序错。
-#  2. **正文不许写死高度**：Label 高度按行数自适应（行高 ≈ 1.5×字号）。写死 245 再垂直居中，
-#     两行字就悬在框正中、上下各空一大块 —— 这就是"留白太多"的主因。
-#  3. **`_label()` 默认垂直居中，只适合单行标题**，段落必须自己改回 TOP。
+# ------------------------------------------------------------------ 入职预演
 
 func _intro_screen() -> void:
 	var frame := Panel.new()
 	_layout_startup_frame(frame)
 	frame.add_theme_stylebox_override("panel", _style(PAPER, WOOD, 8, 8))
 	add_child(frame)
-
-	# 顶栏：返回 / 标题 / 副标题
 	var back := _intro_button("返回", "secondary")
 	back.position = Vector2(36, 34)
 	back.size = Vector2(132, 60)
-	back.pressed.connect(_back)
+	back.pressed.connect(func():
+		if _page == 0:
+			_back()
+		else:
+			_go_page(_page - 1))
 	frame.add_child(back)
-
-	var heading := _label("认识职场小镇", 34, INK)
+	var heading := _label("入职职场小镇", 34, INK)
 	heading.position = Vector2(300, 34)
 	heading.size = Vector2(1100, 51)
 	frame.add_child(heading)
-
-	var sub := _label("先了解这里怎么过，再决定怎么开始", 18, Color("7a5533"))
+	var sub := _label("两个选择，先认识这里的同事", 18, Color("7a5533"))
 	sub.position = Vector2(300, 90)
 	sub.size = Vector2(1100, 27)
 	frame.add_child(sub)
-
-	# 页签：三页居中排一行（原来靠左，和居中的标题不搭）
-	var tabs := HBoxContainer.new()
-	tabs.position = Vector2(140, 152)
-	tabs.size = Vector2(1400, 64)
-	tabs.alignment = BoxContainer.ALIGNMENT_CENTER
-	tabs.add_theme_constant_override("separation", 12)
-	frame.add_child(tabs)
-	for index in PAGES.size():
-		var tab := _intro_button(String(PAGES[index]["tab"]), "tab_on" if index == _page else "tab")
-		tab.custom_minimum_size = Vector2(210, 64)
-		tab.pressed.connect(func(): _go_page(index))
-		tabs.add_child(tab)
-
-	var page: Dictionary = PAGES[_page].duplicate(true)
-	if _page == 2:
-		_sync_journey_counts(page)
-	if page.get("cast", false): _cast_content(frame, page)
-	else: _text_content(frame, page)
+	var step := _label("%d / %d" % [_page + 1, PAGES.size()], 22, BRICK)
+	step.position = Vector2(1460, 46)
+	step.size = Vector2(170, 42)
+	frame.add_child(step)
+	_scenario_content(frame, PAGES[_page])
 	_footer(frame)
 
-func _sync_journey_counts(page: Dictionary) -> void:
-	var config = JSON.parse_string(FileAccess.get_file_as_string(STORY_CONFIG_PATH))
-	if not (config is Dictionary):
-		push_error("无法读取旅程配置：" + STORY_CONFIG_PATH)
+func _scenario_content(frame: Panel, page: Dictionary) -> void:
+	var room := TextureRect.new()
+	room.texture = page["room"] as Texture2D
+	room.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	room.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	room.position = Vector2(95, 198)
+	room.size = Vector2(1510, 430)
+	room.modulate = Color(0.78, 0.78, 0.78)
+	frame.add_child(room)
+	var shade := ColorRect.new()
+	shade.color = Color(0.10, 0.07, 0.05, 0.27)
+	shade.position = room.position
+	shade.size = room.size
+	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	frame.add_child(shade)
+	var answer_index: int = _intro_answers[_page]
+	var portraits: Array = page["portrait"]
+	var portrait := TextureRect.new()
+	portrait.texture = portraits[0 if answer_index < 0 else int(page["expressions"][answer_index])] as Texture2D
+	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	portrait.position = Vector2(125, 204)
+	portrait.size = Vector2(450, 420)
+	portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	frame.add_child(portrait)
+	var card := _intro_dialog_panel()
+	card.position = Vector2(480, 280)
+	card.size = Vector2(1090, 300)
+	frame.add_child(card)
+	var place := _label(String(page["place"]) + "  ·  " + String(page["role"]), 19, BRICK)
+	place.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	place.position = Vector2(300, 42)
+	place.size = Vector2(650, 34)
+	card.add_child(place)
+	var speaker := _label(String(page["speaker"]), 34, INK, 0.0, 0.2)
+	speaker.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	speaker.position = Vector2(90, 85)
+	speaker.size = Vector2(760, 48)
+	card.add_child(speaker)
+	var line := String(page["question"]) if answer_index < 0 else String(page["replies"][answer_index])
+	var dialogue := _label(line, 27, INK)
+	dialogue.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	dialogue.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	dialogue.position = Vector2(90, 144)
+	dialogue.size = Vector2(900, 104)
+	card.add_child(dialogue)
+	if answer_index >= 0:
+		if _page == PAGES.size() - 1:
+			var handoff := _label("老周递来入职登记表：选好自己的形象，就正式上班。", 25, INK)
+			handoff.position = Vector2(360, 658)
+			handoff.size = Vector2(980, 72)
+			frame.add_child(handoff)
 		return
-	var activities: Dictionary = config.get("activitiesByRegion", {})
-	var activity_ids := {}
-	for region in activities.values():
-		for activity in region:
-			activity_ids[String(activity.get("id", ""))] = true
-	var event_count := (config.get("events", []) as Array).size()
-	var window_count := (config.get("freeWindows", []) as Array).size()
-	var activity_count := activity_ids.size()
-	page["body"] = String(page["body"]) % [event_count, window_count, activity_count]
-	page["facts"] = [["48", "个月的旅程"], [str(event_count), "个主线事件"], [str(activity_count), "种区域活动"]]
+	var choices: Array = page["choices"]
+	for index in choices.size():
+		var choice := _intro_button(String(choices[index]), "secondary")
+		choice.position = Vector2(255 + index * 410, 660)
+		choice.size = Vector2(380, 82)
+		choice.pressed.connect(_choose_intro_answer.bind(index))
+		frame.add_child(choice)
 
-func _text_content(frame: Panel, page: Dictionary) -> void:
-	var card := _intro_dialog_panel()
-	card.position = CONTENT_RECT.position
-	card.size = CONTENT_RECT.size
-	frame.add_child(card)
+func _choose_intro_answer(index: int) -> void:
+	if _page < 0 or _page >= PAGES.size() or _intro_answers[_page] >= 0:
+		return
+	_intro_answers[_page] = index
+	_rebuild()
 
-	# 右边插图：540×405 木框，垂直居中于加高后的卡片
-	var art_box := Control.new()
-	art_box.position = Vector2(CONTENT_RECT.size.x - 64.0 - 540.0, (CONTENT_RECT.size.y - 405.0) * 0.5)
-	art_box.size = Vector2(540.0, 405.0)
-	card.add_child(art_box)
-	if page.has("art"):
-		var art := TextureRect.new()
-		art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE            # ⚠ 先设 expand_mode
-		art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-		art.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		art.texture = page["art"] as Texture2D
-		art.position = Vector2(12, 12)
-		art.size = art_box.size - Vector2(24, 24)                   # ⚠ 再设 size
-		art_box.add_child(art)
-
-	# 左栏：眉题 / 标题 / 关键数字 / 正文，四层竖排
-	var kicker := _label(str(page["kicker"]), 22, BRICK)
-	kicker.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	kicker.position = Vector2(290, 76)
-	kicker.size = Vector2(760, 32)
-	card.add_child(kicker)
-
-	var title := _label(str(page["title"]), 42, INK, 0.0, 0.30)
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	title.position = Vector2(145, 112)
-	title.size = Vector2(760, 62)
-	card.add_child(title)
-
-	var facts := _facts_row(card, page.get("facts", []), Vector2(145, 188), 760.0)
-
-	var body := _label(str(page["body"]), 22, Color("634330"))
-	body.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	body.vertical_alignment = VERTICAL_ALIGNMENT_TOP
-	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART             # ⚠ 先开 autowrap
-	body.position = Vector2(145, 272)
-	body.size = Vector2(760, 0)                                     # ⚠ 再给宽度，高度交给它自己算
-	card.add_child(body)
-
-	# 整块左栏在卡片里做垂直居中：三页正文长短不一，靠这个让视觉重心统一在卡片中线上
-	# （右栏插图本来就是居中的），否则短的那页底下会空一大块。
-	# 块「内」仍保持自上而下排列，动的只是整块的位置。
-	var top := 76.0
-	var used := body.position.y + body.size.y - top
-	var shift := maxf((CONTENT_RECT.size.y - used) * 0.5 - top, 40.0 - top)
-	for node in [kicker, title, facts, body]:
-		if node != null:
-			(node as Control).position.y += shift
-
-## 关键数字条：正文上方一排小牌，先把「多少个月 / 多少个事件」这类硬信息摆出来，
-## 顺便把标题和正文之间那段空档填掉。返回这一排本身，好让调用方参与整块的居中。
-func _facts_row(parent: Control, facts: Array, at: Vector2, total_w: float) -> Control:
-	if facts.is_empty():
-		return null
-	var row := HBoxContainer.new()
-	row.position = at
-	row.size = Vector2(total_w, 62)
-	row.add_theme_constant_override("separation", 14)
-	parent.add_child(row)
-	var plate_w := (total_w - 14.0 * float(facts.size() - 1)) / float(facts.size())
-	for item in facts:
-		var plate := Control.new()
-		plate.custom_minimum_size = Vector2(plate_w, 62)
-		plate.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		row.add_child(plate)
-
-		var number := _label(str(item[0]), 28, BRICK, 0.0, 0.30)
-		number.position = Vector2(0, 4)
-		number.size = Vector2(plate_w, 34)
-		plate.add_child(number)
-
-		var caption := _label(str(item[1]), 15, Color("7a5533"))
-		caption.position = Vector2(0, 36)
-		caption.size = Vector2(plate_w, 22)
-		plate.add_child(caption)
-	return row
-
-func _cast_content(frame: Panel, page: Dictionary) -> void:
-	# 和另两页共用同一张内层卡与同一套「眉题 / 标题 / 导语」节奏，
-	# 三页切来切去不会跳版（原来这页直接在羊皮纸上摆标题，是唯一的例外）。
-	var card := _intro_dialog_panel()
-	card.position = CONTENT_RECT.position
-	card.size = CONTENT_RECT.size
-	frame.add_child(card)
-
-	var kicker := _label(str(page["kicker"]), 22, BRICK)
-	kicker.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	kicker.position = Vector2(290, 58)
-	kicker.size = Vector2(860, 30)
-	card.add_child(kicker)
-
-	var title := _label(str(page["title"]), 42, INK, 0.0, 0.30)
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	title.position = Vector2(145, 94)
-	title.size = Vector2(1200, 58)
-	card.add_child(title)
-
-	# 导语放在标题下方、卡片行上方：居中的长句排在卡片底下会把整页压到底边。
-	# 压成一行（fs16 × 1400 宽约放得下 87 字），省下的高度全部让给卡片行。
-	var note := _label(str(page.get("body", "")), 16, Color("7a5533"))
-	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	note.vertical_alignment = VERTICAL_ALIGNMENT_TOP
-	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	note.position = Vector2(145, 166)
-	note.size = Vector2(CONTENT_RECT.size.x - 290.0, 0)
-	card.add_child(note)
-
-	# 卡片行左右各内缩 24 —— 铺满整宽时第一张的左框会跟内层卡的边框叠在一起，看着像画歪了。
-	# 宽度按内缩后的可用宽均分算死：只给 EXPAND_FILL 的话最后一张会多摊一点，五张不等宽。
-	var card_w := (CONTENT_RECT.size.x - 200.0 - 16.0 * float(CAST.size() - 1)) / float(CAST.size())
-	var cards := HBoxContainer.new()
-	cards.position = Vector2(100, 216)
-	cards.size = Vector2(CONTENT_RECT.size.x - 200.0, 294)
-	cards.add_theme_constant_override("separation", 16)
-	card.add_child(cards)
-	for person in CAST:
-		var person_card := Control.new()
-		person_card.custom_minimum_size = Vector2(card_w, 294)
-		person_card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		cards.add_child(person_card)
-
-		# 真实头像与项目通用头像框叠放，替换原来的首字母色块。
-		var portrait := TextureRect.new()
-		portrait.texture = INTRO_AVATARS[String(person[0])]
-		portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-		portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		portrait.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
-		portrait.position = Vector2((card_w - 112.0) * 0.5, 12)
-		portrait.size = Vector2(112, 112)
-		portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		person_card.add_child(portrait)
-		var portrait_frame := TextureRect.new()
-		portrait_frame.texture = INTRO_AVATAR_FRAME
-		portrait_frame.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		portrait_frame.stretch_mode = TextureRect.STRETCH_SCALE
-		portrait_frame.position = portrait.position - Vector2(8, 8)
-		portrait_frame.size = portrait.size + Vector2(16, 16)
-		portrait_frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		person_card.add_child(portrait_frame)
-
-		var name := _label(String(person[0]), 25, INK, 0.0, 0.20)
-		name.position = Vector2(0, 118)
-		name.size = Vector2(card_w, 37)
-		person_card.add_child(name)
-
-		var role := _label(String(person[1]), 16, BRICK)
-		role.position = Vector2(0, 158)
-		role.size = Vector2(card_w, 24)
-		person_card.add_child(role)
-
-		var place := _label(String(person[2]), 14, Color("7a5533"))
-		place.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART        # ⚠ 先开 autowrap
-		place.position = Vector2(14, 188)
-		place.size = Vector2(card_w - 28.0, 0)                      # ⚠ 再给宽度
-		person_card.add_child(place)
-
-		# 细横线，把「身份信息」和「性格一句话」分开，卡片下部不再空着
-		var rule := _divider()
-		rule.position = Vector2(22, 236)
-		rule.size = Vector2(card_w - 44.0, 3)
-		person_card.add_child(rule)
-
-		var line := _label(String(person[4]), 13, Color("8a6a4e"))
-		line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		line.position = Vector2(14, 252)
-		line.size = Vector2(card_w - 28.0, 0)
-		person_card.add_child(line)
 
 func _footer(frame: Panel) -> void:
 	var counter := _label("第 %d / %d 页" % [_page + 1, PAGES.size()], 18, Color("7a5533"))
@@ -538,7 +388,7 @@ func _footer(frame: Panel) -> void:
 	counter.position = Vector2(102, 828)
 	frame.add_child(counter)
 
-	var hint := _label("先认识小镇，再开始上班", 18, Color("7a5533"))
+	var hint := _label("预演选择不计入正式测评", 18, Color("7a5533"))
 	hint.position = Vector2(510, 828)
 	hint.size = Vector2(550, 60)
 	frame.add_child(hint)
@@ -556,13 +406,19 @@ func _footer(frame: Panel) -> void:
 	skip.pressed.connect(_start_avatar_selection)
 	frame.add_child(skip)
 
-	var next := _intro_button("选择形象" if _page == PAGES.size() - 1 else "继续")
+	var next := _intro_button("去选择形象" if _page == PAGES.size() - 1 else "继续")
 	next.position = Vector2(1445, 828)
 	next.size = Vector2(200, 60)
+	next.disabled = _intro_answers[_page] < 0
 	next.pressed.connect(_start_avatar_selection if _page == PAGES.size() - 1 else func(): _go_page(_page + 1))
 	frame.add_child(next)
 
-func _start_intro() -> void: _mode = "intro"; _page = 0; _rebuild()
+func _start_intro() -> void:
+	_mode = "intro"
+	_page = 0
+	_last_intro_page = 0
+	_intro_answers = [-1, -1]
+	_rebuild()
 
 ## 继续游戏：跳过导览直接进小镇，不重写 profile（保留上次开局留下的文件）。
 ## ⚠ 当前存档粒度只有「玩过没有」——真正的进度续玩（currentNodeId / 月份 / 精力落盘）
@@ -570,7 +426,9 @@ func _start_intro() -> void: _mode = "intro"; _page = 0; _rebuild()
 func _continue_game() -> void:
 	get_tree().change_scene_to_file("res://Main.tscn")
 
-func _back() -> void: _mode = "title"; _rebuild()
+func _back() -> void:
+	_mode = "title"
+	_rebuild()
 func _go_page(index: int) -> void: _page = clampi(index, 0, PAGES.size() - 1); _rebuild()
 func _placeholder() -> void: pass
 
@@ -586,6 +444,7 @@ func _enter_town() -> void:
 
 
 func _start_avatar_selection() -> void:
+	_last_intro_page = _page
 	_mode = "avatar"
 	_rebuild()
 
@@ -599,10 +458,10 @@ func _avatar_screen() -> void:
 	var back := _button("返回", "secondary")
 	back.position = Vector2(36, 34)
 	back.size = Vector2(132, 60)
-	back.pressed.connect(func() -> void: _mode = "intro"; _page = PAGES.size() - 1; _rebuild())
+	back.pressed.connect(func() -> void: _mode = "intro"; _page = _last_intro_page; _rebuild())
 	frame.add_child(back)
 
-	var kicker := _label("准备入职", 22, BRICK)
+	var kicker := _label("入职登记", 22, BRICK)
 	kicker.position = Vector2(250, 54)
 	kicker.size = Vector2(1200, 32)
 	frame.add_child(kicker)

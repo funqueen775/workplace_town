@@ -10,18 +10,18 @@
   "unlocks": {
    "note": "组团按月份阶段开放（2026-09-16 用户拍板：不分局，一局跑完 48 个月；原 game1/2/3 即阶段 1/2/3，只是月份区间，不是独立的一局）。",
    "stage1_months_1_16": [
-    "A_总部",
-    "B_科技丘",
-    "C_水巷",
+    "A_市场部",
+    "B_研发部",
+    "C_销售部",
     "心湖",
-    "E_训练谷"
+    "E_财务部"
    ],
    "stage2_months_17_32": [
-    "D_树影书院",
-    "H_慢生活园"
+    "D_人事部",
+    "H_生产部"
    ],
    "stage3_months_33_48": [],
-   "_stage3_todo": "阶段 3 暂无专属组团：原设计把 F_会展码头 / G_康护院 放在这一档，但这两组团当前零活动。补上活动后，把名字挪进 stage3_months_33_48。",
+   "_stage3_todo": "阶段 3 暂无专属组团：原设计把 F_运营部 / G_行政部 放在这一档，但这两组团当前零活动。补上活动后，把名字挪进 stage3_months_33_48。",
    "_field_note": "活动真正的门槛看 activity.unlock_game（值 = 阶段号，与上表同义）；本表只是文档，代码不读它。"
   }
  },
@@ -122,7 +122,7 @@
  "activities": [
   {
    "activity_id": "S1_library_study",
-   "zone": "D_树影书院",
+   "zone": "D_人事部",
    "unlock_game": 2,
    "type": "solo",
    "party_size": 1,
@@ -177,7 +177,7 @@
   },
   {
    "activity_id": "S3_rooftop_breeze",
-   "zone": "A_总部",
+   "zone": "A_市场部",
    "type": "solo",
    "party_size": 1,
    "estimated_seconds": 20,
@@ -221,7 +221,7 @@
   },
   {
    "activity_id": "S4_weekend_overtime",
-   "zone": "B_科技丘",
+   "zone": "B_研发部",
    "type": "solo",
    "party_size": 1,
    "estimated_seconds": 20,
@@ -265,7 +265,7 @@
   },
   {
    "activity_id": "D1_coffee_chat",
-   "zone": "C_水巷",
+   "zone": "C_销售部",
    "type": "duo",
    "party_size": 2,
    "candidates": [
@@ -389,7 +389,7 @@
   },
   {
    "activity_id": "D3_lawn_sports",
-   "zone": "E_训练谷",
+   "zone": "E_财务部",
    "type": "duo",
    "party_size": 2,
    "candidates": [
@@ -447,7 +447,7 @@
   },
   {
    "activity_id": "D4_camp_bbq",
-   "zone": "E_训练谷",
+   "zone": "E_财务部",
    "type": "duo",
    "party_size": 2,
    "candidates": [
@@ -511,7 +511,7 @@
   },
   {
    "activity_id": "D5_study_together",
-   "zone": "D_树影书院",
+   "zone": "D_人事部",
    "unlock_game": 2,
    "type": "duo",
    "party_size": 2,
@@ -587,7 +587,7 @@
   },
   {
    "activity_id": "G1_trust_escape_room",
-   "zone": "E_训练谷",
+   "zone": "E_财务部",
    "type": "group",
    "party_size": 3,
    "candidates": [
@@ -664,7 +664,7 @@
   },
   {
    "activity_id": "G2_campfire",
-   "zone": "E_训练谷",
+   "zone": "E_财务部",
    "type": "group",
    "party_size": "2-3",
    "candidates": [
@@ -733,7 +733,7 @@
   },
   {
    "activity_id": "G3_board_game",
-   "zone": "H_慢生活园",
+   "zone": "H_生产部",
    "unlock_game": 2,
    "type": "group",
    "party_size": 3,
@@ -792,7 +792,7 @@
   },
   {
    "activity_id": "G4_annual_show_rehearsal",
-   "zone": "A_总部",
+   "zone": "A_市场部",
    "type": "team",
    "party_size": "team",
    "estimated_seconds": 40,
@@ -850,7 +850,7 @@
   },
   {
    "activity_id": "W1_reproduce_paper",
-   "zone": "D_树影书院|B_科技丘",
+   "zone": "D_人事部|B_研发部",
    "type": "work",
    "party_size": 1,
    "estimated_seconds": 40,
@@ -894,7 +894,7 @@
   },
   {
    "activity_id": "W2_own_project",
-   "zone": "B_科技丘|H_慢生活园",
+   "zone": "B_研发部|H_生产部",
    "type": "work",
    "party_size": 1,
    "estimated_seconds": 50,
@@ -945,7 +945,7 @@
   },
   {
    "activity_id": "W3_tech_blog",
-   "zone": "D_树影书院|A_总部",
+   "zone": "D_人事部|A_市场部",
    "type": "work",
    "party_size": 1,
    "estimated_seconds": 40,
@@ -989,7 +989,7 @@
   },
   {
    "activity_id": "W4_team_tool",
-   "zone": "B_科技丘",
+   "zone": "B_研发部",
    "type": "work",
    "party_size": 1,
    "estimated_seconds": 40,
@@ -1034,7 +1034,7 @@
   },
   {
    "activity_id": "W5_postmortem_notes",
-   "zone": "B_科技丘",
+   "zone": "B_研发部",
    "type": "work",
    "party_size": 1,
    "estimated_seconds": 30,

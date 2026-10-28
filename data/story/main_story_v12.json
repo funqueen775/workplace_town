@@ -274,7 +274,7 @@
         }
       ],
       "month": 1,
-      "location": "B科技丘工位",
+      "location": "B研发部工位",
       "durationMinutes": 55,
       "hour": 9,
       "choices": [
@@ -364,7 +364,7 @@
         }
       ],
       "month": 2,
-      "location": "A总部小会议室",
+      "location": "A市场部小会议室",
       "durationMinutes": 15,
       "hour": 9,
       "choices": [
@@ -455,7 +455,7 @@
         }
       ],
       "month": 3,
-      "location": "B科技丘工位",
+      "location": "B研发部工位",
       "durationMinutes": 15,
       "hour": 23,
       "choices": [
@@ -533,7 +533,7 @@
         }
       ],
       "month": 4,
-      "location": "A总部评审室",
+      "location": "A市场部评审室",
       "durationMinutes": 15,
       "hour": 9,
       "choices": [
@@ -625,7 +625,7 @@
         }
       ],
       "month": 5,
-      "location": "B科技丘工位",
+      "location": "B研发部工位",
       "durationMinutes": 15,
       "hour": 9,
       "choices": [
@@ -706,7 +706,7 @@
         }
       ],
       "month": 5,
-      "location": "B科技丘技术评审角",
+      "location": "B研发部技术评审角",
       "durationMinutes": 15,
       "hour": 9,
       "choices": [
@@ -822,7 +822,7 @@
         }
       ],
       "month": 6,
-      "location": "A总部复盘会议室",
+      "location": "A市场部复盘会议室",
       "durationMinutes": 55,
       "hour": 9,
       "choices": [
@@ -914,7 +914,7 @@
         }
       ],
       "month": 8,
-      "location": "C创意水巷咖啡外摆",
+      "location": "C销售部咖啡外摆",
       "durationMinutes": 15,
       "hour": 15,
       "choices": [
@@ -991,7 +991,7 @@
         }
       ],
       "month": 9,
-      "location": "B科技丘工位",
+      "location": "B研发部工位",
       "durationMinutes": 15,
       "hour": 23,
       "choices": [
@@ -1096,7 +1096,7 @@
         }
       ],
       "month": 10,
-      "location": "C创意水巷客户展厅",
+      "location": "C销售部客户展厅",
       "durationMinutes": 55,
       "hour": 9,
       "choices": [
@@ -1174,7 +1174,7 @@
         }
       ],
       "month": 11,
-      "location": "B科技丘工位",
+      "location": "B研发部工位",
       "durationMinutes": 15,
       "hour": 9,
       "choices": [
@@ -1266,7 +1266,7 @@
         }
       ],
       "month": 12,
-      "location": "B科技丘工位",
+      "location": "B研发部工位",
       "durationMinutes": 15,
       "hour": 23,
       "choices": [
@@ -1351,7 +1351,7 @@
         }
       ],
       "month": 13,
-      "location": "A总部技术评审会",
+      "location": "A市场部技术评审会",
       "durationMinutes": 15,
       "hour": 9,
       "choices": [
@@ -1441,7 +1441,7 @@
         }
       ],
       "month": 14,
-      "location": "B科技丘工位",
+      "location": "B研发部工位",
       "durationMinutes": 55,
       "hour": 23,
       "choices": [
@@ -1518,7 +1518,7 @@
         }
       ],
       "month": 15,
-      "location": "A总部会议室",
+      "location": "A市场部会议室",
       "durationMinutes": 15,
       "hour": 9,
       "choices": [
@@ -1602,7 +1602,7 @@
         }
       ],
       "month": 16,
-      "location": "B科技丘工位",
+      "location": "B研发部工位",
       "durationMinutes": 15,
       "hour": 9,
       "choices": [
@@ -1680,7 +1680,7 @@
         }
       ],
       "month": 17,
-      "location": "B科技丘工位",
+      "location": "B研发部工位",
       "durationMinutes": 15,
       "hour": 9,
       "choices": [
@@ -1765,7 +1765,7 @@
         }
       ],
       "month": 18,
-      "location": "B科技丘工位",
+      "location": "B研发部工位",
       "durationMinutes": 15,
       "hour": 1,
       "choices": [
@@ -1865,7 +1865,7 @@
         }
       ],
       "month": 20,
-      "location": "F观澜会展码头路演台",
+      "location": "F运营部路演台",
       "durationMinutes": 55,
       "hour": 9,
       "choices": [
@@ -1951,7 +1951,7 @@
         }
       ],
       "month": 21,
-      "location": "A总部汇报室",
+      "location": "A市场部汇报室",
       "durationMinutes": 15,
       "hour": 9,
       "choices": [
@@ -2063,7 +2063,7 @@
         }
       ],
       "month": 22,
-      "location": "A总部追责会议室",
+      "location": "A市场部追责会议室",
       "durationMinutes": 55,
       "hour": 9,
       "choices": [
@@ -2155,7 +2155,7 @@
         }
       ],
       "month": 23,
-      "location": "A总部小办公室",
+      "location": "A市场部小办公室",
       "durationMinutes": 15,
       "hour": 9,
       "choices": [
@@ -2240,7 +2240,7 @@
         }
       ],
       "month": 24,
-      "location": "B科技丘工位",
+      "location": "B研发部工位",
       "durationMinutes": 15,
       "hour": 9,
       "choices": [
@@ -2339,7 +2339,7 @@
         }
       ],
       "month": 25,
-      "location": "B科技丘工位",
+      "location": "B研发部工位",
       "durationMinutes": 55,
       "hour": 23,
       "choices": [
@@ -2416,7 +2416,7 @@
         }
       ],
       "month": 27,
-      "location": "A总部白板室",
+      "location": "A市场部白板室",
       "durationMinutes": 15,
       "hour": 9,
       "choices": [
@@ -2509,7 +2509,7 @@
         }
       ],
       "month": 28,
-      "location": "A总部评审室",
+      "location": "A市场部评审室",
       "durationMinutes": 15,
       "hour": 9,
       "choices": [
@@ -2616,7 +2616,7 @@
         }
       ],
       "month": 29,
-      "location": "A总部合规办公室",
+      "location": "A市场部合规办公室",
       "durationMinutes": 55,
       "hour": 9,
       "choices": [
@@ -2708,7 +2708,7 @@
         }
       ],
       "month": 31,
-      "location": "B科技丘工位",
+      "location": "B研发部工位",
       "durationMinutes": 15,
       "hour": 23,
       "choices": [
@@ -2793,7 +2793,7 @@
         }
       ],
       "month": 32,
-      "location": "C创意水巷咖啡座",
+      "location": "C销售部咖啡座",
       "durationMinutes": 15,
       "hour": 15,
       "choices": [
@@ -2902,7 +2902,7 @@
         }
       ],
       "month": 33,
-      "location": "B科技丘工位",
+      "location": "B研发部工位",
       "durationMinutes": 55,
       "hour": 9,
       "choices": [
@@ -2979,7 +2979,7 @@
         }
       ],
       "month": 34,
-      "location": "D树影书院或B工位",
+      "location": "D人事部或B研发部工位",
       "durationMinutes": 15,
       "hour": 9,
       "choices": [
@@ -3065,7 +3065,7 @@
         }
       ],
       "month": 35,
-      "location": "A总部白板室",
+      "location": "A市场部白板室",
       "durationMinutes": 15,
       "hour": 9,
       "choices": [
@@ -3142,7 +3142,7 @@
         }
       ],
       "month": 36,
-      "location": "A总部大会议室",
+      "location": "A市场部大会议室",
       "durationMinutes": 15,
       "hour": 9,
       "choices": [
@@ -3219,7 +3219,7 @@
         }
       ],
       "month": 37,
-      "location": "H慢生活园宿舍",
+      "location": "H生产部宿舍",
       "durationMinutes": 15,
       "hour": 21,
       "choices": [
@@ -3315,7 +3315,7 @@
         }
       ],
       "month": 38,
-      "location": "A总部公告栏前",
+      "location": "A市场部公告栏前",
       "durationMinutes": 55,
       "hour": 9,
       "choices": [
@@ -3407,7 +3407,7 @@
         }
       ],
       "month": 40,
-      "location": "C创意水巷产品讨论区",
+      "location": "C销售部产品讨论区",
       "durationMinutes": 15,
       "hour": 9,
       "choices": [
@@ -3503,7 +3503,7 @@
         }
       ],
       "month": 42,
-      "location": "A总部走廊或楼梯间",
+      "location": "A市场部走廊或楼梯间",
       "durationMinutes": 55,
       "hour": 21,
       "choices": [
@@ -3581,7 +3581,7 @@
         }
       ],
       "month": 44,
-      "location": "B科技丘工位",
+      "location": "B研发部工位",
       "durationMinutes": 15,
       "hour": 9,
       "choices": [
@@ -3677,7 +3677,7 @@
         }
       ],
       "month": 48,
-      "location": "A总部大会议室",
+      "location": "A市场部大会议室",
       "durationMinutes": 55,
       "hour": 9,
       "choices": [
