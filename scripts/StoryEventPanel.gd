@@ -31,6 +31,9 @@ signal handbook_recorded(event_id: String, records: Dictionary)
 ## 便签是心湖记忆墙的唯一数据源：落了盘，玩家下次进游戏还能翻到自己当时贴了什么；
 ## 不落盘它就只是"弹一下就没了"的装饰。
 signal memo_recorded(event_id: String, memo: Dictionary)
+## 每一拍过手时对外广播一次：带巡要按某一句台词立门（beat 上的 hook），
+## 面板自己不懂这些，只管把 beat 原样递出来。
+signal beat_reached(event_id: String, beat_index: int, beat: Dictionary)
 
 const HANDBOOK := preload("res://scripts/HandbookPanel.gd")
 const TORN_BUBBLE := preload("res://scripts/ui/TornBubble.gd")
@@ -78,6 +81,8 @@ const NOTE_TONE := {
 	"gold": Color("f2c14e"),
 	"gray": Color("9aa2ab"),
 }
+## 关键词强调色：比正文深一档的砖红，米色纸面上够跳，又不会被读成"危险"。
+const EMPHASIS_INK := Color("8f3a26")
 
 const BUBBLE_FILL := Color(0.05, 0.05, 0.07, 0.95)
 const BUBBLE_FILL_HOT := Color(0.14, 0.13, 0.17, 0.97)
@@ -101,6 +106,7 @@ var _entry_card: Control
 var _entry_age := 0.0
 var _top_bar: Control
 var _typewriter_label: Label
+var _typewriter_rich: RichTextLabel
 var _typewriter_full := ""
 var _typewriter_shown := 0
 var _typewriter_timer: Timer
@@ -308,7 +314,15 @@ func _build_top_bar() -> void:
 
 
 ## 事件卡上的时间戳：只用事件自带的 month / day / hour，不另外读时钟。
+## 十二个月这条线不摆"几号几点"（开发文档：只说月 + 旬 + 时段），
+## 所以 dateStyle 是 xun 的时候报旬位；老 48 个月那条线照旧。
 func clock_text() -> String:
+	if String(_event.get("dateStyle", "")) == "xun":
+		return "第 %d 月 · %s · %s" % [
+			int(_event.get("month", 1)),
+			_xun_label(String(_event.get("phase", "early"))),
+			_time_word(int(_event.get("hour", 9))),
+		]
 	return "第 %d 月 %d 日 · %02d:00" % [
 		int(_event.get("month", 1)), int(_event.get("day", 1)), int(_event.get("hour", 9)),
 	]
@@ -316,26 +330,44 @@ func clock_text() -> String:
 
 ## 日期牌的显示口径：月/日 + 周几 + 时段，和 WorldClock 的 30 天月制对齐（不做真实历法）。
 func _date_stamp(month: int, day: int, hour: int) -> Dictionary:
+	# 十二个月这条线只认"月 + 旬 + 时段"（开发文档：月份表故事进程，上中下旬表月内状态）。
+	# 老 48 个月那条线照旧用月/日 + 周几。
+	if String(_event.get("dateStyle", "")) == "xun":
+		return {
+			"date": "第 %d 月" % maxi(month, 1),
+			"weekday": _xun_label(String(_event.get("phase", "early"))),
+			"phase": _time_word(hour),
+		}
 	const WEEKDAYS := ["周一", "周二", "周三", "周四", "周五", "周六", "周日"]
 	var total := (maxi(month, 1) - 1) * 30 + (maxi(day, 1) - 1)
-	var phase := "上午"
-	if hour < 6:
-		phase = "深夜"
-	elif hour < 8:
-		phase = "清晨"
-	elif hour < 12:
-		phase = "上午"
-	elif hour < 17:
-		phase = "下午"
-	elif hour < 19:
-		phase = "傍晚"
-	else:
-		phase = "夜晚"
+	var phase := _time_word(hour)
 	return {
 		"date": "%d/%d" % [maxi(month, 1), maxi(day, 1)],
 		"weekday": WEEKDAYS[posmod(total, 7)],
 		"phase": phase,
 	}
+
+
+func _time_word(hour: int) -> String:
+	if hour < 6:
+		return "深夜"
+	if hour < 8:
+		return "清晨"
+	if hour < 12:
+		return "上午"
+	if hour < 17:
+		return "下午"
+	if hour < 19:
+		return "傍晚"
+	return "夜晚"
+
+
+func _xun_label(phase: String) -> String:
+	if phase == "mid":
+		return "中旬"
+	if phase == "late":
+		return "下旬"
+	return "上旬"
 
 
 ## cast 兼容两种写法：
@@ -373,6 +405,7 @@ func _next_beat() -> void:
 		_finish_without_choice()
 		return
 	var beat := Dictionary(_beats[_beat_index])
+	beat_reached.emit(String(_event.get("id", "")), _beat_index, beat)
 	match String(beat.get("type", "say")):
 		"say":
 			_show_say(beat)
@@ -381,7 +414,7 @@ func _next_beat() -> void:
 		"choice":
 			_show_choices(String(beat.get("prompt", "")))
 		_:
-			_show_narration(String(beat.get("text", "")))
+			_show_narration(String(beat.get("text", "")), beat.get("emphasis", []) as Array)
 
 
 ## 说话拍：气泡 + 名字牌 + 立绘聚焦。
@@ -393,13 +426,11 @@ func _show_say(beat: Dictionary) -> void:
 	var profile := _speaker_profile(speaker_id)
 	var portrait_name := _portrait_name(String(profile.get("name", speaker_id)))
 	var bubble := _make_dialogue_frame(true)
-	var body := _label("", 30, Color("56301e"), true)
+	var body := _emphasis_label(text, 30, beat.get("emphasis", []) as Array)
 	body.position = Vector2(520.0, 72.0) if not portrait_name.is_empty() else Vector2(95.0, 72.0)
 	body.size = Vector2(bubble.size.x - body.position.x - 90.0, bubble.size.y - 118.0)
-	body.vertical_alignment = VERTICAL_ALIGNMENT_TOP
-	body.add_theme_constant_override("line_spacing", 14)
 	bubble.add_child(body)
-	_typewriter_label = body
+	_typewriter_rich = body
 	_start_typewriter(text)
 	if not portrait_name.is_empty():
 		var expression := String(beat.get("expression", ""))
@@ -411,17 +442,15 @@ func _show_say(beat: Dictionary) -> void:
 
 
 ## 旁白拍：没有名字、没有立绘聚焦。玩家在看场景，不是在看人。
-func _show_narration(text: String) -> void:
+func _show_narration(text: String, emphasis: Array = []) -> void:
 	_stage = "narration"
 	_clear_ui()
 	var bubble := _make_dialogue_frame(false)
-	var body := _label("", 29, Color("56301e"), true)
+	var body := _emphasis_label(text, 29, emphasis)
 	body.position = Vector2(92.0, 62.0)
 	body.size = Vector2(bubble.size.x - 184.0, bubble.size.y - 118.0)
-	body.vertical_alignment = VERTICAL_ALIGNMENT_TOP
-	body.add_theme_constant_override("line_spacing", 14)
 	bubble.add_child(body)
-	_typewriter_label = body
+	_typewriter_rich = body
 	_start_typewriter(text)
 	_add_dialogue_hint(bubble)
 
@@ -522,13 +551,11 @@ func _show_outcome(choice_id: String) -> void:
 	_clear_ui()
 	var text := _outcome_text(choice_id)
 	var bubble := _make_dialogue_frame(false)
-	var body := _label("", 28, Color("56301e"), true)
+	var body := _emphasis_label(text, 28, _choice_emphasis(choice_id), 10)
 	body.position = Vector2(92.0, 57.0)
 	body.size = Vector2(bubble.size.x - 184.0, bubble.size.y - 123.0)
-	body.vertical_alignment = VERTICAL_ALIGNMENT_TOP
-	body.add_theme_constant_override("line_spacing", 10)
 	bubble.add_child(body)
-	_typewriter_label = body
+	_typewriter_rich = body
 	_start_typewriter(text)
 	var echo := _label("你选择了 · %s" % _choice_text(choice_id), 18, Color("9b6a48"))
 	echo.position = Vector2(92.0, bubble.size.y - 70.0)
@@ -661,34 +688,55 @@ func _advance() -> void:
 func _start_typewriter(text: String) -> void:
 	_typewriter_full = text
 	_typewriter_shown = 0
-	if is_instance_valid(_typewriter_label):
-		_typewriter_label.text = text if reduced_motion else ""
-		if reduced_motion:
-			_typewriter_shown = text.length()
-		else:
-			_typewriter_timer.wait_time = [0.05, TYPE_INTERVAL, 0.008][clampi(text_speed, 0, 2)]
-			_typewriter_timer.start()
+	if not _has_typewriter_target():
+		return
+	if reduced_motion:
+		_typewriter_shown = _visible_total()
+		_set_typewriter_progress(-1)
+	else:
+		_set_typewriter_progress(0)
+		_typewriter_timer.wait_time = [0.05, TYPE_INTERVAL, 0.008][clampi(text_speed, 0, 2)]
+		_typewriter_timer.start()
 
 
 func _tick_typewriter() -> void:
-	if not is_instance_valid(_typewriter_label):
+	if not _has_typewriter_target():
 		_stop_typewriter()
 		return
-	_typewriter_shown = mini(_typewriter_shown + 2, _typewriter_full.length())
-	_typewriter_label.text = _typewriter_full.substr(0, _typewriter_shown)
-	if _typewriter_shown >= _typewriter_full.length():
+	var total := _visible_total()
+	_typewriter_shown = mini(_typewriter_shown + 2, total)
+	_set_typewriter_progress(_typewriter_shown)
+	if _typewriter_shown >= total:
 		_stop_typewriter()
 
 
 func _is_typing() -> bool:
-	return _typewriter_shown < _typewriter_full.length()
+	return _has_typewriter_target() and _typewriter_shown < _visible_total()
 
 
 func _finish_typewriter() -> void:
-	_typewriter_shown = _typewriter_full.length()
-	if is_instance_valid(_typewriter_label):
-		_typewriter_label.text = _typewriter_full
+	_typewriter_shown = _visible_total()
+	_set_typewriter_progress(-1)
 	_stop_typewriter()
+
+
+func _has_typewriter_target() -> bool:
+	return is_instance_valid(_typewriter_rich) or is_instance_valid(_typewriter_label)
+
+
+## 强调用的是 BBCode，字符数得按"看得见的字"算，不然打字机会把标签也算进去。
+func _visible_total() -> int:
+	if is_instance_valid(_typewriter_rich):
+		return _typewriter_rich.get_total_character_count()
+	return _typewriter_full.length()
+
+
+func _set_typewriter_progress(count: int) -> void:
+	if is_instance_valid(_typewriter_rich):
+		# -1 = 全部显示；RichTextLabel 自己会跳过 BBCode 标签。
+		_typewriter_rich.visible_characters = count
+	elif is_instance_valid(_typewriter_label):
+		_typewriter_label.text = _typewriter_full.substr(0, maxi(count, 0))
 
 
 func _stop_typewriter() -> void:
@@ -901,6 +949,8 @@ func _add_key_hint(bubble: Control, text: String) -> void:
 func _clear_ui() -> void:
 	for child in _ui_layer.get_children():
 		child.queue_free()
+	_typewriter_label = null
+	_typewriter_rich = null
 	_entry_fade = null
 	_entry_card = null
 
@@ -1018,6 +1068,56 @@ func _label(value: String, font_size: int, color: Color, bold: bool = false) -> 
 	label.add_theme_font_size_override("font_size", roundi(font_size * (1.12 if large_text else 1.0)))
 	label.add_theme_color_override("font_color", color)
 	return label
+
+
+## 台词正文。强调短语来自 beat 的 emphasis 数组（数据里仍是干净原文），
+## 这里只负责把关键词包成"更重的字重 + 砖红"，其余字保持原样。
+func _emphasis_label(text: String, font_size: int, emphasis: Array, spacing: int = 14) -> RichTextLabel:
+	var rich := RichTextLabel.new()
+	rich.bbcode_enabled = true
+	rich.scroll_active = false
+	rich.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	rich.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# RichTextLabel 的 line_spacing 属性是枚举，像素间距要走主题常量。
+	rich.add_theme_constant_override("line_spacing", spacing)
+	var size := roundi(font_size * (1.12 if large_text else 1.0))
+	rich.add_theme_font_override("normal_font", _bold(FONT, 0.6))
+	rich.add_theme_font_override("bold_font", _bold(FONT, 1.0))
+	rich.add_theme_font_size_override("normal_font_size", size)
+	rich.add_theme_font_size_override("bold_font_size", size)
+	rich.add_theme_color_override("default_color", Color("56301e"))
+	rich.text = _markup(text, emphasis)
+	return rich
+
+
+func _markup(text: String, emphasis: Array) -> String:
+	var phrases: Array[String] = []
+	for value in emphasis:
+		var phrase := String(value)
+		if not phrase.is_empty() and text.contains(phrase):
+			phrases.append(phrase)
+	# 长的先包，避免短词把长词劈成两截。
+	phrases.sort_custom(func(a, b): return a.length() > b.length())
+	var result := text
+	var done: Array[String] = []
+	for phrase in phrases:
+		var covered := false
+		for earlier in done:
+			if earlier.contains(phrase):
+				covered = true
+				break
+		if covered:
+			continue
+		result = result.replace(phrase, "[color=#%s][b]%s[/b][/color]" % [EMPHASIS_INK.to_html(false), phrase])
+		done.append(phrase)
+	return result
+
+
+func _choice_emphasis(choice_id: String) -> Array:
+	for value in _event.get("choices", []) as Array:
+		if value is Dictionary and String((value as Dictionary).get("id", "")) == choice_id:
+			return (value as Dictionary).get("emphasis", []) as Array
+	return []
 
 
 func _note_style(fill: Color) -> StyleBoxFlat:
