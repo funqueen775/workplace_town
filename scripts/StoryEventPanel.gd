@@ -426,7 +426,12 @@ func _show_say(beat: Dictionary) -> void:
 	var profile := _speaker_profile(speaker_id)
 	var portrait_name := _portrait_name(String(profile.get("name", speaker_id)))
 	var bubble := _make_dialogue_frame(true)
-	var body := _emphasis_label(text, 30, beat.get("emphasis", []) as Array)
+	# 有词可点时，把那个词本身也标亮：光有一颗点在角上，玩家不知道句里哪个词能点。
+	var term := _matched_term(text)
+	var marks: Array = (beat.get("emphasis", []) as Array).duplicate()
+	if not term.is_empty():
+		marks.append(String(term.get("word", "")))
+	var body := _emphasis_label(text, 30, marks)
 	body.position = Vector2(520.0, 72.0) if not portrait_name.is_empty() else Vector2(95.0, 72.0)
 	body.size = Vector2(bubble.size.x - body.position.x - 90.0, bubble.size.y - 118.0)
 	bubble.add_child(body)
@@ -439,7 +444,7 @@ func _show_say(beat: Dictionary) -> void:
 		_add_speaker_portrait(portrait_name, expression)
 	_add_asset_name_plate(bubble, profile, speaker_id)
 	_add_dialogue_hint(bubble)
-	_add_term_dot(bubble, text)
+	_add_term_dot(bubble, term)
 
 
 ## 旁白拍：没有名字、没有立绘聚焦。玩家在看场景，不是在看人。
@@ -447,14 +452,18 @@ func _show_narration(text: String, emphasis: Array = []) -> void:
 	_stage = "narration"
 	_clear_ui()
 	var bubble := _make_dialogue_frame(false)
-	var body := _emphasis_label(text, 29, emphasis)
+	var term := _matched_term(text)
+	var marks: Array = emphasis.duplicate()
+	if not term.is_empty():
+		marks.append(String(term.get("word", "")))
+	var body := _emphasis_label(text, 29, marks)
 	body.position = Vector2(92.0, 62.0)
 	body.size = Vector2(bubble.size.x - 184.0, bubble.size.y - 118.0)
 	bubble.add_child(body)
 	_typewriter_rich = body
 	_start_typewriter(text)
 	_add_dialogue_hint(bubble)
-	_add_term_dot(bubble, text)
+	_add_term_dot(bubble, term)
 
 
 ## 可交互拍：不推进剧情，等玩家去碰它。
@@ -862,8 +871,7 @@ func _matched_term(text: String) -> Dictionary:
 	return {}
 
 
-func _add_term_dot(frame: Control, text: String) -> void:
-	var term := _matched_term(text)
+func _add_term_dot(frame: Control, term: Dictionary) -> void:
 	if term.is_empty():
 		return
 	var dot := Button.new()
@@ -888,7 +896,7 @@ func _add_term_dot(frame: Control, text: String) -> void:
 ## 呼吸四秒后自己停，字跟着淡掉；玩家点过一次之后就再也不出现。
 func _add_term_hint(frame: Control, dot: Button) -> void:
 	# 气泡是浅色纸，米白字会直接融进去——用砖棕，跟那颗点同一个颜色家族。
-	var hint := _label("这个词能点，问一句人话", 20, Color("a8552e"), true)
+	var hint := _label("发亮那个词，点一下", 20, Color("a8552e"), true)
 	hint.name = "TermHint"
 	hint.position = Vector2(frame.size.x - 470.0, 30.0)
 	hint.size = Vector2(392.0, 30.0)
