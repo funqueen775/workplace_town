@@ -47,9 +47,24 @@ func _play_month(month_value: int) -> void:
 	print("== 第 %d 月" % month_value)
 	_town.call("debug_jump_to_month", month_value, _seed_path)
 	await get_tree().create_timer(2.4).timeout
+	# 月首卡会挡在剧情前面：先关掉它再往下走（2026-10-29 新增）。
+	var start_panel = _town.get("_month12_start_panel")
+	if start_panel != null and is_instance_valid(start_panel) and bool(start_panel.call("is_open")):
+		start_panel.emit_signal("continued")
+		await get_tree().create_timer(0.8).timeout
 	await _shot(tag + "_01_开场")
+	var _dbg_tick := 0
 	for step in 700:
 		await get_tree().create_timer(0.06).timeout
+		_dbg_tick += 1
+		if _dbg_tick % 25 == 0:
+			var dbg_runner = _town.get("_month_runner")
+			print("  · 相位=%s 节点=%s 等走位=%s 面板=%s 玩家=%s" % [
+				String(_town.get("_month12_phase")),
+				String((dbg_runner.get("current") as Dictionary).get("id", "")) if dbg_runner != null else "-",
+				str(bool(dbg_runner.get("waiting_walk"))) if dbg_runner != null else "-",
+				str(bool(_town.get("_story_event_panel").call("is_open"))) if _town.get("_story_event_panel") != null else "-",
+				_town.get("_player").position])
 		var phase := String(_town.get("_month12_phase"))
 		if phase == "close":
 			await get_tree().create_timer(0.5).timeout
@@ -88,11 +103,20 @@ func _play_month(month_value: int) -> void:
 		var waypoint: Vector2 = _town.get("_month12_waypoint")
 		if runner2 != null and bool(runner2.get("waiting_walk")) and waypoint.x > -90000.0:
 			var walker: Node2D = _town.get("_player")
+			if _once(tag + "_pos_" + String((runner2.get("current") as Dictionary).get("id", ""))):
+				print("走位 %s：任务卡副行「%s」· 玩家在 %s，落点 %s，直线距离 %.0f" % [
+					String((runner2.get("current") as Dictionary).get("id", "")),
+					String((_town.get("_town_ui_v2").get("_task_note") as Label).text),
+					walker.position, waypoint, walker.position.distance_to(waypoint)])
 			if _once(tag + "_walk_%s" % String((runner2.get("current") as Dictionary).get("id", ""))):
 				walker.position = waypoint - Vector2(240, 0)
 				await get_tree().create_timer(0.5).timeout
 				await _shot(tag + "_30_跟着走_%s" % String((runner2.get("current") as Dictionary).get("id", "")))
-			walker.position = waypoint
+			# 一步步走过去（不瞬移），让游戏的到达判定和读秒兜底都真跑一遍
+			if walker.position.distance_to(waypoint) > 24.0:
+				walker.position += (waypoint - walker.position).normalized() * 24.0
+			else:
+				walker.position = waypoint
 			continue
 	await get_tree().create_timer(0.6).timeout
 	# 月末卡是排过一场"天黑"过场才开的，队列里可能还压着一次开卡：
