@@ -4,9 +4,9 @@ extends Node
 ## 按事件表播一个月的流程（B 方案）：只认五种屏。
 ##
 ##   剧情面板 main_story / 手册 handbook / 手机 phone_batch / 月末 month_close
-##   —— 走到某地是 main_story 上的一个开关（walk），不是第六种屏。
+##   —— main_story 一律先走到 location 才开，不看数据里的 walk 标记，也不给瞬移。
 ##
-## 城镇侧提供六件事：播剧情、设黄线、瞬移、解锁手册、投递手机、开月末卡。
+## 城镇侧提供五件事：播剧情、设黄线、解锁手册、投递手机、开月末卡。
 ## 这里不碰任何数值和旗标：选项一确认就交回城镇记账，回来只问"下一步"。
 
 var town: Node
@@ -37,6 +37,17 @@ func on_panel_closed() -> void:
 	# 面板是在发完这个信号之后才收尾的：同一帧里开下一屏会被它自己关掉，
 	# 所以延后一帧再开。
 	call_deferred("_next")
+
+
+## 下一屏（跳过不满足条件的）：收尾那句"按谁谁的安排，去哪儿"要用它。
+func peek_next() -> Dictionary:
+	var i := index
+	while i < nodes.size():
+		var n: Dictionary = nodes[i]
+		i += 1
+		if _passes(n):
+			return n
+	return {}
 
 
 ## 走到黄线终点。城镇在到达判定里叫它。
@@ -76,8 +87,9 @@ func _dispatch(node: Dictionary) -> void:
 		_next()
 		return
 	if type == "phone_batch":
-		town.call("runner_deliver_phone", node)
-		_next()
+		# 城镇说这批消息是前置（requireRead）时不往下走：等玩家看完收件箱再继续。
+		if not bool(town.call("runner_deliver_phone", node)):
+			_next()
 		return
 	if type == "month_close":
 		town.call("runner_open_close", node)
@@ -87,19 +99,20 @@ func _dispatch(node: Dictionary) -> void:
 		# 城镇跑完会回调 _next，这里不能自己往下走。
 		town.call("runner_open_activity", node)
 		return
-	# main_story：要走的先铺黄线，走到再弹；不用走的直接弹（开场那一屏就是切场）。
-	if bool(node.get("walk", false)):
-		waiting_walk = true
-		town.call("runner_walk_to", node)
-		return
-	town.call("runner_present_story", node)
+	# 剧情一律走到才开：首月 E01 是手写开场，不经过这里；其余不再看 walk 标记。
+	waiting_walk = true
+	town.call("runner_walk_to", node)
 
 
-## 条件只认一种写法：when.flag —— 旗标存在且为真才播。
+## 条件两种写法：when.flag 成立才播；when.notFlag 成立就跳过这一节点。
+## 后者是给"未获提名的人不进答辩厅"这类整段分支用的——一屏一屏写 notFlag 太容易漏。
 func _passes(node: Dictionary) -> bool:
 	var when = node.get("when")
 	if when is Dictionary:
 		var flag := String((when as Dictionary).get("flag", ""))
 		if not flag.is_empty():
 			return bool(town.call("runner_has_flag", flag))
+		var not_flag := String((when as Dictionary).get("notFlag", ""))
+		if not not_flag.is_empty():
+			return not bool(town.call("runner_has_flag", not_flag))
 	return true

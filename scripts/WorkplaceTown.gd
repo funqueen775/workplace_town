@@ -341,6 +341,10 @@ var _date_debug_step := 0
 ## 12m 首月手机：E01_TOUR 的信到了才解锁右下角手机；未读时点开直接进陈工这条。
 var _month_phone_messages: Array = []
 var _month_phone_unread := false
+## 这一批消息是剧情的前置（第 3 月：不看小林那两条就不知道为什么要去见客户）：
+## 玩家没点开手机之前，节点播放器停在这批消息上，不给下一屏铺黄线。
+var _phone_gate_waiting := false
+var _phone_gate_read := false
 var _month_phone_replied := false
 var _month_phone_reply_options: Array = []
 ## 首月真手机：用 12m 那套手机外形抽屉，不用 HUD 里的方形卡片。
@@ -1743,6 +1747,8 @@ func _open_ui_task() -> void:
 
 
 func _open_ui_phone() -> void:
+	if not _month_phone_messages.is_empty():
+		_phone_gate_read = true
 	if _town_ui_v2 != null:
 		_town_ui_v2.stop_phone_attention()
 	if _month_phone_unread and not _month_phone_messages.is_empty():
@@ -1789,6 +1795,7 @@ func _ensure_month_phone_panel() -> Node:
 		_month_phone_panel.tutorial_only = false
 		_month_phone_panel.hide_own_hud = true
 		_month_phone_panel.reply_sent.connect(_on_month_phone_reply_sent)
+		_month_phone_panel.phone_closed.connect(_on_month_phone_closed)
 		add_child(_month_phone_panel)
 	_month_phone_panel.contact_name = String(source.get("senderName", "陈工"))
 	_month_phone_panel.contact_role = String(source.get("senderRole", "邻组 Leader"))
@@ -1799,7 +1806,7 @@ func _ensure_month_phone_panel() -> Node:
 	var options: Array = []
 	if not _month_phone_replied:
 		options = _month_phone_reply_options.duplicate(true)
-		options.append({"id": "later", "text": "稍后再说"})
+		# 「先不回」由收件箱自己画（中性色、点了不发气泡），不再混进回复项里。
 	_month_phone_panel.reply_options = options
 	return _month_phone_panel
 
@@ -1819,19 +1826,42 @@ func _show_month_phone_drawer() -> void:
 func _offer_phone_tutorial() -> bool:
 	var panel := _ensure_month_phone_panel()
 	if bool(panel.get("_tutorial_completed")):
-		# 卡在这一局里已经看过了（跳月回看首月）：退回一行提示，不再弹第二次。
+		# 卡在这一局里已经看过了（跳月回看首月）：图标直接给出来，不再弹第二次。
+		_reveal_month_phone_button()
 		_show_reminder_toast("手机有消息", "右下角手机带红点，点开查看；不回也没关系")
 		return false
+	# 强制：只留「打开手机」，卡上三条步骤改成"手机还没到手"的说法。
+	panel.forced_tutorial = true
+	panel.tutorial_steps = [
+		{"title": "先看王哥那条", "sub": "手机刚交到你手上，第一条就在里面。"},
+		{"title": "回一句或先放着", "sub": "挑一句回就行；不想回就点「先不回」。"},
+		{"title": "之后它一直在右下角", "sub": "看完关掉，随时能再翻。"},
+	]
 	var fired: Array = [false]
 	var finish := func():
 		if bool(fired[0]):
 			return
 		fired[0] = true
 		_advance_month12_tour_step()
-	panel.tutorial_skipped.connect(finish)
+	panel.phone_opened.connect(_on_month_phone_first_opened)
 	panel.phone_closed.connect(finish)
 	panel.open_tutorial()
 	return true
+
+
+## 收件箱关掉：如果这一批是前置，就把节点播放器接回正轨。
+func _on_month_phone_closed() -> void:
+	if not _phone_gate_waiting or not _phone_gate_read:
+		return
+	_phone_gate_waiting = false
+	_phone_gate_read = false
+	if _month_runner != null and is_instance_valid(_month_runner):
+		_month_runner.on_panel_closed()
+
+
+## 卡上点了「打开手机」：右下角那颗到这一步才长出来。
+func _on_month_phone_first_opened() -> void:
+	_reveal_month_phone_button()
 
 
 func _on_month_phone_reply_sent(reply_id: String, reply_text: String) -> void:
@@ -3137,6 +3167,7 @@ func _build_transition_wipe() -> void:
 
 func _on_wipe_finished(_tier: String) -> void:
 	_date_cutscene_lock = false
+	_sync_band_lights()
 	while not _pending_toasts.is_empty():
 		var entry: Array = _pending_toasts.pop_front()
 		_show_reminder_toast(String(entry[0]), String(entry[1]))
@@ -3145,11 +3176,28 @@ func _on_wipe_finished(_tier: String) -> void:
 		next_step.call()
 
 
+## 换旬那档过场只翻「上/中/下旬」那一格，昼夜那一格和全屏光色都不归它管。
+## 所以过场播完再对一次账：读数已经变成夜晚了，画面就得跟着暗下来（反过来也一样）。
+func _sync_band_lights() -> void:
+	if _town_ui_v2 == null or _date_band.is_empty():
+		return
+	var cell := _town_ui_v2.date_band_cell()
+	if cell == null or cell.text == _date_band:
+		return
+	cell.text = _date_band
+	_apply_date_band(_date_band)
+
+
 ## 昼夜那一格换了，世界光照跟着渐变过去（复用旧版那块全屏色）。
 func _apply_date_band(band: String) -> void:
+	var night := band == "夜晚"
+	# 人正在屋里（宿舍、工位）的话，屋里那层夜色跟着一起换，
+	# 不然会出现"外面已经入夜、屋里还大白天亮着"。
+	if _interior_preview != null and is_instance_valid(_interior_preview) and _interior_preview.is_open():
+		_interior_preview.set_phase("night" if night else "day")
 	if _environment_tint == null:
 		return
-	var target := Color(0.07, 0.14, 0.35, 0.42) if band == "夜晚" else Color(1, 1, 1, 0)
+	var target := Color(0.07, 0.14, 0.35, 0.42) if night else Color(1, 1, 1, 0)
 	var tween := create_tween()
 	tween.tween_property(_environment_tint, "color", target, 0.6)
 
@@ -3172,8 +3220,10 @@ func _set_date(month: int, phase: String, time_band: String, action_points := -1
 		band_word = "夜里"
 	if _date_month == 0:
 		# 开局那一拍不播过场：玩家刚进镇，先给他一个已经站好的读数。
+		# 没有过场替我们发"光色"这一枪，所以这里自己补一次，否则夜里进镇会亮着。
 		_town_ui_v2.set_date(month, xun, band)
 		_record_date(month, xun, band, time_band)
+		_apply_date_band(band)
 		return
 	var sub := "第 %d 月 · %s · %s" % [month, xun, band_word]
 	if month != _date_month:
@@ -3534,7 +3584,9 @@ func _skip_month12_tour() -> void:
 	_start_month12_handbook()
 
 
-## 到达 A 区后：工作手机收到新消息并亮红点。
+## 到达 A 区后：王哥把工作手机交到你手上。
+## 注意顺序——先弹讲解卡，右下角那颗图标是玩家看完卡、亲手「打开手机」之后才长出来的；
+## 卡是强制的，没有"稍后"，Esc 也关不掉。
 func _unlock_month_phone() -> void:
 	_month_phone_messages = [{"speaker": "npc", "text": MONTH12_PHONE_TEXT}]
 	_month_phone_unread = true
@@ -3542,10 +3594,15 @@ func _unlock_month_phone() -> void:
 	_month_phone_reply_options = [
 		{"id": "ack_env", "text": "收到，我先装环境"},
 	]
-	if _town_ui_v2 != null:
-		_town_ui_v2.set_phone_visible(true)
-		_town_ui_v2.set_phone_red_dot(true)
-		_town_ui_v2.start_phone_attention()
+
+
+func _reveal_month_phone_button() -> void:
+	if _town_ui_v2 == null:
+		return
+	_month_phone_unread = false
+	_town_ui_v2.set_phone_visible(true)
+	_town_ui_v2.set_phone_red_dot(false)
+	_town_ui_v2.start_phone_attention()
 
 
 # ---------------------------------------------------------------- D 手册
@@ -4016,7 +4073,10 @@ func _enter_month12_interior(zone: Dictionary, scene_path := "") -> void:
 	_interior_preview.use_activity_layout(not scene_path.is_empty())
 	if not texture_path.is_empty():
 		_interior_preview.present(zone, texture_path)
-		_interior_preview.set_phase(String(WorldClock.snapshot().get("phaseId", "work")))
+		# 屋里亮不亮看日期栏的昼夜那一格：十二个月这条线的光照不归旧钟点读数管，
+		# 拿 WorldClock 的 phaseId 会让"夜里回宿舍"的屋子还是大白天亮着。
+		var phase := _date_time_band if _month12_active else String(WorldClock.snapshot().get("phaseId", "work"))
+		_interior_preview.set_phase(phase)
 	_interior_preview.suppress_interior_npc(not scene_path.is_empty())
 	_interior_preview.enable_exploration()
 	if not scene_path.is_empty():
@@ -4658,6 +4718,8 @@ func debug_jump_to_month(month_value: int, path_letter := "A") -> void:
 	_month12_visit_node = {}
 	_month12_visit_id = ""
 	_month12_tour_index = 0
+	_phone_gate_waiting = false
+	_phone_gate_read = false
 	_retire_story_door()
 	if month_value == 1:
 		# 第一个月是手写的那套开场流程，跳回去等于重开这一局。
@@ -4864,6 +4926,12 @@ func runner_present_story(node: Dictionary) -> void:
 	_month12_skip_walk = false
 	_walk_skip_offered = false
 	_walk_pause_started_msec = 0
+	# 常驻目标：节点上写了 goal 就把它钉在任务卡上，玩家抬头能看见"这月要办成什么"。
+	# （玩家反馈：剧情一路被牵着走，因为屏幕上只有地点，没有目标。）
+	var goal_line := String(node.get("goal", ""))
+	if not goal_line.is_empty() and _town_ui_v2 != null:
+		_town_ui_v2.set_task_card(goal_line, "第 %d 月 · 这个月要办成的事" % int(node.get("month", _month12_month)))
+		_town_ui_v2.set_task_note(String(node.get("location", "")))
 	if _month12_phase == "node_walk":
 		_month12_phase = "month_nodes"
 	_runner_place_player(node, false)
@@ -5209,7 +5277,8 @@ func runner_unlock_handbook(node: Dictionary) -> void:
 	_show_reminder_toast("手册有新页", sub)
 
 
-func runner_deliver_phone(node: Dictionary) -> void:
+func runner_deliver_phone(node: Dictionary) -> bool:
+	# 返回 true = 这批消息是前置，播放器停在这儿等玩家看完；false = 照旧直接下一屏。
 	var messages: Array = []
 	for item in (node.get("messages", []) as Array):
 		# 一条消息可以只在某个旗标成立时才发（月末那句按当月选择变文案），
@@ -5228,7 +5297,7 @@ func runner_deliver_phone(node: Dictionary) -> void:
 			_light_ability_peak(String(peak))
 		messages.append({"speaker": "npc", "text": String((item as Dictionary).get("text", ""))})
 	if messages.is_empty():
-		return
+		return false
 	_month_phone_messages = messages
 	_month_phone_unread = true
 	_month_phone_replied = false
@@ -5242,6 +5311,17 @@ func runner_deliver_phone(node: Dictionary) -> void:
 	# 这种钩子只立门、不弹讲解卡——卡是"有人当面指到那地方"才弹，消息带的是"顺带开两处"。
 	for hook in (node.get("placeHooks", []) as Array):
 		_light_places_by_hook(String(hook))
+	# 这批消息是下一屏的前提（第 3 月：不看小林那两条就不知道为什么要去见客户）：
+	# 玩家没点开收件箱之前，节点播放器停在这儿。
+	if bool(node.get("requireRead", false)):
+		_phone_gate_waiting = true
+		_phone_gate_read = false
+		if _town_ui_v2 != null:
+			_town_ui_v2.set_task_card("先看手机", "右下角那颗，红点亮着")
+			_town_ui_v2.set_task_note("点开看完这两条，再往下走")
+		_show_reminder_toast("先看手机", "这一趟是谁约的、要你答什么，都在这两条里")
+		return true
+	return false
 
 
 ## 按钩子把所有对得上的去处门立起来、撕条；一次可亮多扇。
