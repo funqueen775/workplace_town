@@ -524,7 +524,8 @@
       "hour": 9,
       "walk": true,
       "guideBy": "王哥",
-      "goal": "两条路线各做一份，写出退路"
+      "goal": "两条路线各做一份，写出退路",
+      "walkNote": "回工位，王哥要派活"
     },
     {
       "id": "E04",
@@ -838,7 +839,8 @@
       "reportUse": "story_only",
       "walk": true,
       "sleepHome": true,
-      "wakePhase": "early"
+      "wakePhase": "early",
+      "walkNote": "回工位补退路那一栏"
     },
     {
       "id": "M02_DAY_2",
@@ -875,7 +877,8 @@
       "reportUse": "story_only",
       "walk": true,
       "sleepHome": true,
-      "wakePhase": "early"
+      "wakePhase": "early",
+      "walkNote": "回工位接着做验证"
     },
     {
       "id": "M02_WEEK_7",
@@ -903,7 +906,8 @@
       "timeBand": "night",
       "phase": "early",
       "reportUse": "story_only",
-      "walk": true
+      "walk": true,
+      "walkNote": "回工位收这一周的尾"
     },
     {
       "id": "E03",
@@ -1253,7 +1257,8 @@
       "hour": 9,
       "note": "上旬 · 还有两天",
       "walk": true,
-      "goal": "把边界写进合同，别写成誓言"
+      "goal": "把边界写进合同，别写成誓言",
+      "walkNote": "回工位，小林来拉人"
     },
     {
       "id": "E10",
@@ -1995,7 +2000,8 @@
         ]
       },
       "walk": true,
-      "goal": "分清是零散毛病，还是根本没测过"
+      "goal": "分清是零散毛病，还是根本没测过",
+      "walkNote": "回工位，看板在等你"
     },
     {
       "id": "E05",
@@ -2584,7 +2590,8 @@
         ]
       },
       "walk": true,
-      "goal": "周五台上，把那次翻车接住"
+      "goal": "周五台上，把那次翻车接住",
+      "walkNote": "回工位，桌上有路演袋"
     },
     {
       "id": "M05_NIGHT",
@@ -3214,7 +3221,8 @@
         ]
       },
       "walk": true,
-      "goal": "挑三件，讲清这一年你做了什么"
+      "goal": "挑三件，讲清这一年你做了什么",
+      "walkNote": "回工位，隔板贴了通知"
     },
     {
       "id": "M06_PHONE",
@@ -3886,7 +3894,8 @@
         ]
       },
       "walk": true,
-      "goal": "把事故的时间线摊开"
+      "goal": "把事故的时间线摊开",
+      "walkNote": "回工位，王哥念结果"
     },
     {
       "id": "M07_PAPER",
@@ -4915,7 +4924,8 @@
       "phase": "early",
       "reportUse": "story_only",
       "walk": true,
-      "goal": "名单上别少别人的名字"
+      "goal": "名单上别少别人的名字",
+      "walkNote": "回工位，小赵站着等你"
     },
     {
       "id": "E27",
@@ -5440,7 +5450,8 @@
         ]
       },
       "walk": true,
-      "goal": "把不属于自己的那个名字撤下来"
+      "goal": "把不属于自己的那个名字撤下来",
+      "walkNote": "回工位，旁边多了张椅子"
     },
     {
       "id": "M10_PHONE_LZ",
@@ -5909,7 +5920,8 @@
         ]
       },
       "walk": true,
-      "goal": "材料里把实测和外推分开写"
+      "goal": "材料里把实测和外推分开写",
+      "walkNote": "回工位，午休王哥过来"
     },
     {
       "id": "M11_MATERIAL",
@@ -6428,7 +6440,8 @@
       },
       "walk": true,
       "guideBy": "HRBP",
-      "goal": "讲清哪一段是你做的"
+      "goal": "讲清哪一段是你做的",
+      "walkNote": "回工位，最后一晚收拾"
     },
     {
       "id": "M12_DOOR",
