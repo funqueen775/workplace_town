@@ -522,7 +522,8 @@
       ],
       "day": 1,
       "hour": 9,
-      "walk": true
+      "walk": true,
+      "guideBy": "王哥"
     },
     {
       "id": "E04",
@@ -701,7 +702,8 @@
           "tone": "gold"
         }
       },
-      "walkNote": "去 A 区评审室交两张图"
+      "walkNote": "王哥让你带两张图过去",
+      "guideBy": "陈工"
     },
     {
       "id": "M02_LIBRARY",
@@ -765,116 +767,102 @@
       "setsFlags": [
         "m02_library_rollback_checked"
       ],
-      "walkNote": "找两年前那栏回滚记录"
+      "walkNote": "按陈工说的翻旧事故单"
     },
     {
-      "id": "M02_WEEK_1",
+      "id": "M02_NIGHT_1",
       "month": 2,
       "order": 150,
       "nodeType": "main_story",
       "required": true,
-      "title": "这一周",
+      "title": "第三天夜里",
       "locationId": "B",
       "location": "B 区工位",
       "durationMinutes": 15,
       "situation": "weak",
       "autoComplete": true,
-      "choices": [],
-      "timeBand": "morning",
-      "phase": "early",
-      "reportUse": "story_only",
       "beats": [
         {
           "type": "narration",
-          "text": "第一天。桌上多了两把椅子，是借来的。"
+          "text": "第三天夜里。上午在评审室挑的路线，下午去书院翻的旧单。"
+        },
+        {
+          "type": "narration",
+          "text": "自研那套先跑通了，开源那套还卡在配置里。你把报错记下来，准备明早再试。",
+          "when": {
+            "flag": "m02_e04_two_prototypes"
+          }
+        },
+        {
+          "type": "narration",
+          "text": "开源流程第三天跑通。你把还没验证的部分单独列出来，留给评审说明。",
+          "when": {
+            "flag": "m02_e04_open_first"
+          }
+        },
+        {
+          "type": "narration",
+          "text": "旧事故单提到的回滚问题，你照着做了个小验证，没有直接照抄旧结论。",
+          "when": {
+            "flag": "m02_e04_ask_old_scars"
+          }
+        },
+        {
+          "type": "narration",
+          "text": "退路那一栏补上了能照着做的写法。今天到这儿，有收获了。",
+          "emphasis": [
+            "有收获了"
+          ]
+        },
+        {
+          "type": "narration",
+          "text": "太晚了，先回去休息。"
         }
       ],
-      "day": 8,
-      "hour": 10
-    },
-    {
-      "id": "M02_WEEK_4",
-      "month": 2,
-      "order": 151,
-      "nodeType": "main_story",
-      "required": true,
-      "title": "这一周",
-      "locationId": "B",
-      "location": "B 区工位",
-      "durationMinutes": 15,
-      "situation": "weak",
-      "autoComplete": true,
       "choices": [],
       "timeBand": "night",
       "phase": "early",
       "reportUse": "story_only",
-      "beats": [
-        {
-          "type": "narration",
-          "text": "第四天夜里。自研那套先跑通了，开源那套卡在配置里。你把报错记下来，准备早上再试。"
-        }
-      ],
-      "day": 11,
-      "hour": 22,
-      "when": {
-        "flag": "m02_e04_two_prototypes"
-      }
+      "walk": true,
+      "sleepHome": true,
+      "wakePhase": "early"
     },
     {
-      "id": "M02_WEEK_4B",
+      "id": "M02_DAY_2",
       "month": 2,
       "order": 152,
       "nodeType": "main_story",
       "required": true,
-      "title": "这一周",
+      "title": "第四天",
       "locationId": "B",
       "location": "B 区工位",
       "durationMinutes": 15,
       "situation": "weak",
       "autoComplete": true,
-      "choices": [],
-      "timeBand": "night",
-      "phase": "early",
-      "reportUse": "story_only",
       "beats": [
         {
           "type": "narration",
-          "text": "第四天夜里。开源流程第三天跑通。你把还没验证的部分单独列出来，留给评审说明。"
-        }
-      ],
-      "day": 11,
-      "hour": 22,
-      "when": {
-        "flag": "m02_e04_open_first"
-      }
-    },
-    {
-      "id": "M02_WEEK_4C",
-      "month": 2,
-      "order": 153,
-      "nodeType": "main_story",
-      "required": true,
-      "title": "这一周",
-      "locationId": "B",
-      "location": "B 区工位",
-      "durationMinutes": 15,
-      "situation": "weak",
-      "autoComplete": true,
-      "choices": [],
-      "timeBand": "night",
-      "phase": "early",
-      "reportUse": "story_only",
-      "beats": [
+          "text": "第四天早上。回到工位，那两把借来的椅子还没还。"
+        },
         {
           "type": "narration",
-          "text": "第四天夜里。旧事故单提到了回滚问题。你照着做了个小验证，没有直接照抄旧结论。"
+          "text": "再跑一遍，两条路线的结果对上了——快成功了。",
+          "emphasis": [
+            "快成功了"
+          ]
+        },
+        {
+          "type": "narration",
+          "text": "一抬头又到天黑。剩下的明天补，先回去休息。"
         }
       ],
-      "day": 11,
-      "hour": 22,
-      "when": {
-        "flag": "m02_e04_ask_old_scars"
-      }
+      "choices": [],
+      "timeBand": "morning",
+      "phase": "early",
+      "reportUse": "story_only",
+      "walk": true,
+      "sleepHome": true,
+      "wakePhase": "early"
     },
     {
       "id": "M02_WEEK_7",
@@ -882,24 +870,27 @@
       "order": 154,
       "nodeType": "main_story",
       "required": true,
-      "title": "这一周",
+      "title": "第七天夜里",
       "locationId": "B",
       "location": "B 区工位",
       "durationMinutes": 15,
       "situation": "weak",
       "autoComplete": true,
+      "beats": [
+        {
+          "type": "narration",
+          "text": "第七天夜里。这周该验的验完了。书院翻到的旧记录和你自己跑出来的结果分开记着，方案里补上了能执行的回滚步骤。"
+        },
+        {
+          "type": "narration",
+          "text": "明天提交。你手上有能带去评审的东西了。"
+        }
+      ],
       "choices": [],
       "timeBand": "night",
       "phase": "early",
       "reportUse": "story_only",
-      "beats": [
-        {
-          "type": "narration",
-          "text": "第七天夜里。你已把书院查到的旧记录与本周验证分开，方案里补上了能执行的回滚步骤。你手上有能带去评审的东西了。"
-        }
-      ],
-      "day": 14,
-      "hour": 23
+      "walk": true
     },
     {
       "id": "E03",
@@ -1215,7 +1206,7 @@
         },
         {
           "type": "narration",
-          "text": "周三上午十点，C 区水巷，客户展厅。目标行跟着亮起来。"
+          "text": "周三上午十点，C 区水巷，客户展厅。"
         }
       ],
       "choices": [],
@@ -1406,7 +1397,9 @@
           "text": "先应下了，后来才知道有多软。",
           "tone": "gray"
         }
-      }
+      },
+      "guideBy": "王哥",
+      "walkNote": "按小林约的十点去展厅"
     },
     {
       "id": "M03_WRAP",
@@ -2343,7 +2336,8 @@
       "phase": "mid",
       "reportUse": "evidence",
       "zoneCut": "A",
-      "whenText": "中旬 · 周五"
+      "whenText": "中旬 · 周五",
+      "walkNote": "陈工主持的复盘会"
     },
     {
       "id": "M04_PHONE",
@@ -2697,7 +2691,8 @@
       "timeBand": "night",
       "phase": "early",
       "reportUse": "evidence",
-      "zoneCut": "B"
+      "zoneCut": "B",
+      "guideBy": "小林"
     },
     {
       "id": "M05_DEMO",
@@ -2901,7 +2896,9 @@
       "timeBand": "afternoon",
       "phase": "mid",
       "reportUse": "evidence",
-      "zoneCut": "F"
+      "zoneCut": "F",
+      "guideBy": "小林",
+      "walkNote": "小林排的路演去码头"
     },
     {
       "id": "M05_PHONE",
@@ -3166,7 +3163,8 @@
       "timeBand": "morning",
       "phase": "early",
       "reportUse": "story_only",
-      "deliveredDuring": "M06_OPEN"
+      "deliveredDuring": "M06_OPEN",
+      "guideBy": "王哥"
     },
     {
       "id": "M06_WALL",
@@ -3283,7 +3281,9 @@
       "timeBand": "afternoon",
       "phase": "mid",
       "reportUse": "evidence",
-      "zoneCut": "E"
+      "zoneCut": "E",
+      "guideBy": "HRBP",
+      "walkNote": "王哥让你先挑三件"
     },
     {
       "id": "M06_DEF1",
@@ -4142,7 +4142,8 @@
       "timeBand": "afternoon",
       "phase": "early",
       "reportUse": "evidence",
-      "zoneCut": "A"
+      "zoneCut": "A",
+      "walkNote": "陈工召集的事故复盘"
     },
     {
       "id": "M07_PHONE_XZ",
@@ -4166,9 +4167,39 @@
           "text": "去，第一局你带我。"
         }
       ],
-      "placeHooks": [
-        "unlock_sports"
+      "timeBand": "afternoon",
+      "phase": "mid",
+      "reportUse": "story_only"
+    },
+    {
+      "id": "M07_SPORTS_INVITE",
+      "month": 7,
+      "order": 225,
+      "nodeType": "main_story",
+      "required": true,
+      "title": "带你认一次路",
+      "locationId": "B",
+      "location": "B 区工位",
+      "durationMinutes": 15,
+      "situation": "weak",
+      "autoComplete": true,
+      "beats": [
+        {
+          "type": "narration",
+          "text": "小赵从工位那边探过头来，手上拎着一袋骰子。"
+        },
+        {
+          "type": "say",
+          "speaker": "小赵",
+          "text": "就我们几个，老周也去。走走走，我带你认一次路。"
+        },
+        {
+          "type": "narration",
+          "text": "他往心湖对面指了指。那片谷口周末会摆出一张记分牌。",
+          "hook": "unlock_sports"
+        }
       ],
+      "choices": [],
       "timeBand": "afternoon",
       "phase": "mid",
       "reportUse": "story_only"
@@ -4321,7 +4352,8 @@
         "shots": [
           "place_card_tool_1.png"
         ]
-      }
+      },
+      "walkNote": "老周叫的白板会"
     },
     {
       "id": "E23",
@@ -4455,7 +4487,8 @@
       "choices": [],
       "timeBand": "morning",
       "phase": "mid",
-      "reportUse": "story_only"
+      "reportUse": "story_only",
+      "guideBy": "安全组"
     },
     {
       "id": "E25",
@@ -4962,7 +4995,8 @@
       "budget": {
         "ap": 3,
         "slots": 3
-      }
+      },
+      "guideBy": "老周"
     },
     {
       "id": "M09_LIBRARY_SOCIAL",
@@ -5348,7 +5382,8 @@
       "timeBand": "morning",
       "phase": "early",
       "reportUse": "story_only",
-      "deliveredDuring": "M10_OPEN"
+      "deliveredDuring": "M10_OPEN",
+      "guideBy": "老周"
     },
     {
       "id": "E31",
@@ -5520,7 +5555,9 @@
           "text": "我让老周去走了更正流程。",
           "tone": "gold"
         }
-      }
+      },
+      "guideBy": "许棠",
+      "walkNote": "按行政通知核对名单"
     },
     {
       "id": "E40",
@@ -5865,7 +5902,8 @@
       "timeBand": "afternoon",
       "phase": "early",
       "reportUse": "story_only",
-      "deliveredDuring": "M11_MATERIAL"
+      "deliveredDuring": "M11_MATERIAL",
+      "guideBy": "老周"
     },
     {
       "id": "E32",
@@ -6007,7 +6045,8 @@
           "text": "材料按原样交了。",
           "tone": "gray"
         }
-      }
+      },
+      "walkNote": "老周约在心湖木栈道"
     },
     {
       "id": "M11_FREE",
@@ -6035,7 +6074,8 @@
       "budget": {
         "ap": 3,
         "slots": 3
-      }
+      },
+      "guideBy": "老周"
     },
     {
       "id": "E41",
@@ -6182,7 +6222,8 @@
       "choices": [],
       "timeBand": "afternoon",
       "phase": "late",
-      "reportUse": "story_only"
+      "reportUse": "story_only",
+      "guideBy": "王哥"
     },
     {
       "id": "M11_PHONE_CG",
@@ -6298,7 +6339,8 @@
           "place_card_tool_1.png"
         ]
       },
-      "walk": true
+      "walk": true,
+      "guideBy": "HRBP"
     },
     {
       "id": "M12_DOOR",
@@ -6365,7 +6407,8 @@
       "zoneCut": "A",
       "when": {
         "notFlag": "m12_not_nominated"
-      }
+      },
+      "guideBy": "陈工"
     },
     {
       "id": "M12_FEEDBACK",
@@ -7476,7 +7519,8 @@
       "choices": [],
       "timeBand": "afternoon",
       "phase": "late",
-      "reportUse": "story_only"
+      "reportUse": "story_only",
+      "montage": true
     },
     {
       "id": "M12_FAREWELL",
@@ -7636,7 +7680,8 @@
           "title": "该找谁",
           "bodyKey": "process.2.5"
         }
-      ]
+      ],
+      "guideBy": "小林"
     },
     {
       "id": "M07_HANDOVER",
