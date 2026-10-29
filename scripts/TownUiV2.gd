@@ -4,16 +4,12 @@ extends CanvasLayer
 ## 前端界面改造 V1.0(2) 的运行时界面。
 ## HUD、员工档案和主线任务册使用 assets/ui/rework_v1 的分件；外部数据和信号协议不变。
 
-signal profile_requested
 signal archive_requested
 signal memory_wall_requested
 signal standing_requested
 signal task_requested
 signal phone_requested
 signal manual_requested
-## 任何一个整页关掉时发一次：月末卡要趁这一步回到前台。
-signal calendar_requested
-signal task_calendar_requested(target_month: int)
 signal settings_requested
 signal locate_requested(zone_code: String)
 signal advance_requested
@@ -21,6 +17,7 @@ signal month_requested(target_month: int)
 signal chat_requested(person: String)
 signal phone_message_submitted(npc_id: String, message: String)
 ## 12 个月首月手机：固定回复选项（回一句 → 二选一），不走自由输入。
+## 任何一个整页关掉时发一次：月末卡要趁这一步回到前台。
 signal view_closed
 signal phone_reply_selected(chat_id: String, reply_id: String, reply_text: String)
 signal save_requested
@@ -46,8 +43,8 @@ const HUD_PIN := preload("res://assets/ui/rework_v1/hud/components/08_任务_定
 const HUD_VIEW := preload("res://assets/ui/rework_v1/hud/components/09_查看按钮_无字.png")
 ## 圆钮五件（手机/月历/手册/档案/设置）统一重切过：同一张 1280 画布、牌面直径都是 1000，
 ## 放进 104 的槽里牌面一样大（原来的图留白和叶片外扩各不相同，直接摆会一大一小）。
+## 月历那颗 2026-10-29 已从 HUD 撤下，屏幕上现在只有档案/手册/手机/设置四颗。
 const HUD_PHONE := preload("res://assets/ui/rework_v1/hud/components/16_圆钮统一_phone.png")
-const HUD_CALENDAR := preload("res://assets/ui/rework_v1/hud/components/16_圆钮统一_month.png")
 ## 手册 / 档案两颗圆钮：与手机、日历同一套画法（米色圆牌 + 木边 + 走线虚圈 + 左下两片叶）。
 ## 以前手册是代码画的深底白字圆，跟手机那颗完全不像，一排摆在一起像两套 UI。
 const HUD_MANUAL := preload("res://assets/ui/rework_v1/hud/components/16_圆钮统一_manual.png")
@@ -55,6 +52,17 @@ const HUD_ARCHIVE := preload("res://assets/ui/rework_v1/hud/components/16_圆钮
 const HUD_ADVANCE := preload("res://assets/ui/rework_v1/hud/components/13_推进月份_无字标签.png")
 const HUD_TASK_PANEL := preload("res://assets/ui/rework_v1/hud/revisions/03_主线任务空白面板.png")
 const HUD_SETTINGS := preload("res://assets/ui/rework_v1/hud/components/16_圆钮统一_settings.png")
+## 五颗圆钮的牌面直径（1280 画布上按不透明像素最宽一条量出来的）：档案 720、手册 844、
+## 手机 993、月历 1001、设置 975。槽位都是 104，图里的留白却不一样，直接摆会一大一小；
+## 按 1001 对齐，整张图（连叶片）一起缩放，五颗看起来一样大。
+const HUD_PLATE_TARGET := 1001.0
+const HUD_PLATE_DIAMETER := {
+	"archive": 720.0,
+	"manual": 844.0,
+	"phone": 993.0,
+	"month": 1001.0,
+	"settings": 975.0,
+}
 const HUD_PLAYER_PORTRAITS := {
 	"avatar_player": preload("res://assets/ui/rework_v1/profile/components/01_基础面板/玩家头像/00dfdf63-089c-42c3-a216-55528c3a04c7.png"),
 	"avatar_xiaoye": preload("res://assets/ui/rework_v1/profile/components/01_基础面板/玩家头像/ce6c3ce3-1671-40c8-a8b2-cd242f7ec842.png"),
@@ -124,16 +132,6 @@ const TASK_ADVANCE := preload("res://assets/ui/rework_v1/task_book/20_推进按�
 const TASK_NOTICE := preload("res://assets/ui/rework_v1/task_book/21_提示感叹号.png")
 const TASK_DECORATION := preload("res://assets/ui/rework_v1/task_book/22_页面装饰爪印.png")
 const PHONE_FRAME := preload("res://assets/IMG_3984(1).PNG")
-const CALENDAR_FRAME := preload("res://assets/IMG_4006(1).PNG")
-const SETTINGS_FRAME := preload("res://assets/IMG_4007(1).PNG")
-const CALENDAR_MONTHS := [
-	preload("res://assets/职业月历/05_第1月_当前.png"), preload("res://assets/职业月历/06_第2月_主线.png"),
-	preload("res://assets/职业月历/07_第3月.png"), preload("res://assets/职业月历/08_第4月_约见.png"),
-	preload("res://assets/职业月历/09_第5月.png"), preload("res://assets/职业月历/10_第6月_考核.png"),
-	preload("res://assets/职业月历/11_第7月.png"), preload("res://assets/职业月历/12_第8月.png"),
-	preload("res://assets/职业月历/13_第9月_训练.png"), preload("res://assets/职业月历/14_第10月.png"),
-	preload("res://assets/职业月历/15_第11月.png"), preload("res://assets/职业月历/16_第12月.png"),
-]
 const SETTINGS_MUSIC := preload("res://assets/游戏设置/13_背景音乐滑条.png")
 const SETTINGS_SOUND := preload("res://assets/游戏设置/14_游戏音效滑条.png")
 const SETTINGS_ON := preload("res://assets/游戏设置/11_开关_开启.png")
@@ -169,7 +167,6 @@ var _task_meta: Label
 var _task_note: Label
 var _task_caption: Label
 var _archive_button: Button
-var _month_button: Button
 var _root: Control
 var _view: String = ""
 var _energy_panel: Control
@@ -177,6 +174,7 @@ var _task_panel: Control
 var _phone_button: Button
 var _phone_dot: Panel
 var _manual_button: Button
+var _manual_dot: Panel
 var _view_button: Button
 var _settings_button: Button
 var _honey_icons: Array[TextureRect] = []
@@ -184,8 +182,6 @@ var _player_portrait: TextureRect
 var _phone_tab := "people"
 var _phone_payload: Dictionary = {}
 var _active_chat_id := ""
-var _calendar_year := 0
-var _selected_month := 1
 var _settings := {"music": 0.65, "sound": 0.7, "text_speed": 1, "large_text": false, "reduced_motion": false, "cutscenes": 0, "fullscreen": false}
 ## 数值型设置项：选中态按「等于第几档」判，不是按真假判。
 const SETTINGS_INT_KEYS := ["text_speed", "cutscenes"]
@@ -207,12 +203,11 @@ func refresh(snapshot: Dictionary, event: Dictionary, energy := 0, energy_max :=
 	if not _date_mode:
 		_act_label.text = String(event.get("actTitle", "第一幕 · 进入行业"))
 	var state := ApiClient.server_state()
-	_job_label.text = "当前职位  %s  ›" % _profile_role(int(state.get("level", 1)))
+	_job_label.text = "当前职位  %s" % _profile_role(int(state.get("level", 1)))
 	_energy_label.text = "%s  %d/%d" % [energy_caption, energy, energy_max]
 	var lit := int(round(float(energy) / maxf(1.0, float(energy_max)) * float(_honey_icons.size())))
 	for index in _honey_icons.size():
 		_honey_icons[index].texture = HUD_HONEY_FULL if index < lit else HUD_HONEY_EMPTY
-	_month_button.text = "第 %d 月" % month
 	if event.is_empty():
 		set_task_card("主线已完成", "继续探索小镇")
 	else:
@@ -222,9 +217,6 @@ func refresh(snapshot: Dictionary, event: Dictionary, energy := 0, energy_max :=
 
 func open_view(view: String, payload: Dictionary = {}) -> void:
 	_active_chat_id = String(payload.get("chat_id", "")) if view == "phone" else ""
-	if view == "calendar" and _view != "calendar":
-		_selected_month = int(payload.get("target_month", payload.get("month", 1)))
-		_calendar_year = clampi((_selected_month - 1) / 12, 0, 3)
 	_view = view
 	if view == "profile":
 		payload["month"] = int(WorldClock.snapshot().get("month", 1))
@@ -260,7 +252,7 @@ func open_view(view: String, payload: Dictionary = {}) -> void:
 		page.position = (viewport_size - page.size * task_scale) * 0.5
 		page.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
 	else:
-		page.size = Vector2(700, 850) if view == "phone" else Vector2(1300, 850) if view == "calendar" else Vector2(750, 870)
+		page.size = Vector2(700, 850) if view == "phone" else Vector2(750, 870)
 		var viewport_size := get_viewport().get_visible_rect().size
 		var fit_scale := minf((viewport_size.x - 36) / page.size.x, (viewport_size.y - 40) / page.size.y)
 		page.scale = Vector2.ONE * minf(1.0, fit_scale)
@@ -282,7 +274,7 @@ func open_view(view: String, payload: Dictionary = {}) -> void:
 		if view != "phone":
 			close.flat = true
 			close.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
-		close.position = Vector2(576, 36) if view == "phone" else Vector2(1160, 38) if view == "calendar" else Vector2(634, 30)
+		close.position = Vector2(576, 36) if view == "phone" else Vector2(634, 30)
 	if close.get_child_count() > 0 and close.get_child(0) is CanvasItem:
 		(close.get_child(0) as CanvasItem).show_behind_parent = false
 	close.pressed.connect(close_view)
@@ -291,7 +283,6 @@ func open_view(view: String, payload: Dictionary = {}) -> void:
 		"profile": _build_profile(page, payload)
 		"task": _build_task(page, payload)
 		"phone": _build_phone(page, payload)
-		"calendar": _build_calendar(page, payload)
 		"settings": _build_settings(page)
 	# 页面内容在关闭按钮之后创建；最后提到顶层，避免书本底图遮住按钮。
 	close.move_to_front()
@@ -337,8 +328,12 @@ func _build_hud() -> void:
 	_act_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	act.add_child(_act_label)
 	_build_date_cells(act)
-	var profile := _art_button(HUD_JOB, "当前职位  实习开发师  ›", Vector2(36, 146), Vector2(440, 96))
-	profile.pressed.connect(func(): profile_requested.emit())
+	# 左上这条只报"你现在是什么岗位"，不再当档案入口：档案走右下角那颗，
+	# 第 1 月月末才给。之前两个入口都开同一页，而且左上这条从开局就能点，
+	# 等于把月末才该露的东西提前漏出去了。
+	var profile := _art_button(HUD_JOB, "当前职位  实习开发师", Vector2(36, 146), Vector2(440, 96))
+	profile.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	profile.focus_mode = Control.FOCUS_NONE
 	_hud.add_child(profile)
 	_job_label = profile
 	_art(HUD_PORTRAIT, Vector2(46, 158), Vector2(72, 72), _hud)
@@ -352,8 +347,9 @@ func _build_hud() -> void:
 	energy.add_child(_energy_label)
 	# 六罐：十二个月的心情账本就是 0–6（4.15 第 2 本账），一罐一格。
 	# 旧 48 个月那条线只有 3 点，按比例点亮，不会出现"三罐空三罐"的假满格。
+	# 起点 238、间距 30：底板内沿到 425 就收口，原来 250 + 32 排下来第六罐会骑到右边木边上。
 	for index in 6:
-		var honey := _art(HUD_HONEY_FULL, Vector2(250 + index * 32, 26), Vector2(28, 34), energy)
+		var honey := _art(HUD_HONEY_FULL, Vector2(238 + index * 30, 26), Vector2(28, 34), energy)
 		_honey_icons.append(honey)
 	var task := Control.new()
 	task.size = Vector2(390, 380)
@@ -389,30 +385,27 @@ func _build_hud() -> void:
 	var check := _art_button(HUD_VIEW, "查看", Vector2(52, 278), Vector2(286, 64))
 	_view_button = check
 	check.pressed.connect(func(): task_requested.emit()); task.add_child(check)
-	var phone := _art_button(HUD_PHONE, "", Vector2.ZERO, Vector2(104, 104))
+	var phone := _hud_round_button(HUD_PHONE, "phone")
 	_phone_button = phone
 	phone.pressed.connect(func(): phone_requested.emit()); _hud.add_child(phone)
 	# 12 个月流程：手机等第一条消息到达后再出现，并亮红点提醒。
 	phone.visible = false
-	_month_button = _art_button(HUD_CALENDAR, "", Vector2.ZERO, Vector2(104, 104))
-	_month_button.pressed.connect(func(): calendar_requested.emit()); _hud.add_child(_month_button)
-	var settings := _art_button(HUD_SETTINGS, "", Vector2.ZERO, Vector2(104, 104))
+	var settings := _hud_round_button(HUD_SETTINGS, "settings")
 	_settings_button = settings
 	settings.pressed.connect(func(): settings_requested.emit()); _hud.add_child(settings)
 	# 手册入口：首月工位流程后出现。图上已经画好一本合上的手册，不再叠字。
-	_manual_button = _art_button(HUD_MANUAL, "", Vector2.ZERO, Vector2(104, 104))
+	_manual_button = _hud_round_button(HUD_MANUAL, "manual")
 	_manual_button.pressed.connect(func(): manual_requested.emit())
 	_hud.add_child(_manual_button)
 	_manual_button.visible = false
 	# 档案：把原来那两颗没有字的深色圆钮（记忆墙 / 你的处境）收进来。
-	_archive_button = _art_button(HUD_ARCHIVE, "", Vector2.ZERO, Vector2(104, 104))
+	_archive_button = _hud_round_button(HUD_ARCHIVE, "archive")
 	_archive_button.pressed.connect(func(): archive_requested.emit())
 	_hud.add_child(_archive_button)
-	# 三个纯图标按钮必须带字：手机/手册/档案/月历/设置只靠图标，玩家猜不出来。
+	# 纯图标按钮必须带字：手机/手册/档案/设置只靠图标，玩家猜不出来。
 	_hud_caption(phone, "手机")
 	_hud_caption(_manual_button, "手册")
 	_hud_caption(_archive_button, "档案")
-	_hud_caption(_month_button, "月历")
 	_hud_caption(settings, "设置")
 	_layout_hud()
 
@@ -492,7 +485,7 @@ func _layout_hud() -> void:
 ## 只给当前可见的图标排槽，按钮组贴右侧，隐藏入口不再留下空位。
 func _layout_bottom_buttons(viewport_size: Vector2) -> void:
 	var buttons: Array[Button] = []
-	for button in [_archive_button, _manual_button, _phone_button, _month_button, _settings_button]:
+	for button in [_archive_button, _manual_button, _phone_button, _settings_button]:
 		if button != null and button.visible:
 			buttons.append(button)
 	if buttons.is_empty():
@@ -725,13 +718,7 @@ func _build_task(page: Panel, payload: Dictionary) -> void:
 	_art(TASK_TRACK_PAW, Vector2(20, 14), Vector2(34, 34), locate)
 	locate.pressed.connect(func(): locate_requested.emit(zone))
 	page.add_child(locate)
-	var advance_label := "查看职业月历" if month_ready else "推进至第%d月" % month
-	var advance := _task_action_button(advance_label, Vector2(944, 661), Vector2(220, 52), true)
-	_art(TASK_CALENDAR_ICON, Vector2(18, 14), Vector2(34, 34), advance)
-	advance.pressed.connect(func(): task_calendar_requested.emit(month))
-	page.add_child(advance)
-	_art(TASK_NOTICE, Vector2(722, 630), Vector2(18, 18), page)
-	var notice := _label("推进前会先打开职业月历确认，不会直接跳过月份。", 13); notice.position = Vector2(747, 624); notice.size = Vector2(390, 26); page.add_child(notice)
+
 
 
 func _month12_task_step(phase: String) -> Dictionary:
@@ -753,9 +740,9 @@ func _month12_task_step(phase: String) -> Dictionary:
 		"activity":
 			return {"title": "完成或结束本月自由安排", "short": "自由安排", "detail": "首月有 1 个行动点；可做一项活动，也可直接结束本月。"}
 		"close":
-			return {"title": "完成月末回顾", "short": "完成月末回顾", "detail": "回顾结束后开放月历推进。"}
+			return {"title": "完成月末回顾", "short": "完成月末回顾", "detail": "回顾结束后睡一觉，睁眼就是下个月。"}
 		"done":
-			return {"title": "首月流程已完成", "short": "首月已完成", "detail": "可打开职业月历，继续下一月。", "done": true}
+			return {"title": "首月流程已完成", "short": "首月已完成", "detail": "这个月已经收好，正在换月。", "done": true}
 		_:
 			return {"title": "按当前任务提示继续", "short": "按当前任务继续", "detail": "完成当前步骤后，首月流程会继续。"}
 
@@ -905,7 +892,7 @@ func _build_phone(page: Panel, payload: Dictionary) -> void:
 			messages.add_child(_label("等待回复…", 23))
 		var reply_options: Array = payload.get("reply_options", []) as Array
 		if not reply_options.is_empty():
-			# 12 个月首月：固定回复选项 + 稍后再说；不出现自由输入框。
+			# 12 个月首月：固定回复选项（发出去的那句）+ 一颗"先不回"退出键；不出现自由输入框。
 			var option_box := VBoxContainer.new()
 			option_box.position = Vector2(128, 560)
 			option_box.size = Vector2(440, 190)
@@ -921,7 +908,7 @@ func _build_phone(page: Panel, payload: Dictionary) -> void:
 				var reply_text := String(option.get("text", ""))
 				option_button.pressed.connect(func(): phone_reply_selected.emit(String(payload.get("chat_id", "")), reply_id, reply_text))
 				option_box.add_child(option_button)
-			var later := _button("稍后再说", Vector2(440, 46), "paper")
+			var later := _button("先不回，收起手机", Vector2(440, 46), "paper")
 			later.add_theme_font_size_override("font_size", 19)
 			later.pressed.connect(close_view)
 			option_box.add_child(later)
@@ -968,54 +955,6 @@ func _build_phone(page: Panel, payload: Dictionary) -> void:
 		info.position = Vector2(16, 5); info.size = Vector2(292, 100); info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; info.max_lines_visible = 3; info.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS; row.add_child(info)
 		var locate := _button("定位", Vector2(142, 46), "gold"); locate.position = Vector2(330, 7); locate.pressed.connect(func(): locate_requested.emit(String(item.get("zone", "")))); row.add_child(locate)
 		var chat := _button("聊天", Vector2(142, 46), "green"); chat.position = Vector2(330, 59); chat.pressed.connect(func(): chat_requested.emit(String(item.get("name", "")))); row.add_child(chat)
-
-
-func _build_calendar(page: Panel, payload: Dictionary) -> void:
-	_art(CALENDAR_FRAME, Vector2.ZERO, page.size, page)
-	var month := int(payload.get("month", 1))
-	var target_month := int(payload.get("target_month", month))
-	var progression_locked := bool(payload.get("progression_locked", false))
-	if _calendar_year < 0 or _calendar_year > 3:
-		_calendar_year = clampi((month - 1) / 12, 0, 3)
-	var year_start := _calendar_year * 12 + 1
-	var header := _label("第 %d 年 · %02d / 48 个月" % [_calendar_year + 1, month], 28); header.position = Vector2(580, 85); header.size = Vector2(530, 50); page.add_child(header)
-	for year in 4:
-		var tab := _button("第 %d 年" % (year + 1), Vector2(180, 58), "gold" if year == _calendar_year else "paper")
-		tab.position = Vector2(74 + year * 193, 162)
-		tab.pressed.connect(func(): _calendar_year = year; open_view("calendar", payload))
-		page.add_child(tab)
-	for index in 12:
-		var displayed_month := year_start + index
-		var illustrated := _calendar_year == 0 and not ((index == 0 and month != 1) or (index == 1 and month != 2))
-		var card := _sprite_button(CALENDAR_MONTHS[index], Vector2(76 + (index % 4) * 190, 239 + (index / 4) * 180), Vector2(168, 166)) if illustrated else _button("", Vector2(168, 166), "paper")
-		if not illustrated:
-			card.position = Vector2(76 + (index % 4) * 190, 239 + (index / 4) * 180)
-			var scenery := AtlasTexture.new()
-			scenery.atlas = CALENDAR_MONTHS[2]
-			scenery.region = Rect2(200, 510, 850, 505)
-			_art(scenery, Vector2(9, 62), Vector2(150, 94), card)
-			var month_label := _label("第 %d 月" % displayed_month, 22)
-			month_label.position = Vector2(13, 12); month_label.size = Vector2(142, 42); month_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			card.add_child(month_label)
-		var events: Array = payload.get("events", [])
-		for event in events:
-			if int(event.get("month", 0)) == displayed_month and not illustrated:
-				var marker := _label("主线", 17); marker.position = Vector2(47, 129); marker.size = Vector2(80, 28); marker.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; card.add_child(marker)
-				break
-		if displayed_month == month and not illustrated:
-			var current := _label("当前", 17); current.position = Vector2(47, 129); current.size = Vector2(80, 28); current.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; card.add_child(current)
-		if displayed_month == _selected_month:
-			card.modulate = Color("fff1ac")
-		card.pressed.connect(func(): _selected_month = displayed_month; open_view("calendar", payload))
-		page.add_child(card)
-	var next := payload.get("next_event", {}) as Dictionary
-	var detail_note := "完成首月回顾后，可从月历推进月份。" if progression_locked else ("未完成的主线和活动将被跳过。" if _selected_month > month else "请选择未来月份")
-	var detail := _label("已选择  第 %d 月\n\n%s\n\n%s" % [_selected_month, String(next.get("title", "暂无主线")) if _selected_month == target_month else "", detail_note], 22)
-	detail.position = Vector2(870, 228); detail.size = Vector2(326, 270); detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; page.add_child(detail)
-	var next_month := _button("首月完成后可推进" if progression_locked else "进入下个月", Vector2(290, 54), "gold"); next_month.position = Vector2(882, 534); next_month.disabled = progression_locked or month >= 48; next_month.pressed.connect(func(): month_requested.emit(month + 1)); page.add_child(next_month)
-	var advance_text := "首月完成后可跳转" if progression_locked else "推进至第 %d 月" % _selected_month
-	var advance := _button(advance_text, Vector2(290, 54), "gold"); advance.position = Vector2(882, 606); advance.disabled = progression_locked or _selected_month <= month; advance.pressed.connect(func(): month_requested.emit(_selected_month)); page.add_child(advance)
-	var cancel := _button("取消", Vector2(260, 50), "paper"); cancel.position = Vector2(898, 700); cancel.pressed.connect(close_view); page.add_child(cancel)
 
 
 func _build_settings(page: Panel) -> void:
@@ -1141,22 +1080,37 @@ func set_phone_visible(value: bool) -> void:
 		_layout_hud()
 
 
-## 首月界面按剧情节点解锁：精力条 / 月历 / 手册 / 查看先藏。
+## 首月界面按剧情节点解锁：精力条 / 手册 / 查看先藏。
 func set_energy_visible(value: bool) -> void:
 	if _energy_panel != null:
 		_energy_panel.visible = value
-
-
-func set_month_visible(value: bool) -> void:
-	if _month_button != null:
-		_month_button.visible = value
-		_layout_hud()
 
 
 func set_manual_visible(value: bool) -> void:
 	if _manual_button != null:
 		_manual_button.visible = value
 		_layout_hud()
+
+
+## 手册按钮上的红点：第 3 月会前"有页了，但不弹窗"就是这么给的。
+func set_manual_red_dot(value: bool) -> void:
+	if _manual_button == null:
+		return
+	if _manual_dot == null and value:
+		_manual_dot = Panel.new()
+		_manual_dot.name = "ManualRedDot"
+		_manual_dot.position = Vector2(76, 6)
+		_manual_dot.size = Vector2(22, 22)
+		_manual_dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var style := StyleBoxFlat.new()
+		style.bg_color = Color("e5503f")
+		style.border_color = Color("fff3dc")
+		style.set_border_width_all(2)
+		style.set_corner_radius_all(11)
+		_manual_dot.add_theme_stylebox_override("panel", style)
+		_manual_button.add_child(_manual_dot)
+	if _manual_dot != null:
+		_manual_dot.visible = value
 
 
 ## 档案圆钮同样按剧情解锁：首月开局先藏，月末第一次有"你的记录"时才给。
@@ -1266,14 +1220,22 @@ func _art(texture: Texture2D, at: Vector2, size_value: Vector2, parent: Control)
 	return art
 
 
-func _art_button(texture: Texture2D, value: String, at: Vector2, size_value: Vector2) -> Button:
+## 每颗圆钮都从这儿建：按牌面直径把整张图缩放到同一档，再放进 104 的槽位。
+func _hud_round_button(texture: Texture2D, key: String) -> Button:
+	var art_scale: float = HUD_PLATE_TARGET / float(HUD_PLATE_DIAMETER.get(key, HUD_PLATE_TARGET))
+	return _art_button(texture, "", Vector2.ZERO, Vector2(104, 104), art_scale)
+
+
+func _art_button(texture: Texture2D, value: String, at: Vector2, size_value: Vector2, art_scale := 1.0) -> Button:
 	var button := _button(value, size_value, "paper")
 	button.position = at
 	button.flat = true
 	button.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
 	button.add_theme_stylebox_override("hover", StyleBoxEmpty.new())
 	button.add_theme_stylebox_override("pressed", StyleBoxEmpty.new())
-	var art := _art(texture, Vector2.ZERO, size_value, button)
+	# art_scale 只在圆钮上用来把牌面直径对齐，图仍以槽位中心为锚点放大。
+	var art_size := size_value * art_scale
+	var art := _art(texture, (size_value - art_size) * 0.5, art_size, button)
 	art.show_behind_parent = true
 	return button
 

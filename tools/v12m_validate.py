@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """十二个月流程（`12m_v1`）配置校验器。
 
-对应《十二个月开发文档_V1.md》4.9 的 18 条构建期校验，外加严格 JSON 与重复键检查。
+对应《十二个月开发文档_V1.md》4.9 的 33 条构建期校验，外加严格 JSON 与重复键检查。
 只读：这个脚本不写任何文件，改数据是人的事。
 
     python tools/v12m_validate.py              # 校验 manifest.authoredMonths 声明的月份
@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -56,6 +57,44 @@ FORBIDDEN_IN_RESPONSE = {"stateDelta", "competency", "anchor", "coef", "threshol
 PUNCTUATION = set("，。、；：？！“”‘’（）《》〈〉…—－·,.；:?!\"'()[]{}<>/\\|-_+*=&%$#@~^ \t\n\r")
 
 
+## 地点前缀 → 区域：B 区开头就是 B；书院/心湖/码头这些固定地点用习惯码。
+LOCATION_AREA_ALIASES = {
+    "树影书院": "D",
+    "心湖": "E",
+    "观澜会展码头": "F",
+    "慢生活园": "H",
+    "松风训练谷": "E",
+    "暖邻康护院": "G",
+    "启程广场": "A",
+    "云栖科技工厂": "B",
+    "创意水巷": "C",
+    "飓起东方总部": "A",
+    "市场部": "A",
+    "研发部": "B",
+    "销售部": "C",
+    "人事部": "D",
+    "财务部": "E",
+    "运营部": "F",
+    "行政部": "G",
+    "生产部": "H",
+}
+
+
+def expected_area(location: str) -> str:
+    """地点字符串应当落在哪个区；判断不了就返回空串，交给人工看。"""
+    text = location.strip()
+    match = re.match(r"^([A-H])\s*区", text)
+    if match:
+        return match.group(1)
+    match = re.match(r"^([A-H])\s*总部", text)
+    if match:
+        return match.group(1)
+    for name, code in LOCATION_AREA_ALIASES.items():
+        if text.startswith(name):
+            return code
+    return ""
+
+
 class DupKey(Exception):
     pass
 
@@ -91,18 +130,24 @@ def trigger_head(trigger: str) -> str:
     return trigger.split(":", 1)[0]
 
 
-def walk_flags(condition: Any, sink: list[str]) -> None:
-    """把 when 条件里引用的旗标名收进 sink；只认 6.4 的声明式操作。"""
+def walk_flags(condition: Any, sink: list[str], loose: list[str] | None = None) -> None:
+    """把 when 条件里引用的旗标名收进 sink。
+    loose 单收"反向条件"（notFlag / noneOf）：它们只证明这个旗标有人读，
+    不该因为没人写它就报错——没写恰恰意味着"这条永远成立"，是合法写法。"""
     if not isinstance(condition, dict):
         return
     for key, value in condition.items():
         if key == "flag":
             sink.append(str(value))
-        elif key in {"all", "any"} and isinstance(value, list):
-            for item in value:
-                walk_flags(item, sink)
+        elif key in {"all", "any", "anyOf", "allOf"} and isinstance(value, list):
+            sink.extend(str(item) for item in value)
         elif key == "not":
-            walk_flags(value, sink)
+            walk_flags(value, sink, loose)
+        elif key in {"notFlag", "eqFlag"}:
+            target = loose if loose is not None else sink
+            target.append(str(value))
+        elif key == "noneOf" and isinstance(value, list) and loose is not None:
+            loose.extend(str(item) for item in value)
 
 
 def all_beats(node: dict) -> list[dict]:
@@ -209,6 +254,27 @@ def main() -> int:
             errors.append(f"{node_id} 的 nodeType 非法：{node_type}")
         if not node.get("reportUse"):
             errors.append(f"{node_id} 缺 reportUse")
+        # 地点和区必须对得上：剧情在 B 区，结束后就不能落到别的区。
+        location = str(node.get("location") or "").strip()
+        location_id = str(node.get("locationId") or "").strip()
+        if location:
+            if not location_id:
+                errors.append(f"{node_id} 有地点「{location}」但没有 locationId")
+            else:
+                area = expected_area(location)
+                if area and area != location_id:
+                    errors.append(f"{node_id} 的地点「{location}」属于 {area} 区，但 locationId={location_id}")
+        if node_type == "main_story":
+            if not location:
+                errors.append(f"{node_id} 是 main_story，但没有 location，无法走到开场")
+            if not location_id:
+                errors.append(f"{node_id} 是 main_story，但没有 locationId，无法走到开场")
+            elif location_id not in ZONE_IDS:
+                errors.append(f"{node_id} 的 locationId 不在 A–H：{location_id}")
+        # 一条手机消息也能点亮去处（第 7 月小赵那句"周末打球不"一次开两扇门）：
+        # 它不挂在台词拍上，挂在节点的 placeHooks 里，一样算"有人带到"。
+        for hook in node.get("placeHooks", []) or []:
+            hooks_in_beats.add(str(hook))
         for beat in all_beats(node):
             if beat.get("hook"):
                 hooks_in_beats.add(str(beat["hook"]))
@@ -257,12 +323,15 @@ def main() -> int:
             if choices is None:
                 errors.append(f"{node_id} 是 main_story 但没有 choices 字段（纯剧情请写空数组）")
                 continue
-            if len(choices) not in (0, 3):
-                errors.append(f"{node_id} 有 {len(choices)} 个选项；只允许 3 个，纯剧情节点 0 个")
+            if len(choices) not in (0, 2, 3):
+                errors.append(f"{node_id} 有 {len(choices)} 个选项；只允许 3 个（三选）或 2 个"
+                              f"（册子里那两处「反馈纸放哪儿」就是两版），纯剧情节点 0 个")
             if len(choices) == 0 and str(node.get("reportUse")) != "story_only":
                 errors.append(f"{node_id} 没有选项，却把 reportUse 写成 {node.get('reportUse')}")
             if len(choices) == 3 and [str(choice.get("id")) for choice in choices] != ["A", "B", "C"]:
                 errors.append(f"{node_id} 的选项 ID 或顺序不是 A/B/C")
+            if len(choices) == 2 and [str(choice.get("id")) for choice in choices] != ["A", "B"]:
+                errors.append(f"{node_id} 的两个选项 ID 或顺序不是 A/B")
         for choice in choices or []:
             cost = int(choice.get("apCost", -1))
             if cost not in (0, 1):
@@ -429,27 +498,55 @@ def main() -> int:
             written.setdefault(str(activity["rewardFlag"]), []).append(f"activities:{activity['id']}")
 
     referenced: set[str] = set()
+    read_negatively: set[str] = set()
     for node in nodes:
         collected: list[str] = []
-        walk_flags(node.get("when"), collected)
+        loose: list[str] = []
+        walk_flags(node.get("when"), collected, loose)
+        # 剧情拍上的 when 也要查：第 5 月那句"合同写的是尽商业上合理努力"就长在拍里，
+        # 之前只查节点/卡/消息，拍里写错旗标名没人拦得住。
+        for beat in all_beats(node):
+            walk_flags(beat.get("when"), collected, loose)
         for card in node.get("cards", []) or []:
-            walk_flags(card.get("when"), collected)
+            walk_flags(card.get("when"), collected, loose)
         for choice in node.get("choices", []) or []:
-            walk_flags(choice.get("variantWhen"), collected)
+            walk_flags(choice.get("variantWhen"), collected, loose)
         # 手机里一条消息可以按旗标只在某一支发出去（月末那句按当月选择变文案）；
         # 整批仍算一批，所以这些旗标要算"有消费者"。
         for message in node.get("messages", []) or []:
-            walk_flags(message.get("when"), collected)
+            walk_flags(message.get("when"), collected, loose)
         for flag in node.get("requiresFlags", []) or []:
             collected.append(str(flag))
         referenced.update(collected)
+        read_negatively.update(loose)
 
-    unconsumed = sorted(flag for flag in written if flag not in referenced)
+    # 引擎在运行时自己写的旗标，不是任何选项写出来的，when 引到它们不算"引用了不存在的旗标"：
+    #   visit_<月>_<活动>  到访结算（F 段每次第一次到访写一条）
+    #   peak_<能力>        能力第 5 格点亮（剧情那一幕写）
+    #   hook_<钩子>        讲解卡钩子已触发
+    # 另外后端结算结果（转正是否延期、是否提名、答辩是否通过）也是运行时才有，列进白名单。
+    for node in nodes:
+        if str(node.get("nodeType")) != "activity":
+            continue
+        month = int(node.get("month", 0))
+        for aid in node.get("activityIds", []) or []:
+            written.setdefault(f"visit_{month}_{aid}", []).append("engine:到访结算")
+    SETTLEMENT_FLAGS = {
+        "m07_probation_deferred", "m12_not_nominated", "m12_not_passed",
+    }
+
+    def _engine_flag(flag: str) -> bool:
+        return (flag.startswith(("visit_", "peak_", "hook_", "handbook_page_"))
+                or flag in SETTLEMENT_FLAGS or flag in {"handbook_read", "activity", "e02"})
+
+    unconsumed = sorted(flag for flag in written
+                        if flag not in referenced and flag not in read_negatively
+                        and not _engine_flag(flag))
     if unconsumed:
         line = f"这些旗标没有消费者：{unconsumed}"
         (errors if args.full else warnings).append(line + ("（后面几个月的节点还没填，切片阶段只警告）" if not args.full else ""))
 
-    unknown_refs = sorted(ref for ref in referenced if ref not in written)
+    unknown_refs = sorted(ref for ref in referenced if ref not in written and not _engine_flag(ref))
     if unknown_refs:
         errors.append(f"when 引用了从未写入的旗标：{unknown_refs}")
 
@@ -631,12 +728,33 @@ def main() -> int:
                 continue
             if phases[str(cur["phase"])] < phases[str(prev["phase"])]:
                 errors.append(f"第 {month} 月时间倒流：{prev['id']}（{prev['phase']}）之后是 {cur['id']}（{cur['phase']}）")
+            # 上一屏写着 sleepHome：玩家走回宿舍睡了一觉，天亮回到工位——
+            # 同一旬里「夜里→上午」是过了一天，不是时间倒流。
+            slept = bool(prev.get("sleepHome", False))
             if str(cur.get("timeBand", "")) in order_rank and str(prev.get("timeBand", "")) in order_rank:
-                if order_rank[str(cur["timeBand"])] < order_rank[str(prev["timeBand"])] and cur.get("phase") == prev.get("phase"):
+                if order_rank[str(cur["timeBand"])] < order_rank[str(prev["timeBand"])] and cur.get("phase") == prev.get("phase") and not slept:
                     errors.append(
                         f"第 {month} 月 {prev['id']}→{cur['id']} 时段回退（{prev['timeBand']}→{cur['timeBand']}）"
                         f"但还在同一旬：要么改 phase，要么过场会把这次跨日藏起来"
                     )
+
+    # 第 34 条：常驻目标。玩家反馈"被剧情牵着走、不知道在干什么"——
+    # 屏幕上只有地点没有目标。所以每月必须有一个节点写 goal（一句要办成什么事）。
+    for month in sorted(scope):
+        if month == 1:
+            continue  # 新手月有自己的开场流程
+        goals = [node for node in nodes
+                 if int(node.get("month", 0)) == month and str(node.get("goal", "")).strip()]
+        if not goals:
+            errors.append(f"第 {month} 月没有任何常驻目标：玩家抬头看不见这个月要办成什么")
+        if len(goals) > 1:
+            errors.append(f"第 {month} 月有 {len(goals)} 个节点写了 goal，任务卡会被反复改写")
+        for node in goals:
+            goal = str(node.get("goal", "")).strip()
+            if visible_length(goal) > 18:
+                errors.append(f"{node['id']} 的 goal 超过 18 字：{goal}")
+            if goal[:2] in {f"{z} 区" for z in ZONE_IDS} or goal.endswith("会议室"):
+                errors.append(f"{node['id']} 的 goal 写成了地点：{goal}——要写「这月要办成什么事」")
 
     if FIXTURES.exists():
         for fixture in FIXTURES.glob("*.json"):
