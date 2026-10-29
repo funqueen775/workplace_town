@@ -465,7 +465,8 @@
         },
         {
           "type": "narration",
-          "text": "那套编排层的小模块，王哥昨晚发了封邮件：两份说明，一份自研，一份开源。"
+          "text": "那套编排层的小模块，王哥昨晚发了封邮件：两份说明，一份自研，一份开源。",
+          "goalLine": true
         },
         {
           "type": "narration",
@@ -524,8 +525,7 @@
       "hour": 9,
       "walk": true,
       "guideBy": "王哥",
-      "goal": "两条路线各做一份，写出退路",
-      "walkNote": "回工位，王哥要派活"
+      "walkNote": "王哥说的两件事还没动"
     },
     {
       "id": "E04",
@@ -704,7 +704,7 @@
           "tone": "gold"
         }
       },
-      "walkNote": "王哥让你带两张图过去",
+      "walkNote": "两张图在手，先去评审室",
       "guideBy": "陈工"
     },
     {
@@ -781,7 +781,7 @@
       "setsFlags": [
         "m02_library_rollback_checked"
       ],
-      "walkNote": "按陈工说的翻旧事故单"
+      "walkNote": "那栏回滚记录，去二楼翻"
     },
     {
       "id": "M02_NIGHT_1",
@@ -840,7 +840,7 @@
       "walk": true,
       "sleepHome": true,
       "wakePhase": "early",
-      "walkNote": "回工位补退路那一栏"
+      "walkNote": "退路那栏空着，回去补"
     },
     {
       "id": "M02_DAY_2",
@@ -878,7 +878,7 @@
       "walk": true,
       "sleepHome": true,
       "wakePhase": "early",
-      "walkNote": "回工位接着做验证"
+      "walkNote": "开源卡住的地方再试一次"
     },
     {
       "id": "M02_WEEK_7",
@@ -907,7 +907,7 @@
       "phase": "early",
       "reportUse": "story_only",
       "walk": true,
-      "walkNote": "回工位收这一周的尾"
+      "walkNote": "这周验完了，回工位收尾"
     },
     {
       "id": "E03",
@@ -1180,7 +1180,8 @@
       "messages": [
         {
           "id": "m03_lin_1",
-          "text": "周三上午十点，客户到展厅谈合同。陈工让我一起参加——他今天盯回滚，来不了。"
+          "text": "周三上午十点，客户到展厅谈合同。陈工让我一起参加——他今天盯回滚，来不了。",
+          "goalLine": true
         },
         {
           "id": "m03_lin_2",
@@ -1257,8 +1258,7 @@
       "hour": 9,
       "note": "上旬 · 还有两天",
       "walk": true,
-      "goal": "把边界写进合同，别写成誓言",
-      "walkNote": "回工位，小林来拉人"
+      "walkNote": "小林的消息先到，回工位"
     },
     {
       "id": "E10",
@@ -1435,7 +1435,7 @@
         }
       },
       "guideBy": "王哥",
-      "walkNote": "按小林拉的会去展厅答那条合同"
+      "walkNote": "小林拉的会，去答那条"
     },
     {
       "id": "M03_WRAP",
@@ -1981,7 +1981,8 @@
           "text": "这周就一件事——告诉我这些毛病是零散的，还是我们根本没测过。",
           "emphasis": [
             "还是我们根本没测过"
-          ]
+          ],
+          "goalLine": true
         }
       ],
       "choices": [],
@@ -2000,8 +2001,7 @@
         ]
       },
       "walk": true,
-      "goal": "分清是零散毛病，还是根本没测过",
-      "walkNote": "回工位，看板在等你"
+      "walkNote": "41 条工单还在表里"
     },
     {
       "id": "E05",
@@ -2387,7 +2387,7 @@
       "reportUse": "evidence",
       "zoneCut": "A",
       "whenText": "中旬 · 周五",
-      "walkNote": "陈工主持的复盘会"
+      "walkNote": "陈工主持，谁做的得说清"
     },
     {
       "id": "M04_PHONE",
@@ -2567,7 +2567,8 @@
         },
         {
           "type": "narration",
-          "text": "名单是王哥报的。他说，讲自己写的那一段的人，只有你。"
+          "text": "名单是王哥报的。他说，讲自己写的那一段的人，只有你。",
+          "goalLine": true
         },
         {
           "type": "narration",
@@ -2590,8 +2591,7 @@
         ]
       },
       "walk": true,
-      "goal": "周五台上，把那次翻车接住",
-      "walkNote": "回工位，桌上有路演袋"
+      "walkNote": "牛皮纸袋在桌上，主讲我"
     },
     {
       "id": "M05_NIGHT",
@@ -2752,7 +2752,8 @@
       "phase": "early",
       "reportUse": "evidence",
       "zoneCut": "B",
-      "guideBy": "小林"
+      "guideBy": "小林",
+      "walkNote": "告警叠了四张，都在演示线"
     },
     {
       "id": "M05_DEMO",
@@ -2982,7 +2983,7 @@
       "reportUse": "evidence",
       "zoneCut": "F",
       "guideBy": "小林",
-      "walkNote": "小林排的路演去码头"
+      "walkNote": "麦在我手上，她在台下"
     },
     {
       "id": "M05_PHONE",
@@ -3221,8 +3222,7 @@
         ]
       },
       "walk": true,
-      "goal": "挑三件，讲清这一年你做了什么",
-      "walkNote": "回工位，隔板贴了通知"
+      "walkNote": "通知贴隔板上了，十分钟"
     },
     {
       "id": "M06_PHONE",
@@ -3237,7 +3237,8 @@
       "messages": [
         {
           "id": "m06_chen_1",
-          "text": "六月八号，十点，A 区小会议室。十分钟，不用做 PPT，四页以内。去年有人做了十二页。"
+          "text": "六月八号，十点，A 区小会议室。十分钟，不用做 PPT，四页以内。去年有人做了十二页。",
+          "goalLine": true
         }
       ],
       "replyOptions": [
@@ -3250,7 +3251,8 @@
       "phase": "early",
       "reportUse": "story_only",
       "deliveredDuring": "M06_OPEN",
-      "guideBy": "王哥"
+      "guideBy": "王哥",
+      "walkNote": "王哥让先看议程"
     },
     {
       "id": "M06_WALL",
@@ -3369,7 +3371,7 @@
       "reportUse": "evidence",
       "zoneCut": "E",
       "guideBy": "HRBP",
-      "walkNote": "王哥让你先挑三件"
+      "walkNote": "按王哥说的先去挑三张"
     },
     {
       "id": "M06_DEF1",
@@ -3894,8 +3896,7 @@
         ]
       },
       "walk": true,
-      "goal": "把事故的时间线摊开",
-      "walkNote": "回工位，王哥念结果"
+      "walkNote": "结果今天登记，王哥等着"
     },
     {
       "id": "M07_PAPER",
@@ -4040,7 +4041,8 @@
       "beats": [
         {
           "type": "narration",
-          "text": "你按通知来到 A 区会议室。长桌上已经投出从需求提交到客户 Demo 回滚的时间线；陈工坐在最里面，王哥在你旁边，老周靠着窗。"
+          "text": "你按通知来到 A 区会议室。长桌上已经投出从需求提交到客户 Demo 回滚的时间线；陈工坐在最里面，王哥在你旁边，老周靠着窗。",
+          "goalLine": true
         },
         {
           "type": "narration",
@@ -4231,7 +4233,7 @@
       "phase": "early",
       "reportUse": "evidence",
       "zoneCut": "A",
-      "walkNote": "陈工召集的事故复盘"
+      "walkNote": "陈工召集，带上提交记录"
     },
     {
       "id": "M07_PHONE_XZ",
@@ -4426,7 +4428,8 @@
         },
         {
           "type": "narration",
-          "text": "昨天下班前，王哥把一张便签贴在你显示器边上：上午白板室，带第五月那本接口账。"
+          "text": "昨天下班前，王哥把一张便签贴在你显示器边上：上午白板室，带第五月那本接口账。",
+          "goalLine": true
         }
       ],
       "choices": [],
@@ -4445,8 +4448,7 @@
           "place_card_tool_1.png"
         ]
       },
-      "walkNote": "老周叫的白板会",
-      "goal": "定一条路线，报一次事故"
+      "walkNote": "便签还贴显示器：带账去"
     },
     {
       "id": "E23",
@@ -4581,7 +4583,8 @@
       "timeBand": "morning",
       "phase": "mid",
       "reportUse": "story_only",
-      "guideBy": "安全组"
+      "guideBy": "安全组",
+      "walkNote": "回去查那串调用记录"
     },
     {
       "id": "E25",
@@ -4809,7 +4812,8 @@
         },
         {
           "id": "m09_lin_2",
-          "text": "去年我也被写进一个没做过的模块，懒得追。今年最好先对一下记录。"
+          "text": "去年我也被写进一个没做过的模块，懒得追。今年最好先对一下记录。",
+          "goalLine": true
         }
       ],
       "replyOptions": [
@@ -4924,8 +4928,7 @@
       "phase": "early",
       "reportUse": "story_only",
       "walk": true,
-      "goal": "名单上别少别人的名字",
-      "walkNote": "回工位，小赵站着等你"
+      "walkNote": "这话他只跟我说了一遍"
     },
     {
       "id": "E27",
@@ -5450,8 +5453,7 @@
         ]
       },
       "walk": true,
-      "goal": "把不属于自己的那个名字撤下来",
-      "walkNote": "回工位，旁边多了张椅子"
+      "walkNote": "桌角压着打印稿第七页"
     },
     {
       "id": "M10_PHONE_LZ",
@@ -5516,7 +5518,8 @@
         {
           "type": "say",
           "speaker": "老周",
-          "text": "负责人名额已经报满。公示这几天只能直接改错别字。要改人名，得出情况说明，陈工签字，再往上报。"
+          "text": "负责人名额已经报满。公示这几天只能直接改错别字。要改人名，得出情况说明，陈工签字，再往上报。",
+          "goalLine": true
         },
         {
           "type": "narration",
@@ -5654,7 +5657,7 @@
         }
       },
       "guideBy": "许棠",
-      "walkNote": "按行政通知核对名单"
+      "walkNote": "名单上有我不做的项目"
     },
     {
       "id": "E40",
@@ -5887,7 +5890,8 @@
           "text": "上旬末前把你的材料给我。数字和口径都写上。",
           "emphasis": [
             "上旬末前"
-          ]
+          ],
+          "goalLine": true
         },
         {
           "type": "narration",
@@ -5920,8 +5924,7 @@
         ]
       },
       "walk": true,
-      "goal": "材料里把实测和外推分开写",
-      "walkNote": "回工位，午休王哥过来"
+      "walkNote": "王哥放下筷子看排期"
     },
     {
       "id": "M11_MATERIAL",
@@ -6145,7 +6148,7 @@
           "tone": "gray"
         }
       },
-      "walkNote": "老周约在心湖木栈道"
+      "walkNote": "老周约在木栈道谈那两个数"
     },
     {
       "id": "M11_FREE",
@@ -6322,7 +6325,8 @@
       "timeBand": "afternoon",
       "phase": "late",
       "reportUse": "story_only",
-      "guideBy": "王哥"
+      "guideBy": "王哥",
+      "walkNote": "材料给王哥了，等名单"
     },
     {
       "id": "M11_PHONE_CG",
@@ -6337,7 +6341,9 @@
       "messages": [
         {
           "id": "m11_cg_1",
-          "text": "十二月上旬，上午九点。十五分钟陈述，十分钟提问。材料上旬末前给我。"
+          "text": "十二月上旬，上午九点。十五分钟陈述，十分钟提问。材料上旬末前给我。",
+          "goalLine": true,
+          "goalForMonth": 12
         },
         {
           "id": "m11_cg_2",
@@ -6440,8 +6446,7 @@
       },
       "walk": true,
       "guideBy": "HRBP",
-      "goal": "讲清哪一段是你做的",
-      "walkNote": "回工位，最后一晚收拾"
+      "walkNote": "纸箱等着归档，手册第三章"
     },
     {
       "id": "M12_DOOR",
@@ -6509,7 +6514,8 @@
       "when": {
         "notFlag": "m12_not_nominated"
       },
-      "guideBy": "陈工"
+      "guideBy": "陈工",
+      "walkNote": "陈工在门外等我"
     },
     {
       "id": "M12_FEEDBACK",

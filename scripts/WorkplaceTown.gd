@@ -507,6 +507,9 @@ func _physics_process(delta: float) -> void:
 		_refresh_objective_hint()
 	var wanted_position := _player.position + direction * PLAYER_SPEED * delta
 	var move_direction := direction
+	# 卡死逃生：遮罩在树缝、桥角这些位置会留下"站得住、但四周一步都判不过"的小块，
+	# 玩家走进去就四面动不了。这时候先按他按着的方向放行，挪出来立刻恢复原规则。
+	var escaping := false
 	if direction != Vector2.ZERO and not _is_walkable_position(wanted_position):
 		var horizontal := _player.position + Vector2(direction.x, 0.0) * PLAYER_SPEED * delta
 		var vertical := _player.position + Vector2(0.0, direction.y) * PLAYER_SPEED * delta
@@ -514,9 +517,20 @@ func _physics_process(delta: float) -> void:
 			move_direction = Vector2(direction.x, 0.0)
 		elif direction.y != 0.0 and _is_walkable_position(vertical):
 			move_direction = Vector2(0.0, direction.y)
+		elif _is_pinned_in(_player.position):
+			move_direction = direction
+			escaping = true
 		else:
 			move_direction = Vector2.ZERO
-	if move_direction != Vector2.ZERO and _is_inside_active_zone(_player.position + move_direction * PLAYER_SPEED * delta):
+	if move_direction != Vector2.ZERO and not _is_inside_active_zone(_player.position + move_direction * PLAYER_SPEED * delta):
+		move_direction = Vector2.ZERO
+	if move_direction == Vector2.ZERO:
+		_player.velocity = Vector2.ZERO
+	elif escaping:
+		# 树缝的碰撞多边形也会把人顶回来，所以这一步直接摆位置，不走 move_and_slide。
+		_player.velocity = move_direction * PLAYER_SPEED
+		_player.position += _player.velocity * delta
+	else:
 		_player.velocity = move_direction * PLAYER_SPEED
 		_player.move_and_slide()
 		if _is_walkable_position(_player.position):
@@ -524,8 +538,6 @@ func _physics_process(delta: float) -> void:
 		else:
 			_player.position = _last_walkable_position
 			_player.velocity = Vector2.ZERO
-	else:
-		_player.velocity = Vector2.ZERO
 	_player_sprite.set_motion(move_direction, _player.velocity.length() * delta)
 	_update_zone_state()
 	_update_nearby_npc()
@@ -1107,6 +1119,23 @@ func _add_polygon_collider(points_data: Array) -> void:
 	shape.polygon = polygon
 	body.add_child(shape)
 	add_child(body)
+
+
+## 脚下是不是已经卡死：八个方向、三档步长都过不了通行判定。
+## 一格 32 世界像素的遮罩在树缝、桥角会留下这种小块——站得进去，走不出来。
+const PIN_STEPS := [8.0, 18.0, 34.0]
+const PIN_DIRS := [
+	Vector2(1, 0), Vector2(-1, 0), Vector2(0, 1), Vector2(0, -1),
+	Vector2(0.71, 0.71), Vector2(-0.71, 0.71), Vector2(0.71, -0.71), Vector2(-0.71, -0.71),
+]
+
+
+func _is_pinned_in(position: Vector2) -> bool:
+	for step: float in PIN_STEPS:
+		for offset: Vector2 in PIN_DIRS:
+			if _is_walkable_position(position + offset * step):
+				return false
+	return true
 
 
 func _is_walkable_position(position: Vector2) -> bool:
@@ -4926,12 +4955,6 @@ func runner_present_story(node: Dictionary) -> void:
 	_month12_skip_walk = false
 	_walk_skip_offered = false
 	_walk_pause_started_msec = 0
-	# 常驻目标：节点上写了 goal 就把它钉在任务卡上，玩家抬头能看见"这月要办成什么"。
-	# （玩家反馈：剧情一路被牵着走，因为屏幕上只有地点，没有目标。）
-	var goal_line := String(node.get("goal", ""))
-	if not goal_line.is_empty() and _town_ui_v2 != null:
-		_town_ui_v2.set_task_card(goal_line, "第 %d 月 · 这个月要办成的事" % int(node.get("month", _month12_month)))
-		_town_ui_v2.set_task_note(String(node.get("location", "")))
 	if _month12_phase == "node_walk":
 		_month12_phase = "month_nodes"
 	_runner_place_player(node, false)
@@ -5216,7 +5239,11 @@ func runner_walk_to(node: Dictionary) -> void:
 	_town_ui_v2.set_task_card(String(node.get("title", "")), String(node.get("location", "")))
 	# 走过去的路上要知道"去干嘛"：节点写了 walkNote 就照它写，没写才回落到"跟着黄线走"。
 	var walk_note := String(node.get("walkNote", ""))
-	_town_ui_v2.set_task_note(walk_note if not walk_note.is_empty() else "跟着黄线走")
+	if walk_note.is_empty():
+		# 没写心里话也得说出去哪儿：兜底至少带上目的地，不留"跟着黄线走"这种没信息的话。
+		var where := String(node.get("location", "")).replace(" 创意水巷", "")
+		walk_note = ("跟着黄线去 %s" % where) if not where.is_empty() else "跟着黄线走"
+	_town_ui_v2.set_task_note(walk_note)
 	if _guide_line != null and _player != null:
 		_guide_line.set_path(_build_guide_path(_player.position, _month12_waypoint))
 
