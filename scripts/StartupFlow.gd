@@ -95,7 +95,9 @@ func _ready() -> void:
 	# 由城镇在开局那一拍跳到点名的那个月。玩家包里不会带这个参数。
 	for arg in OS.get_cmdline_user_args():
 		if String(arg).begins_with("--v12m-month="):
-			_enter_town()
+			# 换场景得等这一帧把子节点加完再做：直接在 _ready 里切，Godot 会拒绝
+			# remove_child，结果标题还挂着、镇子也进不去（点「开始游戏」没反应）。
+			_enter_town.call_deferred()
 			return
 	_show_login_screen()
 
