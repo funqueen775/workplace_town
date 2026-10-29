@@ -244,6 +244,8 @@ var _month12_start_next := Callable()
 var _month12_skip_walk := false
 ## 从月末卡跳去看档案时置真：档案页关掉后要把月末卡放回来。
 var _archive_return_to_close := false
+## 首月手册讲解卡选了「打开手册」：等手册页关掉再去跨组周会。
+var _manual_card_pending := false
 ## 首月活动去处：三扇门在自由活动开始时一起出现，由玩家自己选择先去哪里。
 var _month12_places: Array = []
 var _month12_place_portals := {}
@@ -303,6 +305,8 @@ var _hint_at_portal := false
 ## 走位兜底：黄线走了太久还没到，就允许按 E 直接过去（只跳走路，不跳内容）。
 var _walk_started_msec := 0
 var _walk_skip_offered := false
+## 探针专用：开了就把"这一屏为什么没补收尾句"打到标准输出。玩家跑的时候是 false。
+var _debug_departure := false
 ## 四维证据：答辩判定用。每次选完把这条选项的能力锚点收进来，取各维最高那档。
 var _dim_anchors := {"S": [], "O": [], "N": [], "D": []}
 ## 看手机/手册时把走位计时真正停住：关掉后从原处继续，不会被一口气拽走。
@@ -1569,7 +1573,6 @@ func _build_town_ui_v2() -> void:
 	_town_ui_v2 = TOWN_UI_V2.new()
 	# 档案页那五排格子读城镇这本账，不读后端的下发（没连后端也照画）。
 	_town_ui_v2.ability_source = Callable(self, "ability_display_levels")
-	_town_ui_v2.profile_requested.connect(_open_ui_profile)
 	_town_ui_v2.task_requested.connect(_open_ui_task)
 	_town_ui_v2.phone_requested.connect(_open_ui_phone)
 	_town_ui_v2.settings_requested.connect(func(): _town_ui_v2.open_view("settings"))
@@ -1653,9 +1656,10 @@ func _open_archive_with_tutorial() -> void:
 	_open_ui_profile()
 
 
-# ---------------------------------------------------------------- HUD 五颗按钮的第一次使用卡
-## 按钮解锁本身不弹卡；第一次点开才出。点“打开X”算看过，之后直接进面板；
-## 点“稍后”不算看过，下次再点还会出。
+# ---------------------------------------------------------------- HUD 四颗按钮的第一次使用卡
+## 手机 / 手册 / 档案各有一张（手机用收信面板自带那张），设置不弹卡直接进。
+## 按钮解锁本身不弹卡；第一次点开才出。点"打开X"算看过，之后直接进面板；
+## 点"稍后"不算看过，下次再点还会出。
 
 func _show_hud_button_tutorial(kind: String, after: Callable) -> bool:
 	if bool(_hud_tutorial_seen.get(kind, false)):
@@ -1709,7 +1713,7 @@ func _hud_button_tutorial_config(kind: String) -> Dictionary:
 				"steps": [
 					{"title": "点右下角的手册", "sub": "圆形按钮，随时都能打开。"},
 					{"title": "先看第一章", "sub": "提交前那三问，后面会用到。"},
-					{"title": "有新页会亮红点", "sub": "不用一次读完，等用到再翻。"},
+					{"title": "一共三章十四条", "sub": "技术规范、协作流程、晋升通道。"},
 				],
 				"open_label": "打开手册",
 				"fineprint": "不看也能继续；手册只是把规则摆出来。",
@@ -1777,7 +1781,7 @@ func _open_ui_phone() -> void:
 
 
 ## 首月的手机：用 12m 那套"手机外形"抽屉装陈工这条信，联系人和回复项都从数据来。
-func _show_month_phone_drawer() -> void:
+func _ensure_month_phone_panel() -> Node:
 	var source: Dictionary = _month_opening_events.get("M01_PHONE_1", {})
 	if _month_phone_panel == null:
 		_month_phone_panel = PHONE_INBOX.new()
@@ -1797,11 +1801,37 @@ func _show_month_phone_drawer() -> void:
 		options = _month_phone_reply_options.duplicate(true)
 		options.append({"id": "later", "text": "稍后再说"})
 	_month_phone_panel.reply_options = options
+	return _month_phone_panel
+
+
+func _show_month_phone_drawer() -> void:
+	var panel := _ensure_month_phone_panel()
 	# 第一次点手机先看现有讲解卡（第一次使用 / 你的工作手机），卡上“打开手机”再进收件箱。
-	if not bool(_month_phone_panel.get("_tutorial_completed")):
-		_month_phone_panel.open_tutorial()
+	if not bool(panel.get("_tutorial_completed")):
+		panel.open_tutorial()
 		return
-	_month_phone_panel.open_phone()
+	panel.open_phone()
+
+
+## 手机亮出来的那一刻就把讲解卡弹到脸上，不等玩家去点。
+## 卡收掉（「打开手机」看完收件箱、或「稍后」）之后才把流程接下去，
+## 不然带巡下一站的解锁卡会和它叠在一层。
+func _offer_phone_tutorial() -> bool:
+	var panel := _ensure_month_phone_panel()
+	if bool(panel.get("_tutorial_completed")):
+		# 卡在这一局里已经看过了（跳月回看首月）：退回一行提示，不再弹第二次。
+		_show_reminder_toast("手机有消息", "右下角手机带红点，点开查看；不回也没关系")
+		return false
+	var fired: Array = [false]
+	var finish := func():
+		if bool(fired[0]):
+			return
+		fired[0] = true
+		_advance_month12_tour_step()
+	panel.tutorial_skipped.connect(finish)
+	panel.phone_closed.connect(finish)
+	panel.open_tutorial()
+	return true
 
 
 func _on_month_phone_reply_sent(reply_id: String, reply_text: String) -> void:
@@ -1832,20 +1862,6 @@ func _on_ui_view_closed() -> void:
 	_archive_return_to_close = false
 	if _month12_close_panel != null:
 		_month12_close_panel.show()
-
-
-func _open_ui_calendar() -> void:
-	_town_ui_v2.open_view("calendar", {"month": int(WorldClock.snapshot().get("month", 1)), "target_month": int(WorldClock.next_main_event().get("month", 48)), "next_event": WorldClock.next_main_event(), "events": WorldClock.story_events(), "progression_locked": _month12_active and _month12_phase != "done"})
-
-
-func _open_ui_task_calendar(target_month: int) -> void:
-	_town_ui_v2.open_view("calendar", {
-		"month": int(WorldClock.snapshot().get("month", 1)),
-		"target_month": target_month,
-		"next_event": WorldClock.next_main_event(),
-		"events": WorldClock.story_events(),
-		"progression_locked": _month12_active and _month12_phase != "done",
-	})
 
 
 func _on_ui_chat_requested(person: String) -> void:
@@ -3257,7 +3273,7 @@ func _start_month_opening() -> void:
 	_tutorial_complete = true
 	WorldClock.set_running(false)
 	if _town_ui_v2 != null:
-		# 首月先聚焦职位卡和当前任务；手机、手册、月历按流程需要再开放。
+		# 首月先聚焦岗位条和当前任务；手机、手册、档案按流程需要再开放。
 		# 那罐蜂蜜是心情 H，不是体力。首月不亮：这个月没有任何东西会扣心情，
 		# 摆一个不会动的读数上去，等于让玩家盯一件没有后果的事。
 		# 第 2 月月初起账时它才登场（见 _begin_month_ledger）。
@@ -3375,6 +3391,10 @@ func _on_month12_handbook_closed(_records: Dictionary) -> void:
 	_month12_flags["handbook_read"] = true
 	if _town_ui_v2 != null:
 		_town_ui_v2.set_manual_visible(true)
+	if _manual_card_pending:
+		_manual_card_pending = false
+		_start_month12_e02()
+		return
 
 
 
@@ -3468,12 +3488,19 @@ func _present_month12_stop() -> void:
 
 func _advance_month12_tour() -> void:
 	var stop: Dictionary = MONTH12_TOUR[_month12_tour_index]
-	if String(stop.get("id", "")) == "a_gate":
+	var phone_stop := String(stop.get("id", "")) == "a_gate"
+	if phone_stop:
 		_unlock_month_phone()
-		_show_reminder_toast("手机有消息", "右下角手机带红点，点开查看；不回也没关系")
 	var card_id := String(stop.get("card", ""))
 	if not card_id.is_empty():
-		_show_tour_card(card_id, func(): _advance_month12_tour_step())
+		# 地点解锁卡先讲"这是哪儿"，关掉之后紧接着把手机讲解卡弹出来，
+		# 两张卡不叠在一层；手机卡收掉才带玩家去下一站。
+		_show_tour_card(card_id, func():
+			if phone_stop and _offer_phone_tutorial():
+				return
+			_advance_month12_tour_step())
+		return
+	if phone_stop and _offer_phone_tutorial():
 		return
 	_advance_month12_tour_step()
 
@@ -3538,8 +3565,25 @@ func _month12_handbook_step() -> void:
 		_town_ui_v2.set_manual_visible(true)
 		_town_ui_v2.set_task_card("带巡完成", "第 1 月 · 接下来去跨组周会")
 		_town_ui_v2.set_task_note("手册可随时查看；跟黄线去跨组周会")
-	# 手册是可选入口：不自动弹全文，不等待阅读完成。
+	# 手册亮出来的那一刻就把讲解卡弹给他，卡收掉再去跨组周会：
+	# 时段过场压在卡片底下会看不见，所以流程等这张卡。
+	if _show_hud_button_tutorial("manual", Callable(self, "_open_month12_handbook")):
+		_hud_button_tutorial.closed.connect(_after_manual_card_closed, CONNECT_ONE_SHOT)
+		return
 	call_deferred("_start_month12_e02")
+
+
+## 卡收掉之后再看一眼：`closed` 是在「打开手册」真正开页之前发的，所以延一帧判。
+func _after_manual_card_closed() -> void:
+	call_deferred("_continue_after_manual_card")
+
+
+func _continue_after_manual_card() -> void:
+	if _month12_handbook != null and is_instance_valid(_month12_handbook) \
+			and bool(_month12_handbook.call("is_open")):
+		_manual_card_pending = true
+		return
+	_start_month12_e02()
 
 
 # ---------------------------------------------------------------- E E02
@@ -4003,6 +4047,11 @@ func _show_month12_place_list(zone_code: String) -> void:
 		var act := value as Dictionary
 		if String(act.get("locationId", "")) != zone_code:
 			continue
+		var pid := String(act.get("id", ""))
+		if not _month12_place_portals.has(pid) and not _month12_unlocked_places.has(pid):
+			# 门没开的去处不列出来：这一屋子只放"你去得了的地方"。
+			# 之前是把全区清单照抄，第 7 月小赵那句话还没说，训练谷和草坪就已经挂在列表里了。
+			continue
 		var shots: Array = (act.get("card", {}) as Dictionary).get("shots", []) as Array
 		var thumb := String(act.get("scene", ""))
 		if thumb.is_empty() and not shots.is_empty():
@@ -4271,9 +4320,7 @@ func _on_month12_close_finished() -> void:
 	if _month12_close_panel != null:
 		_month12_close_panel.close()
 	_month12_phase = "done"
-	if _town_ui_v2 != null:
-		_town_ui_v2.set_month_visible(true)
-	# 月末回顾关闭后开放月历；档案入口已在回顾卡中提供。
+	# 月历入口已删（TownUiV2 里的 set_month_visible 没了）；档案入口在回顾卡里给。
 	# 换月过场播完就直接进下个月的节点表（没填表的月份由播放器收成"制作中"）。
 	var finished_month := _month12_month
 	_town_ui_v2.set_task_card("第 %d 月完成" % finished_month, "下一个月的记录在整理")
@@ -4370,8 +4417,10 @@ func _do_sleep() -> void:
 		_sleep_then = Callable()
 		_month12_phase = "month_nodes"
 		_date_then(month, _sleep_wake_phase, "morning", then)
-		return
-	_date_then(month + 1, "early", "morning", func(): _start_month_nodes(month + 1))
+	else:
+		_date_then(month + 1, "early", "morning", func(): _start_month_nodes(month + 1))
+	# 两条路都要把黑场收掉。月中那一觉以前在这里提前 return，黑块就留在 188 层
+	# （盖在 HUD 上面），第 2 月"太晚了，先回去休息"之后整个画面就一直是黑的。
 	await get_tree().create_timer(0.3).timeout
 	if is_instance_valid(layer):
 		layer.queue_free()
@@ -4505,7 +4554,7 @@ func _start_hud_tour() -> void:
 		{
 			"rect": job,
 			"title": "左上 · 你的岗位",
-			"body": "职位卡可以打开员工档案，查看岗位和评估安排。先认识入口，结束导览后再看。",
+			"body": "这一行写着你现在的岗位，转正、晋升会换在这上面。要看评估和这一路的记录，等档案开放后从右下角那颗进。",
 			"place": "below",
 		},
 		{
@@ -5012,17 +5061,30 @@ func _evaluate_promotion() -> String:
 ## 谁 = 这一屏最后说话的人；地点 = 下一屏的落点。纯剧情屏才有，带选择的等选项落地后再说。
 func _maybe_append_departure(node: Dictionary, data: Dictionary) -> void:
 	var choices: Array = data.get("choices", []) as Array
+	# 探针用：把"为什么这一屏没补收尾句"打到标准输出，玩家跑的时候不打。
+	var dbg := _debug_departure
+	var nxt: Dictionary = {}
 	if _month_runner == null or not is_instance_valid(_month_runner):
+		if dbg:
+			print("[跳过] %s | 没有播放器" % String(node.get("id", "")))
 		return
-	var nxt: Dictionary = _month_runner.call("peek_next")
+	nxt = _month_runner.call("peek_next")
 	if nxt.is_empty():
+		if dbg:
+			print("[跳过] %s | 这个月后面没有节点了" % String(node.get("id", "")))
 		return
 	var next_loc := String(nxt.get("location", ""))
 	var same_zone := String(nxt.get("locationId", "")) == String(data.get("locationId", ""))
 	if next_loc.is_empty() or same_zone or String(data.get("location", "")).is_empty():
+		if dbg:
+			print("[跳过] %s -> %s | %s" % [String(node.get("id", "")), String(nxt.get("id", "")),
+				"同一个区" if same_zone else ("下一屏没写地点" if next_loc.is_empty() else "这一屏没写地点")])
 		return
 	# 回忆/蒙太奇那种屏不算"去某个地方"，不补这句。
 	if bool(nxt.get("montage", false)) or bool(node.get("noDeparture", false)):
+		if dbg:
+			print("[跳过] %s -> %s | %s" % [String(node.get("id", "")), String(nxt.get("id", "")),
+				"下一屏是回忆/蒙太奇" if bool(nxt.get("montage", false)) else "这一屏标了 noDeparture"])
 		return
 	var guide := String(node.get("guideBy", ""))
 	# 没有落点的屏（手机、手册）只有在明确写了"谁安排的"时才补。
@@ -5050,6 +5112,8 @@ func _maybe_append_departure(node: Dictionary, data: Dictionary) -> void:
 		if guide.length() > 0 and guide.unicode_at(0) < 128:
 			guide_txt = " " + guide + " "
 		tail_text = "按%s的安排，去%s%s吧。" % [guide_txt, join, next_loc]
+	if dbg:
+		print("[补] %s -> %s | 安排人=%s | %s" % [String(node.get("id", "")), String(nxt.get("id", "")), guide, tail_text])
 	if not choices.is_empty():
 		# 带选项的屏：这句话接在每个结果句后面——选完立刻知道下一步去哪儿。
 		for value in choices:
@@ -5069,6 +5133,13 @@ func runner_walk_to(node: Dictionary) -> void:
 	if point.x < -90000.0:
 		push_error("剧情节点 %s 没有落点；不允许直接开场" % String(node.get("id", "")))
 		return
+	# 上一屏是在屋里演的（第 2 月图书馆那一眼）：屋还开着人就动不了，
+	# _physics_process 会在室内预览那里提前返回，走位永远到不了终点。
+	if _interior_preview != null and _interior_preview.is_open():
+		_interior_preview.dismiss()
+		_active_zone = {}
+		_nearby_npc = {}
+		_restore_month12_scene_npcs()
 	_month12_waypoint = _snap_month12_point(point)
 	_walk_started_msec = Time.get_ticks_msec()
 	_walk_skip_offered = false
@@ -5621,6 +5692,12 @@ func _arm_month12_place_visit(node: Dictionary, visit_id: String) -> void:
 	_town_ui_v2.set_task_card(String(place.get("name", "去看一眼")), String(place.get("location", "")))
 	_town_ui_v2.set_task_note("走到门口，按 E 进去")
 	_show_reminder_toast("门在书院那边", "跟着黄线走，到门口按 E 进去")
+	# 剧情第一次把玩家带到一个新地方：先给一张讲解卡（解锁卡同一套），
+	# 说明这地方是干什么的、这一趟是谁点的。黄线已经铺好，卡上不重复"带我去"。
+	var has_card: bool = not (place.get("card", {}) as Dictionary).is_empty()
+	if has_card and _month12_place_panel != null and not bool(_month12_flags.get("seen_card_" + _month12_visit_id, false)):
+		_month12_flags["seen_card_" + _month12_visit_id] = true
+		_month12_place_panel.call_deferred("show_unlock", place, false)
 
 
 ## 这一眼用的"去处"长在节点上，不进 activities.json：
@@ -5642,6 +5719,8 @@ func _month12_visit_place() -> Dictionary:
 		"object": String(visit.get("object", "")),
 		"rowNote": String(visit.get("rowNote", "")),
 		"placeLine": String(visit.get("placeLine", "")),
+		# 剧情第一次带你去这个地方时的那张讲解卡（和自由活动的去处同一套卡）。
+		"card": visit.get("card", {}),
 		"peek": true,
 	}
 
@@ -5755,6 +5834,8 @@ func _present_month12_place_visit() -> void:
 	_retire_story_door()
 	_apply_node_flags(node)
 	_story_event = _runner_story_data(node)
+	# 屋里这一眼也是剧情的一屏：收尾那句"去哪儿"同样要补，不然出屋就不知道往哪走。
+	_maybe_append_departure(node, _story_event)
 	_town_ui_v2.set_task_card(String(_story_event.get("title", "")), String(_story_event.get("location", "")))
 	_story_event_panel.present(_story_event)
 
