@@ -25,7 +25,7 @@ func _ready() -> void:
 	print("visit 节点已摆好：", not ( _town.get("_month12_visit_node") as Dictionary).is_empty())
 	var start_panel = _town.get("_month12_start_panel")
 	if start_panel != null and is_instance_valid(start_panel) and bool(start_panel.call("is_open")):
-		start_panel.call("close")
+		start_panel.emit_signal("continued")
 	var story = _town.get("_story_event_panel")
 	if story != null and bool(story.call("is_open")):
 		story.call("dismiss")
