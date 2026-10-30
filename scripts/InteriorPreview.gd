@@ -3,18 +3,33 @@ extends CanvasLayer
 
 signal exit_requested
 signal player_message_submitted(npc_id: String, message: String)
+signal activity_selected(activity: Dictionary)
 
 const FONT := preload("res://assets/fonts/NotoSansCJKsc-Regular.otf")
 const PAPER_DOLL := preload("res://scripts/PaperDoll64Sprite.gd")
 const OFFICE_NPC := preload("res://scripts/OfficeNpcWalker.gd")
-const INTERIOR_BOUNDS := Rect2(560, 420, 820, 580)
-# 所有室内图的玻璃门都位于 1920x1080 场景坐标的底部中央。
-const SCENE_SIZE := Vector2(1920, 1080)
-const DOOR_AREA := Rect2(870, 725, 180, 120)
+const SCENE_SIZE := Vector2(1848, 851)
+const ROAD_Y := 700.0
+const WALK_MIN_X := 80.0
+const WALK_MAX_X := 1790.0
+const DOOR_AREA := Rect2(1740, 640, 108, 120)
 const PLAYER_SPEED := 260.0
 const TALK_DISTANCE := 165.0
-# 室内背景已换为完整场景图，角色保持可辨识但不遮挡家具与动线。
-const CHARACTER_SCALE := 5.0 / 3.0
+const CHARACTER_SCALE := 10.0 / 3.0
+const ACTIVITY_CARDS := {
+	"C_LAKE": "res://assets/01_带缩略图面板/C_LAKE_湖边散步_面板.png",
+	"C_COFFEE": "res://assets/01_带缩略图面板/C_COFFEE_小馆咖啡聊天_面板.png",
+	"D_STUDY": "res://assets/01_带缩略图面板/D_STUDY_独自学习_一起自习_面板.png",
+	"D_ROOFTOP": "res://assets/01_带缩略图面板/D_ROOFTOP_书院露台吹风_面板.png",
+	"E_SPORT": "res://assets/01_带缩略图面板/E_SPORT_草坪运动_面板.png",
+	"E_ESCAPE": "res://assets/01_带缩略图面板/E_ESCAPE_团队密室_面板.png",
+	"F_STAGE": "res://assets/01_带缩略图面板/F_STAGE_舞台后台排练_面板.png",
+	"F_RAIN": "res://assets/01_带缩略图面板/F_RAIN_雨天共伞_面板.png",
+	"G_NIGHT": "res://assets/01_带缩略图面板/G_NIGHT_夜间值守_资料整理_面板.png",
+	"G_KTV": "res://assets/01_带缩略图面板/G_KTV_文娱室合唱_KTV_面板.png",
+	"H_BBQ": "res://assets/01_带缩略图面板/H_BBQ_夜间烧烤_篝火_面板.png",
+	"H_BOARD": "res://assets/01_带缩略图面板/H_BOARD_桌游馆_面板.png",
+}
 
 var _root: Control
 var _scene: Control
@@ -34,6 +49,7 @@ var _message_input: LineEdit
 var _send_button: Button
 var _touch_vector := Vector2.ZERO
 var _exploration_enabled := false
+var _activity_buttons: Array[TextureButton] = []
 
 func _ready() -> void:
 	layer = 80
@@ -50,6 +66,9 @@ func present(location: Dictionary, texture_path: String) -> void:
 	_exploration_enabled = false
 	_player = null
 	_npc = null
+	_talk_button = null
+	_dialog = null
+	_activity_buttons.clear()
 	var backdrop := ColorRect.new()
 	backdrop.color = Color("10151e")
 	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -61,7 +80,7 @@ func present(location: Dictionary, texture_path: String) -> void:
 	var room := TextureRect.new()
 	room.texture = _load_texture(texture_path)
 	room.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	room.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	room.stretch_mode = TextureRect.STRETCH_SCALE
 	room.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	room.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	room.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -71,21 +90,12 @@ func present(location: Dictionary, texture_path: String) -> void:
 	_shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_scene.add_child(_shade)
-	var plaque := Panel.new()
-	plaque.position = Vector2(44, 34)
-	plaque.size = Vector2(540, 68)
-	plaque.add_theme_stylebox_override("panel", _panel_style())
-	_scene.add_child(plaque)
-	_title = _label("%s 区 · %s" % [location["code"], location["name"]], 26, Color("fff0c9"))
-	_title.position = Vector2(22, 12)
-	_title.size = Vector2(496, 40)
-	plaque.add_child(_title)
-	# 门上始终显示出口，走到门口或点击标识都能返回小镇。
+	# 新地图自带区域招牌，右端是返回主地图的出口。
 	_door_prompt = Button.new()
 	_door_prompt.name = "DoorExitPrompt"
-	_door_prompt.text = "出口"
-	_door_prompt.position = Vector2(900, 682)
-	_door_prompt.size = Vector2(120, 48)
+	_door_prompt.text = "返回小镇  →"
+	_door_prompt.position = Vector2(1600, 566)
+	_door_prompt.size = Vector2(186, 52)
 	_door_prompt.focus_mode = Control.FOCUS_NONE
 	_door_prompt.add_theme_font_override("font", FONT)
 	_door_prompt.add_theme_font_size_override("font_size", 20)
@@ -94,10 +104,13 @@ func present(location: Dictionary, texture_path: String) -> void:
 	_door_prompt.add_theme_stylebox_override("normal", _door_prompt_style(Color("2b1a10", 0.88)))
 	_door_prompt.add_theme_stylebox_override("hover", _door_prompt_style(Color("472814", 0.94)))
 	_door_prompt.z_index = 1500
-	_door_prompt.pressed.connect(exit_requested.emit)
+	_door_prompt.pressed.connect(func():
+		if _player != null and _player.position.x >= 1600.0:
+			exit_requested.emit())
 	_door_prompt.hide()
 	_scene.add_child(_door_prompt)
 	_build_interior_characters(location)
+	_build_activity_cards()
 	_root.show()
 	if room.texture == null:
 		# Keep the preview usable when an editor import cache is missing.
@@ -142,6 +155,26 @@ func is_door_prompt_active() -> bool:
 func set_touch_vector(value: Vector2) -> void:
 	_touch_vector = value.limit_length(1.0)
 
+func set_activities(activities: Array, enabled: bool, remaining: int) -> void:
+	for button in _activity_buttons:
+		button.hide()
+	for index in mini(activities.size(), _activity_buttons.size()):
+		var activity := activities[index] as Dictionary
+		var button := _activity_buttons[index]
+		var card_path := String(ACTIVITY_CARDS.get(String(activity.get("id", "")), ""))
+		button.texture_normal = _load_texture(card_path) if not card_path.is_empty() else null
+		button.disabled = not enabled or remaining <= 0 or button.texture_normal == null
+		button.scale = Vector2.ONE
+		button.z_index = 1200
+		button.modulate = Color.WHITE if not button.disabled else Color(0.72, 0.72, 0.72)
+		button.tooltip_text = String(activity.get("title", "活动")) if not button.disabled else "自由活动窗口开放后可进入"
+		button.set_meta("activity", activity.duplicate(true))
+		button.show()
+
+func interact_with_npc() -> void:
+	if _talk_button != null and _talk_button.visible:
+		_talk_to_chen()
+
 func set_phase(phase_id: String) -> void:
 	if _shade == null:
 		return
@@ -155,16 +188,17 @@ func _process(delta: float) -> void:
 		_update_talk_state()
 		_update_door_prompt()
 		return
-	var direction := Input.get_vector("move_left", "move_right", "move_up", "move_down")
+	var direction := Input.get_axis("move_left", "move_right")
+	if is_zero_approx(direction):
+		direction = float(int(Input.is_physical_key_pressed(KEY_D) or Input.is_key_pressed(KEY_RIGHT)) \
+			- int(Input.is_physical_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT)))
 	if _touch_vector.length_squared() > 0.001:
-		direction = _touch_vector
+		direction = _touch_vector.x
 	var previous := _player.position
-	var target := previous + direction * PLAYER_SPEED * delta
-	target.x = clampf(target.x, INTERIOR_BOUNDS.position.x, INTERIOR_BOUNDS.end.x)
-	target.y = clampf(target.y, INTERIOR_BOUNDS.position.y, INTERIOR_BOUNDS.end.y)
+	var target := Vector2(clampf(previous.x + direction * PLAYER_SPEED * delta, WALK_MIN_X, WALK_MAX_X), ROAD_Y)
 	_player.position = target
 	_player.z_index = int(target.y)
-	_player_sprite.set_motion(direction, previous.distance_to(target))
+	_player_sprite.set_motion(Vector2(direction, 0), previous.distance_to(target))
 	_update_talk_state()
 	if _exploration_enabled and DOOR_AREA.has_point(_player.position):
 		exit_requested.emit()
@@ -176,12 +210,13 @@ func _update_door_prompt() -> void:
 		return
 	_door_prompt.visible = _exploration_enabled \
 		and (_dialog == null or not _dialog.visible)
+	_door_prompt.disabled = _player.position.x < 1600.0
 
 func _build_interior_characters(location: Dictionary) -> void:
 	_player = Node2D.new()
 	_player.name = "InteriorPlayer"
-	_player.position = Vector2(1060, 500)
-	_player.z_index = 900
+	_player.position = Vector2(930, ROAD_Y)
+	_player.z_index = int(ROAD_Y)
 	# 缩放必须挂在父节点上：精灵的 (-32,-72) 是按 scale=1
 	# 设计的脚底锚点补偿，若直接放大精灵本身，脚底会偏到 (21,48)，影子就跟人物错位。
 	_player.scale = Vector2.ONE * CHARACTER_SCALE
@@ -189,26 +224,28 @@ func _build_interior_characters(location: Dictionary) -> void:
 	var shadow := Polygon2D.new()
 	shadow.polygon = PackedVector2Array([Vector2(-24, -4), Vector2(24, -4), Vector2(30, 2), Vector2(18, 8), Vector2(-18, 8), Vector2(-30, 2)])
 	shadow.color = Color(0.03, 0.04, 0.05, 0.3)
+	shadow.scale = Vector2.ONE * 0.5
 	_player.add_child(shadow)
 	_player_sprite = PAPER_DOLL.new()
 	_player_sprite.position = Vector2(-32, -72)
 	_player_sprite.configure_motion_speed(PLAYER_SPEED)
 	_player.add_child(_player_sprite)
 	_player_sprite.set_loadout(PlayerProfile.get_selected_avatar_id())
+	_player.hide()
 
-	# 所有临时室内图统一预留中央活动区；后续替换美术时只需微调这组点。
-	var route := PackedVector2Array([Vector2(720, 610), Vector2(900, 610), Vector2(900, 700), Vector2(720, 700)])
-	_npc = OFFICE_NPC.new()
+	var route := PackedVector2Array([Vector2(260, ROAD_Y), Vector2(600, ROAD_Y)])
 	_npc_data = _npc_for_location(location)
 	if _npc_data.is_empty():
 		_npc = null
 		return
+	_npc = OFFICE_NPC.new()
 	_npc.name = "InteriorNpc"
 	_npc.configure(String(_npc_data.get("loadout", "bear_green_cardigan")), route, 52.0, 20260914 + String(location.get("code", "A")).unicode_at(0))
 	_npc.scale = Vector2.ONE * CHARACTER_SCALE
 	_scene.add_child(_npc)
+	(_npc.get_child(0) as Node2D).scale = Vector2.ONE * 0.5
 	_npc_name = _label("%s · %s" % [_npc_data.get("name", "场景 NPC"), _npc_data.get("role", "区域协作")], 17, Color("fff2c7"))
-	_npc_name.position = Vector2(-18, -88)
+	_npc_name.position = Vector2(-18, -95)
 	_npc_name.size = Vector2(170, 28)
 	_npc_name.scale = Vector2.ONE / CHARACTER_SCALE
 	_npc_name.add_theme_color_override("font_outline_color", Color("172033"))
@@ -218,9 +255,8 @@ func _build_interior_characters(location: Dictionary) -> void:
 	_talk_button = Button.new()
 	_talk_button.name = "TalkToInteriorNpc"
 	_talk_button.text = "与%s交流" % _npc_data.get("name", "NPC")
-	_talk_button.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	_talk_button.position = Vector2(-390, -150)
-	_talk_button.size = Vector2(350, 82)
+	_talk_button.position = Vector2(320, ROAD_Y - 315)
+	_talk_button.size = Vector2(230, 62)
 	_talk_button.add_theme_font_override("font", FONT)
 	_talk_button.add_theme_font_size_override("font_size", 22)
 	_talk_button.add_theme_color_override("font_color", Color("fff4d4"))
@@ -285,6 +321,38 @@ func _build_interior_characters(location: Dictionary) -> void:
 	_npc.hide()
 	_npc.process_mode = Node.PROCESS_MODE_DISABLED
 
+func _build_activity_cards() -> void:
+	for index in 2:
+		var card := TextureButton.new()
+		card.name = "ActivityCard%d" % index
+		card.position = Vector2(1110, 70 + index * 207)
+		card.size = Vector2(670, 190)
+		card.ignore_texture_size = true
+		card.stretch_mode = TextureButton.STRETCH_SCALE
+		card.pivot_offset = card.size * 0.5
+		card.focus_mode = Control.FOCUS_NONE
+		card.z_index = 1200
+		card.mouse_entered.connect(_set_activity_card_hover.bind(card, true))
+		card.mouse_exited.connect(_set_activity_card_hover.bind(card, false))
+		card.pressed.connect(func(): activity_selected.emit((card.get_meta("activity") as Dictionary).duplicate(true)))
+		card.hide()
+		_scene.add_child(card)
+		_activity_buttons.append(card)
+
+func _set_activity_card_hover(card: TextureButton, hovered: bool) -> void:
+	if card.disabled:
+		return
+	if card.has_meta("hover_tween"):
+		var previous_tween := card.get_meta("hover_tween") as Tween
+		if previous_tween != null and previous_tween.is_running():
+			previous_tween.kill()
+	card.z_index = 1300 if hovered else 1200
+	var tween := create_tween()
+	card.set_meta("hover_tween", tween)
+	tween.set_parallel(true)
+	tween.tween_property(card, "scale", Vector2.ONE * (1.035 if hovered else 1.0), 0.12)
+	tween.tween_property(card, "modulate", Color(1.25, 1.18, 1.05) if hovered else Color.WHITE, 0.12)
+
 func _npc_for_location(location: Dictionary) -> Dictionary:
 	var code := String(location.get("code", "")).to_lower()
 	var catalog := {
@@ -292,6 +360,10 @@ func _npc_for_location(location: Dictionary) -> Dictionary:
 		"b": {"npcId":"wange", "name":"王哥", "role":"技术 · 你的导师", "loadout":"bear_plaid_glasses"},
 		"c": {"npcId":"xiaolin", "name":"小林", "role":"产品", "loadout":"bear_beige_blazer"},
 		"d": {"npcId":"laozhou", "name":"老周", "role":"资深", "loadout":"bear_green_cardigan"},
+		"e": {"npcId":"chengong", "name":"陈工", "role":"邻组 Leader", "loadout":"bear_orange_blazer"},
+		"f": {"npcId":"xiaolin", "name":"小林", "role":"产品", "loadout":"bear_beige_blazer"},
+		"g": {"npcId":"laozhou", "name":"老周", "role":"资深", "loadout":"bear_green_cardigan"},
+		"h": {"npcId":"wange", "name":"王哥", "role":"技术 · 你的导师", "loadout":"bear_plaid_glasses"},
 	}
 	return catalog.get(code, {})
 
@@ -300,6 +372,8 @@ func _update_talk_state() -> void:
 		return
 	var nearby := _player.position.distance_to(_npc.position) <= TALK_DISTANCE
 	_talk_button.visible = _exploration_enabled and nearby and not _dialog.visible
+	_npc_name.visible = not _talk_button.visible
+	_talk_button.position.x = clampf(_npc.position.x - 115.0, 80.0, 620.0)
 
 func _talk_to_chen() -> void:
 	if not _exploration_enabled:
