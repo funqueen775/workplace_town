@@ -900,17 +900,18 @@ class Service:
             return 404, {"error": "unknown sessionId"}
         event_id = str(body.get("eventId") or "")
         message = str(body.get("text") or "").strip()
+        region_id = body.get("regionId", npc_chat.NPCS[npc_id]["zone"])
         if (not event_id or not body.get("clientTime") or not message
-                or len(message) > 500 or body.get("contentVersion") != session["content_version"]):
+                or len(message) > 500 or body.get("contentVersion") != session["content_version"]
+                or not isinstance(region_id, str) or not REGION_RE.match(region_id)):
             return 400, {"error": "invalid chat request"}
         with self._chat_lock:
             event = self.store.get_event(sid, event_id)
             if event is None:
-                npc = npc_chat.NPCS[npc_id]
                 code, result = self.post_event(sid, {
                     "eventId": event_id, "eventType": "npc_dialogue_complete",
                     "contentVersion": body["contentVersion"], "clientTime": body["clientTime"],
-                    "payload": {"regionId": npc["zone"], "npcId": npc_id,
+                    "payload": {"regionId": region_id, "npcId": npc_id,
                                 "message": message, "messageLength": len(message),
                                 "month": self.engine.state_from_json(session["state_json"]).month or 1},
                 })

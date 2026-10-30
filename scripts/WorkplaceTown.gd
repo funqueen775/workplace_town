@@ -79,14 +79,14 @@ const GUIDE_REPATH_DISTANCE := 10.0
 ## 引导线拐角切圆弧的采样段数。只影响观感：4 段已经看不出折角。
 const GUIDE_CORNER_STEPS := 4
 const INTERIOR_ASSETS := {
-	"A": "res://assets/场景内部图/熊起东方总部.png",
-	"B": "res://assets/场景内部图/云栖科技丘.png",
-	"C": "res://assets/场景内部图/创意水巷.png",
-	"D": "res://assets/场景内部图/树影图书馆.png",
-	"E": "res://assets/场景内部图/松风训练谷.png",
-	"F": "res://assets/场景内部图/观澜展会码头.png",
-	"G": "res://assets/场景内部图/暖邻康护院.png",
-	"H": "res://assets/场景内部图/慢生活园.png",
+	"A": "res://assets/八大区域地图重制版/A_市场部.png",
+	"B": "res://assets/八大区域地图重制版/B_研发部.png",
+	"C": "res://assets/八大区域地图重制版/C_销售部.png",
+	"D": "res://assets/八大区域地图重制版/D_人事部.png",
+	"E": "res://assets/八大区域地图重制版/E_财务部.png",
+	"F": "res://assets/八大区域地图重制版/F_运营部.png",
+	"G": "res://assets/八大区域地图重制版/G_行政部.png",
+	"H": "res://assets/八大区域地图重制版/H_生产部.png",
 }
 ## 小镇出生点，位于 H 区入口外的可通行道路，避开自动传送门感应范围。
 const PLAYER_START_POSITION := Vector2(455, 500)
@@ -143,11 +143,11 @@ var _nearby_zone: Dictionary = {}
 var _nearby_npc: Dictionary = {}
 var _npc_instances: Array[Dictionary] = []
 var _zone_status: Control
-var _interaction_button: Button
 ## 右上角功能圆钮（2026-09-17 UI 打磨）：记忆墙 / 周末手账 / 设置，横排一行。
 ## 旧的 190×56 长条按钮（退出游戏/记忆墙/周末手账）已删 —— 退出游戏收进设置弹窗。
 ## 原来 y=215 的「退出游戏」和精力条（同 y）整块叠在一起，这就是右上角「乱」的根源。
 var _memory_wall_button: Button
+var _standing_button: Button
 ## 圆钮行下方那条悬停名称提示（鼠标划过圆钮时显示两三个字）。
 var _hud_button_caption: Label
 ## 设置弹窗与它的停钟还原（同记忆墙的待遇：开着时世界时钟停住）。
@@ -395,7 +395,9 @@ func _unhandled_input(event: InputEvent) -> void:
 				_save_portal_positions()
 			return
 		if _interior_preview != null and _interior_preview.is_open():
-			# 大门感应区会自动返回；ESC 保留为兜底退出。
+			if event.keycode == KEY_E or event.keycode == KEY_SPACE:
+				_interior_preview.interact_with_npc()
+				return
 			if event.keycode == KEY_ESCAPE:
 				_exit_zone()
 			return
@@ -405,7 +407,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			_coordinate_label.visible = _debug_overlay.visible_overlay
 			return
 		if event.keycode == KEY_E or event.keycode == KEY_SPACE:
-			if _interaction_button != null and _interaction_button.visible:
+			if not _nearby_npc.is_empty():
 				_begin_interaction()
 				get_viewport().set_input_as_handled()
 				return
@@ -1303,15 +1305,6 @@ func _build_hud() -> void:
 	_dialog_timer.one_shot = true
 	_dialog_timer.timeout.connect(_hide_dialog)
 	add_child(_dialog_timer)
-	_interaction_button = Button.new()
-	_interaction_button.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	_interaction_button.position = Vector2(-390, -150)
-	_interaction_button.size = Vector2(350, 82)
-	_interaction_button.add_theme_font_override("font", CHINESE_FONT)
-	_interaction_button.add_theme_font_size_override("font_size", 22)
-	_interaction_button.hide()
-	_interaction_button.pressed.connect(_begin_interaction)
-	layer.add_child(_interaction_button)
 	# 右上角功能圆钮排（记忆墙 / 周末手账 / 设置），退出游戏收进设置弹窗。
 	_build_hud_button_row(layer)
 	_build_portal_editor_controls(layer)
@@ -1691,6 +1684,7 @@ func _build_hud_button_row(layer: CanvasLayer) -> void:
 		button.mouse_exited.connect(_on_circle_button_hover.bind(button, 1.0))
 		button.mouse_exited.connect(_hide_hud_button_caption)
 		if String(defs[i]["glyph"]) == "处":
+			_standing_button = button
 			# 处境警示点：处境一旦不是「稳定」，这颗点就亮 —— 被叫去谈话这件事
 			# 不能等玩家自己想起来翻页才知道。颜色分两级（观察=琥珀 / 危急以上=红），
 			# 但**颜色只是快读的辅助**，语义永远有页面上的文字兜着（§2.4）。
@@ -1889,6 +1883,10 @@ func _enter_nearby_zone() -> void:
 	_portal_return_position = _find_safe_portal_exit(_nearby_zone, _player.position)
 	_active_zone = _nearby_zone
 	_nearby_zone = {}
+	_memory_wall_button.hide()
+	_standing_button.hide()
+	_hud_button_caption.hide()
+	_town_ui_v2.set_activity_scene_mode(String(_active_zone.get("code", "")) in ["C", "D", "E", "F", "G", "H"])
 	_zone_entered_msec = Time.get_ticks_msec()
 	ApiClient.record_event("region_entered", {"regionId": String(_active_zone.get("code", ""))})
 	_zone_status.hide()
@@ -1924,8 +1922,10 @@ func _exit_zone() -> void:
 	_zone_entered_msec = 0
 	_active_zone = {}
 	_nearby_npc = {}
-	_interaction_button.hide()
 	_zone_status.show()
+	_memory_wall_button.show()
+	_standing_button.show()
+	_town_ui_v2.set_activity_scene_mode(false)
 	if _interior_preview != null:
 		_interior_preview.dismiss()
 	_place_player_outside_portal(departing_zone)
@@ -2086,10 +2086,7 @@ func _update_nearby_npc() -> void:
 		var npc_position := (npc["character"] as Node2D).position
 		if (npc["character"] as Node2D).visible and _player.position.distance_to(npc_position) <= INTERACTION_DISTANCE:
 			_nearby_npc = npc
-			_interaction_button.text = "与 %s 交流  ·  E" % npc["name"]
-			_interaction_button.show()
 			return
-	_interaction_button.hide()
 
 
 func _update_camera(delta: float) -> void:
@@ -2268,6 +2265,7 @@ func _build_interior_preview() -> void:
 	_interior_preview = INTERIOR_PREVIEW.new()
 	_interior_preview.exit_requested.connect(_exit_zone)
 	_interior_preview.player_message_submitted.connect(_on_interior_message_submitted)
+	_interior_preview.activity_selected.connect(_on_activity_selected)
 	add_child(_interior_preview)
 
 func _build_story_event_panel() -> void:
@@ -2317,17 +2315,15 @@ func _build_achievement_panel() -> void:
 
 
 func _refresh_activity_panel() -> void:
-	if _activity_panel == null or _action_window == null:
+	if _interior_preview == null or _action_window == null:
 		return
-	if not _action_window.active or _active_zone.is_empty():
+	if _active_zone.is_empty():
 		_activity_panel.hide_panel()
 		return
 	var zone_id := String(_active_zone.get("code", ""))
-	var activities := _action_window.activities_for_region(zone_id)
-	if activities.is_empty():
-		_activity_panel.hide_panel()
-		return
-	_activity_panel.show_for_region(zone_id, activities, _action_window.remaining, ActionWindow.POINTS_PER_WINDOW)
+	var activities := _action_window.configured_activities_for_region(zone_id)
+	_interior_preview.set_activities(activities, _action_window.active and not _activity_busy, _action_window.remaining)
+	_activity_panel.hide_panel()
 
 
 func _on_activity_selected(activity: Dictionary) -> void:
@@ -2336,6 +2332,7 @@ func _on_activity_selected(activity: Dictionary) -> void:
 	_activity_busy = true
 	_pending_action_activity = activity.duplicate(true)
 	_activity_panel.hide_panel()
+	_refresh_activity_panel()
 	var loading := CanvasLayer.new()
 	loading.layer = 155
 	var shade := ColorRect.new()
@@ -2381,6 +2378,7 @@ func _on_action_spent(snapshot: Dictionary, record: Dictionary) -> void:
 	_refresh_town_ui_v2()
 	if _activity_panel != null:
 		_activity_panel.refresh_points(int(snapshot.get("remaining", 0)), int(snapshot.get("maximum", 3)))
+	_refresh_activity_panel()
 	if not _tutorial_complete and _tutorial_step < 4:
 		_tutorial_step = 4
 		_show_reminder_toast("行动力已成功消耗", "继续完成区域活动，直到剩余 0/3")
@@ -2390,6 +2388,7 @@ func _on_action_spent(snapshot: Dictionary, record: Dictionary) -> void:
 func _on_action_window_finished(snapshot: Dictionary) -> void:
 	if _activity_panel != null:
 		_activity_panel.hide_panel()
+	_refresh_activity_panel()
 	if _action_window != null and _action_window.has_pending_window():
 		_show_reminder_toast("本窗口行动结束", "文档中的下一个自由活动窗口即将开始")
 		_action_window.continue_pending_window()

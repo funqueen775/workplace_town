@@ -68,6 +68,10 @@ func _start_next_pending_window() -> void:
 func activities_for_region(region_id: String) -> Array:
 	if not active:
 		return []
+	return configured_activities_for_region(region_id)
+
+
+func configured_activities_for_region(region_id: String) -> Array:
 	var activities = _activities_by_region.get(region_id.to_upper(), [])
 	return (activities as Array).duplicate(true) if activities is Array else []
 

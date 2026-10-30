@@ -183,6 +183,11 @@ func refresh(snapshot: Dictionary, event: Dictionary, energy := 0, energy_max :=
 		_task_meta.text = "第 %d 月 · %s 区" % [int(event.get("month", month)), String(event.get("locationId", "?"))]
 
 
+func set_activity_scene_mode(enabled: bool) -> void:
+	if _task_panel != null:
+		_task_panel.visible = not enabled
+
+
 func open_view(view: String, payload: Dictionary = {}) -> void:
 	_active_chat_id = String(payload.get("chat_id", "")) if view == "phone" else ""
 	if view == "calendar" and _view != "calendar":
