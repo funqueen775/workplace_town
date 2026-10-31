@@ -47,6 +47,11 @@ const ACTIVITY_BOARDS := {
 	"G": "res://assets/小场景新UI/行政部/01_背景面板.png",
 	"H": "res://assets/小场景新UI/生产部/01_背景面板.png",
 }
+## 六块底板是同一张设计、只换标签上的字（逐张比过）。市场部、研发部还没给图，
+## 先借一张用，标签由下面那块现画的牌子盖住——区名永远是对的。
+const ACTIVITY_BOARD_FALLBACK := "res://assets/小场景新UI/销售部/01_背景面板.png"
+## 盖住美术烙死的那块部门名标签：位置按 01_背景面板.png 上那块药丸量出来的（板子显示尺寸 566×451）。
+const ACTIVITY_BOARD_TAB_RECT := Rect2(38, 54, 234, 74)
 const ACTIVITY_CARDS := {
 	"C_LAKE": "res://assets/小场景新UI/销售部/02_上方活动卡.png",
 	"C_COFFEE": "res://assets/小场景新UI/销售部/03_下方活动卡.png",
@@ -294,11 +299,13 @@ func set_activities(activities: Array, enabled: bool, remaining: int) -> void:
 	# 底板用哪一块：美术那张只在"这一屋子不超过两个位子"时装得下；
 	# 超过两个（E 区就有三处）改用现画的并按张数加高，免得卡挂到板子外面。
 	var count := activities.size()
-	var use_art := _activity_board != null and _activity_board.texture != null and count <= _activity_buttons.size() and _art_board_matches_zone()
+	var use_art := _activity_board != null and _activity_board.texture != null and count <= _activity_buttons.size()
 	_activity_board.visible = use_art and count > 0
 	var use_live := not use_art and count > 0
 	_board_live.visible = use_live
 	# 不管用哪块板子，那块写区名的牌子都是现画的——美术板子上烙死的部门名被它盖住。
+	_board_tab.visible = count > 0
+	_board_tab_title.text = _board_title
 	if use_live:
 		var bottom := ACTIVITY_CARD_TOP_Y + ACTIVITY_CARD_STEP * (count - 1) + ACTIVITY_CARD_SIZE.y
 		_board_live.size = Vector2(ACTIVITY_BOARD_SIZE.x, bottom - ACTIVITY_BOARD_POSITION.y + 20)
@@ -579,7 +586,12 @@ func _build_activity_cards(region_code: String) -> void:
 	_activity_board.name = "ActivityBoard"
 	_activity_board.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_activity_board.stretch_mode = TextureRect.STRETCH_SCALE
-	_activity_board.texture = _load_texture(String(ACTIVITY_BOARDS.get(region_code, "")))
+	# 本区没有底板图就借一张（六块是同一张设计、只换标签上的字），
+	# 标签由下面那块现画的牌子盖住，区名永远读 ZONES。
+	var board_path := String(ACTIVITY_BOARDS.get(region_code, ""))
+	if board_path.is_empty():
+		board_path = ACTIVITY_BOARD_FALLBACK
+	_activity_board.texture = _load_texture(board_path)
 	_activity_board.position = ACTIVITY_BOARD_POSITION
 	_activity_board.size = ACTIVITY_BOARD_SIZE
 	_activity_board.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -631,39 +643,22 @@ func _build_live_board() -> void:
 	inner.add_theme_stylebox_override("panel", _board_style(Color(0, 0, 0, 0), Color("ef8f3c"), 2, 18))
 	_board_live.add_child(inner)
 
-	# 区名牌子只属于现画这块板子。美术那六块把部门名烙死在标签上，
-	# 名字对不上时整块都不用（见 _art_board_matches_zone），不再盖一块上去遮。
+	# 牌子单独挂在场景上，压住美术烙死的那块部门名标签：
+	# 不管用本区的板子还是借来的板子，写的都是 ZONES 里这一区的名字。
 	_board_tab = Panel.new()
 	_board_tab.name = "ActivityBoardTab"
-	_board_tab.position = Vector2(30, -14)
-	_board_tab.size = Vector2(214, 58)
+	_board_tab.position = ACTIVITY_BOARD_POSITION + ACTIVITY_BOARD_TAB_RECT.position
+	_board_tab.size = ACTIVITY_BOARD_TAB_RECT.size
 	_board_tab.z_index = 1150
 	_board_tab.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_board_tab.add_theme_stylebox_override("panel", _board_style(Color("f7e3c2"), Color("6b2f12"), 4, 26))
 	_board_tab.hide()
-	_board_live.add_child(_board_tab)
+	_scene.add_child(_board_tab)
 	_board_tab_title = _label(_board_title, 26, Color("7a3f1d"))
 	_board_tab_title.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_board_tab_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_board_tab.add_child(_board_tab_title)
 
-
-
-## 美术那六块底板把部门名烙死在标签上了（销售部 / 人事部 / 财务部 / 运营部 / 行政部 / 生产部）。
-## 这一屋子的名字和它对不上时（E 松风训练谷、H 慢生活园）整块都不用，改用现画的：
-## 与其盖一块牌子遮，不如整块换掉——盖上去实测会露出上下两块牌子。
-## 区名口径一旦统一，美术板子会自动回来，不用再改代码。
-func _art_board_matches_zone() -> bool:
-	if _board_title.is_empty():
-		return true
-	var path := String(ACTIVITY_BOARDS.get(_board_code, ""))
-	if path.is_empty():
-		return false
-	var folders := path.split("/")
-	if folders.size() < 2:
-		return false
-	# res://assets/小场景新UI/销售部/01_背景面板.png -> 倒数第二段就是部门名
-	return String(folders[folders.size() - 2]) == _board_title
 
 
 func _board_style(background: Color, border: Color, width: int, radius: int) -> StyleBoxFlat:
