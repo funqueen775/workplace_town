@@ -16,19 +16,34 @@ const DOOR_AREA := Rect2(1740, 640, 108, 120)
 const PLAYER_SPEED := 260.0
 const TALK_DISTANCE := 165.0
 const CHARACTER_SCALE := 10.0 / 3.0
+const ACTIVITY_UI_SCALE := 0.82
+const ACTIVITY_BOARD_POSITION := Vector2(1190, 12)
+const ACTIVITY_BOARD_SIZE := Vector2(690, 550) * ACTIVITY_UI_SCALE
+const ACTIVITY_CARD_SIZE := Vector2(585, 159) * ACTIVITY_UI_SCALE
+const ACTIVITY_CARD_X := ACTIVITY_BOARD_POSITION.x + 54.0 * ACTIVITY_UI_SCALE
+const ACTIVITY_CARD_TOP_Y := ACTIVITY_BOARD_POSITION.y + 153.0 * ACTIVITY_UI_SCALE
+const ACTIVITY_CARD_BOTTOM_Y := ACTIVITY_BOARD_POSITION.y + 316.0 * ACTIVITY_UI_SCALE
+const ACTIVITY_BOARDS := {
+	"C": "res://assets/小场景新UI/销售部/01_背景面板.png",
+	"D": "res://assets/小场景新UI/人事部/01_背景面板.png",
+	"E": "res://assets/小场景新UI/财务部/01_背景面板.png",
+	"F": "res://assets/小场景新UI/运营部/01_背景面板.png",
+	"G": "res://assets/小场景新UI/行政部/01_背景面板.png",
+	"H": "res://assets/小场景新UI/生产部/01_背景面板.png",
+}
 const ACTIVITY_CARDS := {
-	"C_LAKE": "res://assets/01_带缩略图面板/C_LAKE_湖边散步_面板.png",
-	"C_COFFEE": "res://assets/01_带缩略图面板/C_COFFEE_小馆咖啡聊天_面板.png",
-	"D_STUDY": "res://assets/01_带缩略图面板/D_STUDY_独自学习_一起自习_面板.png",
-	"D_ROOFTOP": "res://assets/01_带缩略图面板/D_ROOFTOP_书院露台吹风_面板.png",
-	"E_SPORT": "res://assets/01_带缩略图面板/E_SPORT_草坪运动_面板.png",
-	"E_ESCAPE": "res://assets/01_带缩略图面板/E_ESCAPE_团队密室_面板.png",
-	"F_STAGE": "res://assets/01_带缩略图面板/F_STAGE_舞台后台排练_面板.png",
-	"F_RAIN": "res://assets/01_带缩略图面板/F_RAIN_雨天共伞_面板.png",
-	"G_NIGHT": "res://assets/01_带缩略图面板/G_NIGHT_夜间值守_资料整理_面板.png",
-	"G_KTV": "res://assets/01_带缩略图面板/G_KTV_文娱室合唱_KTV_面板.png",
-	"H_BBQ": "res://assets/01_带缩略图面板/H_BBQ_夜间烧烤_篝火_面板.png",
-	"H_BOARD": "res://assets/01_带缩略图面板/H_BOARD_桌游馆_面板.png",
+	"C_LAKE": "res://assets/小场景新UI/销售部/02_上方活动卡.png",
+	"C_COFFEE": "res://assets/小场景新UI/销售部/03_下方活动卡.png",
+	"D_STUDY": "res://assets/小场景新UI/人事部/02_独自学习_一起自习.png",
+	"D_ROOFTOP": "res://assets/小场景新UI/人事部/03_书院露台吹风.png",
+	"E_SPORT": "res://assets/小场景新UI/财务部/02_上方活动卡.png",
+	"E_ESCAPE": "res://assets/小场景新UI/财务部/03_下方活动卡.png",
+	"F_STAGE": "res://assets/小场景新UI/运营部/02_上方活动卡.png",
+	"F_RAIN": "res://assets/小场景新UI/运营部/03_下方活动卡.png",
+	"G_NIGHT": "res://assets/小场景新UI/行政部/02_上方活动卡.png",
+	"G_KTV": "res://assets/小场景新UI/行政部/03_下方活动卡.png",
+	"H_BBQ": "res://assets/小场景新UI/生产部/02_上方活动卡.png",
+	"H_BOARD": "res://assets/小场景新UI/生产部/03_下方活动卡.png",
 }
 
 var _root: Control
@@ -50,6 +65,7 @@ var _send_button: Button
 var _touch_vector := Vector2.ZERO
 var _exploration_enabled := false
 var _activity_buttons: Array[TextureButton] = []
+var _activity_board: TextureRect
 
 func _ready() -> void:
 	layer = 80
@@ -69,6 +85,7 @@ func present(location: Dictionary, texture_path: String) -> void:
 	_talk_button = null
 	_dialog = null
 	_activity_buttons.clear()
+	_activity_board = null
 	var backdrop := ColorRect.new()
 	backdrop.color = Color("10151e")
 	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -110,7 +127,7 @@ func present(location: Dictionary, texture_path: String) -> void:
 	_door_prompt.hide()
 	_scene.add_child(_door_prompt)
 	_build_interior_characters(location)
-	_build_activity_cards()
+	_build_activity_cards(String(location.get("code", "")))
 	_root.show()
 	if room.texture == null:
 		# Keep the preview usable when an editor import cache is missing.
@@ -156,6 +173,7 @@ func set_touch_vector(value: Vector2) -> void:
 	_touch_vector = value.limit_length(1.0)
 
 func set_activities(activities: Array, enabled: bool, remaining: int) -> void:
+	_activity_board.visible = not activities.is_empty() and _activity_board.texture != null
 	for button in _activity_buttons:
 		button.hide()
 	for index in mini(activities.size(), _activity_buttons.size()):
@@ -321,12 +339,23 @@ func _build_interior_characters(location: Dictionary) -> void:
 	_npc.hide()
 	_npc.process_mode = Node.PROCESS_MODE_DISABLED
 
-func _build_activity_cards() -> void:
+func _build_activity_cards(region_code: String) -> void:
+	_activity_board = TextureRect.new()
+	_activity_board.name = "ActivityBoard"
+	_activity_board.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_activity_board.stretch_mode = TextureRect.STRETCH_SCALE
+	_activity_board.texture = _load_texture(String(ACTIVITY_BOARDS.get(region_code, "")))
+	_activity_board.position = ACTIVITY_BOARD_POSITION
+	_activity_board.size = ACTIVITY_BOARD_SIZE
+	_activity_board.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_activity_board.z_index = 1100
+	_activity_board.hide()
+	_scene.add_child(_activity_board)
 	for index in 2:
 		var card := TextureButton.new()
 		card.name = "ActivityCard%d" % index
-		card.position = Vector2(1110, 70 + index * 207)
-		card.size = Vector2(670, 190)
+		card.position = Vector2(ACTIVITY_CARD_X, ACTIVITY_CARD_TOP_Y if index == 0 else ACTIVITY_CARD_BOTTOM_Y)
+		card.size = ACTIVITY_CARD_SIZE
 		card.ignore_texture_size = true
 		card.stretch_mode = TextureButton.STRETCH_SCALE
 		card.pivot_offset = card.size * 0.5
@@ -416,6 +445,8 @@ func _close_dialog() -> void:
 	_update_door_prompt()
 
 func _load_texture(path: String) -> Texture2D:
+	if path.is_empty():
+		return null
 	var imported := load(path) as Texture2D
 	if imported != null:
 		return imported
