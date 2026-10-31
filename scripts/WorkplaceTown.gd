@@ -976,6 +976,31 @@ func _build_player() -> void:
 	_player_sprite.set_loadout(PlayerProfile.get_selected_avatar_id())
 
 
+## 镇上这四位游走的同事画不画在地图上（2026-10-31）。
+## 十二个月这条线不画：按 E 只用来"走进亮着的门"，靠近他们根本不会识别成可交流对象
+## （`_update_nearby_npc` 一进来就 return 了），人站在那儿点不动；
+## 而这一批是 512 直帧裁出来的，站在一比一的底图上比谁都大，玩家只会问"这个人怎么这么大"。
+## 名字、手机号、记忆都还留着（手机联系人和 NPC 记忆读的是 `_npc_instances` 这份数据），只是不上地图。
+func _apply_town_npc_visibility() -> void:
+	for npc in _npc_instances:
+		var character := npc["character"] as CanvasItem
+		var tag := npc["name_tag"] as CanvasItem
+		if character == null or tag == null:
+			continue
+		if _month12_active:
+			character.visible = false
+			tag.visible = false
+			continue
+		# 旧 48 个月那条线照旧：在镇上时四个人都露脸，进屋后只留本屋那一位和名字牌。
+		if _active_zone.is_empty():
+			character.visible = true
+			tag.visible = false
+		else:
+			var is_current := String(npc["zone"]).to_lower() == String(_active_zone["id"]).to_lower()
+			character.visible = is_current
+			tag.visible = is_current
+
+
 func _build_npcs() -> void:
 	for index in NPCS.size():
 		var npc_data: Dictionary = NPCS[index]
@@ -2788,12 +2813,7 @@ func _enter_nearby_zone() -> void:
 	_dialog_label.hide()
 	for marker in _location_markers:
 		marker.hide()
-	for npc in _npc_instances:
-		var is_current := String(npc["zone"]).to_lower() == String(_active_zone["id"]).to_lower()
-		var character := npc["character"] as Node2D
-		var tag := npc["name_tag"] as Label
-		character.visible = is_current
-		tag.visible = is_current
+	_apply_town_npc_visibility()
 	var texture_path := String(INTERIOR_ASSETS.get(String(_active_zone["code"]), ""))
 	# 区的室内用默认动线；上一趟活动场景可能换过一套。
 	_use_interior_layout(String(_active_zone["code"]))
@@ -2833,9 +2853,7 @@ func _exit_zone() -> void:
 	_refresh_objective_hint()
 	for marker in _location_markers:
 		marker.hide()
-	for npc in _npc_instances:
-		(npc["character"] as Node2D).show()
-		(npc["name_tag"] as Label).hide()
+	_apply_town_npc_visibility()
 	_hide_dialog()
 
 
@@ -4020,6 +4038,8 @@ func _start_month_opening() -> void:
 		return
 	_month12_active = true
 	_month12_phase = "month_start"
+	# 这条线不画镇上那四位游走的同事（理由见 _apply_town_npc_visibility）。
+	_apply_town_npc_visibility()
 	# 十二个月有自己的本月主线卡（右上），左上角这块旧的深色任务卡整月不需要：
 	# 直接释放，免得它从加高后的日期栏透明边后面露出一圈深色。
 	if _zone_status != null:
@@ -4983,9 +5003,8 @@ func _restore_month12_scene_npcs() -> void:
 	if not _month12_scene_npcs_hidden:
 		return
 	_month12_scene_npcs_hidden = false
-	for npc in _npc_instances:
-		(npc["character"] as CanvasItem).visible = true
-		(npc["name_tag"] as CanvasItem).visible = true
+	# 十二个月这条线"在镇上的默认状态"就是不画他们，别在这儿把人放回来。
+	_apply_town_npc_visibility()
 
 
 ## 室内右侧那张活动列表：数据来自十二个月的去处表，不读旧 48 个月的配置。
