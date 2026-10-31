@@ -5003,11 +5003,16 @@ func _show_month12_place_list(zone_code: String) -> void:
 		var thumb := String(act.get("scene", ""))
 		if thumb.is_empty() and not shots.is_empty():
 			thumb = "res://assets/ui/place_cards/%s" % String(shots[0])
+		var art_path := String(act.get("cardArt", ""))
 		var row := {
 			"id": String(act.get("id", "")),
 			"title": String(act.get("name", "自由活动")),
 			"image": thumb,
-			"cardArt": String(act.get("cardArt", "")),
+			"cardArt": art_path,
+			"badge": _month12_zone_name(zone_code),
+			# 卡右边那栏是心情账（蜂蜜罐全游戏只表示心情 H），
+			# 占几格写在下面那行小字里，由 _month12_place_row_note 统一口径。
+			"cost": int(act.get("hCost", 0)),
 			"note": _month12_place_row_note(act),
 		}
 		if _mood <= 0 and _restores_mood(act):
@@ -5075,12 +5080,28 @@ func _month12_now_line(zone_code: String) -> String:
 	return ""
 
 
-## 列表上的那行小字：先说去那儿干什么（活动表里现成的 placeLine），
-## 只有真要占这个月的格子时才在最前面加代价——路过的时候不重复"不花点"。
-func _month12_place_row_note(act: Dictionary) -> String:
+## 区的显示名（ZONES 里那一份）。活动票根左上角那块绿牌读它——
+## 美术给的整卡把区名烙成了部门口径（E 印"财务部"、H 印"生产部"），
+## 而 E–H 在游戏里是松风训练谷 / 慢生活园这些地点，所以牌子必须现读，不能照图。
+func _month12_zone_name(zone_code: String) -> String:
+	for zone in ZONES:
+		if String((zone as Dictionary).get("code", "")) == zone_code:
+			return String((zone as Dictionary).get("name", ""))
+	return "%s 区" % zone_code
+
+
+## 列表上的那行小字：去那儿干什么，不带代价前缀。
+func _month12_place_plain_note(act: Dictionary) -> String:
 	var reason := String(act.get("placeLine", ""))
 	if reason.is_empty():
 		reason = String(act.get("description", "进去按一件东西"))
+	return reason
+
+
+## 列表上的那行小字：先说去那儿干什么（活动表里现成的 placeLine），
+## 只有真要占这个月的格子时才在最前面加代价——路过的时候不重复"不花点"。
+func _month12_place_row_note(act: Dictionary) -> String:
+	var reason := _month12_place_plain_note(act)
 	if not _month12_activity_generic:
 		if _month_runner != null and bool(_month_runner.active):
 			return reason

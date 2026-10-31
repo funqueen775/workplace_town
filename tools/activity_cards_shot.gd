@@ -36,6 +36,15 @@ func _ready() -> void:
 		if bool(cards.call("is_open")):
 			cards.call("close")
 		await get_tree().create_timer(0.3).timeout
+	# 顺手把"解锁卡"也拍一张：票根卡是进屋挑地方用的，解锁卡是这处刚开时的一次性讲解，
+	# 两张不是一张卡，放一起好看清楚差别。
+	var place: Dictionary = _town.call("_month12_place_by_id", "m7_lawn")
+	var visit_panel = _town.get("_month12_place_panel")
+	if not place.is_empty() and visit_panel != null:
+		visit_panel.call("show_unlock", place, false)
+		await get_tree().create_timer(0.6).timeout
+		await _shot("解锁卡_草坪运动")
+		visit_panel.call("close")
 	print("CARDS_SHOT_DONE")
 	_done = true
 	get_tree().quit(0)

@@ -143,9 +143,7 @@
           "fact": "空下来更愿意一个人沿湖走"
         }
       ],
-      "cardArt": "res://assets/01_带缩略图面板/C_LAKE_湖边散步_面板.png",
-      "badge": "心湖",
-      "cardLine": "沿湖走一圈，不赶时间。"
+      "cardArt": "res://assets/01_带缩略图面板/C_LAKE_湖边散步_面板.png"
     },
     {
       "id": "m3_waterway",
@@ -195,9 +193,7 @@
       "abilityTags": {
         "expression": 1
       },
-      "cardArt": "res://assets/01_带缩略图面板/C_COFFEE_小馆咖啡聊天_面板.png",
-      "badge": "销售部",
-      "cardLine": "坐下来，喝杯咖啡聊聊天。"
+      "cardArt": "res://assets/01_带缩略图面板/C_COFFEE_小馆咖啡聊天_面板.png"
     },
     {
       "id": "m7_valley",
@@ -295,9 +291,7 @@
           "fact": "愿意下场跟人一起运动"
         }
       ],
-      "cardArt": "res://assets/01_带缩略图面板/E_SPORT_草坪运动_面板.png",
-      "badge": "训练谷",
-      "cardLine": "有人在草坪上打球，缺一个正好。"
+      "cardArt": "res://assets/01_带缩略图面板/E_SPORT_草坪运动_面板.png"
     },
     {
       "id": "m9_library",
@@ -406,9 +400,7 @@
       "abilityTags": {
         "collaboration": 1
       },
-      "cardArt": "res://assets/01_带缩略图面板/H_BOARD_桌游馆_面板.png",
-      "badge": "慢生活园",
-      "cardLine": "开一桌，缺人。"
+      "cardArt": "res://assets/01_带缩略图面板/H_BOARD_桌游馆_面板.png"
     },
     {
       "id": "m11_reproduce",
