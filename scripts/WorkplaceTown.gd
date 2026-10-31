@@ -28,6 +28,8 @@ const WEEKEND_SCENE_PANEL := preload("res://scripts/WeekendScenePanel.gd")
 const TOWN_UI_V2 := preload("res://scripts/TownUiV2.gd")
 const HUD_TOUR := preload("res://scripts/ui/HudTour.gd")
 const MONTH12_ACTIVITY := preload("res://scripts/v12m/Month12ActivityPanel.gd")
+## 进区之后的卡片列表：一屏一列、每行一张原尺寸活动卡（2026-10-31）。
+const ACTIVITY_CARDS := preload("res://scripts/v12m/ActivityCardList.gd")
 const MONTH12_CLOSE := preload("res://scripts/v12m/Month12ClosePanel.gd")
 const MONTH12_START := preload("res://scripts/v12m/MonthStartPanel.gd")
 const HANDBOOK_PANEL := preload("res://scripts/HandbookPanel.gd")
@@ -461,6 +463,7 @@ var _achievement_seen_ids: Array[String] = []
 var _training_first_cleared := false
 var _training_overlay: CanvasLayer
 var _activity_panel: AreaActivityPanel
+var _activity_cards
 var _pending_action_activity: Dictionary = {}
 var _activity_busy := false
 var _tutorial_step := 0
@@ -3372,6 +3375,14 @@ func _build_story_event_panel() -> void:
 	_month12_place_panel.unlock_dismissed.connect(_on_place_unlock_dismissed)
 	_month12_place_panel.navigate_requested.connect(_on_place_unlock_navigate)
 	add_child(_month12_place_panel)
+	_activity_cards = ACTIVITY_CARDS.new()
+	_activity_cards.name = "ActivityCardList"
+	_activity_cards.activity_selected.connect(func(id: String) -> void:
+		if not _month12_visit_id.is_empty() and id == _month12_visit_id:
+			_on_activity_selected(_month12_visit_place())
+			return
+		_on_activity_selected(_month12_place_by_id(id)))
+	add_child(_activity_cards)
 	_on_ui_preferences_changed(_town_ui_v2.preferences())
 
 
@@ -4996,6 +5007,7 @@ func _show_month12_place_list(zone_code: String) -> void:
 			"id": String(act.get("id", "")),
 			"title": String(act.get("name", "自由活动")),
 			"image": thumb,
+			"cardArt": String(act.get("cardArt", "")),
 			"note": _month12_place_row_note(act),
 		}
 		if _mood <= 0 and _restores_mood(act):
@@ -5033,6 +5045,15 @@ func _show_month12_place_list(zone_code: String) -> void:
 	else:
 		# 首月那一格：口径跟通用月份一致，别再露出旧 48 个月的"剩余行动力"。
 		points_text = "本月还剩 1 格" if slots_left > 0 else "这个月安排完了 · 老地方还能进去坐坐"
+	var has_cards := false
+	for row_value in rows:
+		if not String(Dictionary(row_value).get("cardArt", "")).is_empty():
+			has_cards = true
+			break
+	if has_cards:
+		_activity_panel.hide_panel()
+		_activity_cards.open("%s 区" % zone_code, rows, points_text)
+		return
 	_activity_panel.show_for_region(zone_code, rows, slots_left, slots_total, points_text,
 		_month12_now_line(zone_code))
 
@@ -5102,6 +5123,8 @@ func _on_month12_place_confirmed(activity_id: String) -> void:
 	var ap_spent := maxi(0, int(activity.get("apCost", 1)))
 	_month12_ap_left = maxi(0, _month12_ap_left - ap_spent)
 	_record_ledger(String(activity.get("name", "自由活动")), ap_spent, _apply_activity_mood(activity))
+	# 活动攒的能力点另记一本：它最多把某一格喂到第 3 格，再往上只能靠主线。
+	_record_activity_ability(activity.get("abilityTags"))
 	_fire_hints("activity_done")
 	_month12_nearby_place = ""
 	if _interaction_button != null:
@@ -6152,6 +6175,7 @@ func runner_present_story(node: Dictionary, quiet := false) -> void:
 	var data := _runner_story_data(node)
 	_maybe_append_departure(node, data)
 	_apply_node_flags(node)
+	_apply_node_mood(node)
 	_fire_hints("node_started:%s" % String(node.get("id", "")))
 	_story_event = data
 	_town_ui_v2.set_task_card(String(data.get("title", "")), String(data.get("location", "")))
@@ -6513,6 +6537,22 @@ func _any_flag(flags: Array) -> bool:
 func _apply_node_flags(node: Dictionary) -> void:
 	for value in (node.get("setsFlags", []) as Array):
 		_month12_flags[String(value)] = true
+
+
+## 节点级心情：夜里还在干活的那几屏，一开场就掉一格，不挂在某个选项上
+## （那几屏大多没有选项，挂不上）。数据写在节点自己的 stateDelta.H。
+## 只认非零值；正数也照加，留给以后"这屏让人松口气"用。
+func _apply_node_mood(node: Dictionary) -> void:
+	var raw = node.get("stateDelta")
+	if not (raw is Dictionary):
+		return
+	var delta := int((raw as Dictionary).get("H", 0))
+	if delta == 0:
+		return
+	var before := _mood
+	_mood = clampi(_mood + delta, 0, _mood_max)
+	_refresh_mood_hud()
+	_record_ledger(String(node.get("title", "")), 0, _mood - before)
 
 
 ## 把一条选项的能力锚点记进四维证据（同维取最高，不累加）。
@@ -7180,7 +7220,37 @@ func month12_material_lines() -> Array:
 			or bool(_month12_flags.get("m12_handoff_full", false)) \
 			or bool(_month12_flags.get("m12_handoff_partial", false)):
 		lines.append("交接文档")
+	if bool(_month12_flags.get("m09_longtable", false)):
+		lines.append("申报表底稿")
+	if bool(_month12_flags.get("m11_reproduce_record", false)):
+		lines.append("复现记录")
 	return lines
+
+
+## 活动攒的能力点（与主线分开记）：活动能把某一格喂到第 3 格就封顶，
+## 再往上只能靠主线的那本账——不然刷活动比做主线还划算。
+var _activity_ability_points := {}
+
+
+func _record_activity_ability(raw) -> void:
+	if not (raw is Dictionary):
+		return
+	for key in (raw as Dictionary).keys():
+		var name := String(key)
+		if not ABILITY_PEAK_NAMES.has(name):
+			continue
+		_activity_ability_points[name] = int(_activity_ability_points.get(name, 0)) + int((raw as Dictionary)[key])
+
+
+## 攒点 → 档位：2 / 5 / 9 三档，活动那本和主线那本共用这把尺。
+func _tier_from_points(points: int) -> int:
+	if points >= 9:
+		return 3
+	if points >= 5:
+		return 2
+	if points >= 2:
+		return 1
+	return 0
 
 
 func ability_display_levels() -> Array[int]:
@@ -7188,14 +7258,10 @@ func ability_display_levels() -> Array[int]:
 	var out: Array[int] = []
 	for name in ABILITY_KEYS:
 		var points := int(_ability_points.get(name, 0))
-		var tier := 0
-		if points >= 9:
-			tier = 3
-		elif points >= 5:
-			tier = 2
-		elif points >= 2:
-			tier = 1
-		var level := clampi(int(ABILITY_START[name]) + tier, 1, 4)
+		var level := clampi(int(ABILITY_START[name]) + _tier_from_points(points), 1, 4)
+		# 活动那本最多喂到第 3 格，不越过主线。
+		var act_level := clampi(int(ABILITY_START[name]) + _tier_from_points(int(_activity_ability_points.get(name, 0))), 1, 3)
+		level = maxi(level, act_level)
 		if bool(_month12_flags.get("peak_" + name, false)):
 			level = 5
 		out.append(maxi(level, clampi(int(server.get(name, 0)), 0, 5)))
@@ -7690,6 +7756,7 @@ func _present_month12_place_visit() -> void:
 		_activity_panel.hide_panel()
 	_retire_story_door()
 	_apply_node_flags(node)
+	_apply_node_mood(node)
 	_story_event = _runner_story_data(node)
 	# 屋里这一眼也是剧情的一屏：收尾那句"去哪儿"同样要补，不然出屋就不知道往哪走。
 	_maybe_append_departure(node, _story_event)

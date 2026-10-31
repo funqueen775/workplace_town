@@ -11,9 +11,6 @@
       "apCost": 1,
       "slots": 1,
       "hCost": 1,
-      "stateDelta": {
-        "S": 1
-      },
       "rewardFlag": "m01_activity_tool",
       "evidenceEligible": false,
       "repeatRule": "once_per_month",
@@ -38,7 +35,28 @@
       "unlockAfter": "E02",
       "gatedBy": "month_required",
       "object": "你自己那台电脑",
-      "againLine": "脚本还在跑，你顺手看了两眼报错。"
+      "againLine": "脚本还在跑，你顺手看了两眼报错。",
+      "btSignals": [
+        {
+          "trait": "C",
+          "dir": 1,
+          "strength": "M",
+          "context": "独处",
+          "code": "act_tool_build",
+          "fact": "自己搭了个小工具，别人后来用上了"
+        },
+        {
+          "trait": "O",
+          "dir": 1,
+          "strength": "M",
+          "context": "独处",
+          "code": "act_tool_idea",
+          "fact": "工具是自己想出来的，不是照别人给的模子"
+        }
+      ],
+      "abilityTags": {
+        "technical": 1
+      }
     },
     {
       "id": "m1_rooftop",
@@ -77,7 +95,8 @@
       "unlockAfter": "E02",
       "gatedBy": "month_required",
       "object": "栏杆边那把折叠椅",
-      "againLine": "椅子还在老地方，风也还是那样。"
+      "againLine": "椅子还在老地方，风也还是那样。",
+      "btSignals": []
     },
     {
       "id": "m1_lakeside",
@@ -113,7 +132,20 @@
       "unlockAfter": "E02",
       "gatedBy": "month_required",
       "object": "栈道边那张石凳",
-      "againLine": "石凳有点凉，湖心的熊石像还是那个姿势。"
+      "againLine": "石凳有点凉，湖心的熊石像还是那个姿势。",
+      "btSignals": [
+        {
+          "trait": "E",
+          "dir": -1,
+          "strength": "W",
+          "context": "独处",
+          "code": "act_lake_solo",
+          "fact": "空下来更愿意一个人沿湖走"
+        }
+      ],
+      "cardArt": "res://assets/01_带缩略图面板/C_LAKE_湖边散步_面板.png",
+      "badge": "心湖",
+      "cardLine": "沿湖走一圈，不赶时间。"
     },
     {
       "id": "m3_waterway",
@@ -149,7 +181,23 @@
       "gatedBy": "month_required",
       "object": "吧台前那把高脚凳",
       "againLine": "凳子有点晃，咖啡还是那个味。",
-      "unlockHook": "unlock_waterway"
+      "unlockHook": "unlock_waterway",
+      "btSignals": [
+        {
+          "trait": "E",
+          "dir": 1,
+          "strength": "M",
+          "context": "结伴",
+          "code": "act_waterway_talk",
+          "fact": "愿意待在客户常来的地方，主动搭话"
+        }
+      ],
+      "abilityTags": {
+        "expression": 1
+      },
+      "cardArt": "res://assets/01_带缩略图面板/C_COFFEE_小馆咖啡聊天_面板.png",
+      "badge": "销售部",
+      "cardLine": "坐下来，喝杯咖啡聊聊天。"
     },
     {
       "id": "m7_valley",
@@ -185,7 +233,20 @@
       "repeatRule": "once_per_month",
       "evidenceEligible": false,
       "gatedBy": "month_required",
-      "unlockHook": "unlock_sports"
+      "unlockHook": "unlock_sports",
+      "btSignals": [
+        {
+          "trait": "C",
+          "dir": 1,
+          "strength": "M",
+          "context": "硬扛",
+          "code": "act_valley_duel",
+          "fact": "一局一局打完，输了也接着打"
+        }
+      ],
+      "abilityTags": {
+        "resilience": 1
+      }
     },
     {
       "id": "m7_lawn",
@@ -223,7 +284,20 @@
       "repeatRule": "once_per_month",
       "evidenceEligible": false,
       "gatedBy": "month_required",
-      "unlockAfter": "M07_RESULT"
+      "unlockAfter": "M07_RESULT",
+      "btSignals": [
+        {
+          "trait": "E",
+          "dir": 1,
+          "strength": "M",
+          "context": "结伴",
+          "code": "act_lawn_play",
+          "fact": "愿意下场跟人一起运动"
+        }
+      ],
+      "cardArt": "res://assets/01_带缩略图面板/E_SPORT_草坪运动_面板.png",
+      "badge": "训练谷",
+      "cardLine": "有人在草坪上打球，缺一个正好。"
     },
     {
       "id": "m9_library",
@@ -259,7 +333,20 @@
       "repeatRule": "once_per_month",
       "evidenceEligible": false,
       "gatedBy": "month_required",
-      "unlockAfter": "M09_NAME"
+      "unlockAfter": "M09_NAME",
+      "btSignals": [
+        {
+          "trait": "C",
+          "dir": 1,
+          "strength": "S",
+          "context": "硬扛",
+          "code": "act_longtable_fill",
+          "fact": "一个人把申报材料从头填到尾"
+        }
+      ],
+      "abilityTags": {
+        "collaboration": 1
+      }
     },
     {
       "id": "m11_boardgame",
@@ -297,7 +384,31 @@
       "repeatRule": "once_per_month",
       "evidenceEligible": false,
       "gatedBy": "month_required",
-      "unlockAfter": "M11_OPEN"
+      "unlockAfter": "M11_OPEN",
+      "btSignals": [
+        {
+          "trait": "E",
+          "dir": 1,
+          "strength": "M",
+          "context": "结伴",
+          "code": "act_boardgame_join",
+          "fact": "主动凑局"
+        },
+        {
+          "trait": "A",
+          "dir": 1,
+          "strength": "M",
+          "context": "结伴",
+          "code": "act_boardgame_grace",
+          "fact": "输了也不挂脸"
+        }
+      ],
+      "abilityTags": {
+        "collaboration": 1
+      },
+      "cardArt": "res://assets/01_带缩略图面板/H_BOARD_桌游馆_面板.png",
+      "badge": "慢生活园",
+      "cardLine": "开一桌，缺人。"
     },
     {
       "id": "m11_reproduce",
@@ -332,7 +443,29 @@
       "repeatRule": "once_per_month",
       "evidenceEligible": false,
       "gatedBy": "month_required",
-      "unlockAfter": "M11_MATERIAL"
+      "unlockAfter": "M11_MATERIAL",
+      "btSignals": [
+        {
+          "trait": "C",
+          "dir": 1,
+          "strength": "S",
+          "context": "硬扛",
+          "code": "act_reproduce_run",
+          "fact": "为了一个数，把论文从头跑一遍"
+        },
+        {
+          "trait": "O",
+          "dir": 1,
+          "strength": "M",
+          "context": "硬扛",
+          "code": "act_reproduce_open",
+          "fact": "愿意花时间去验别人没验过的东西"
+        }
+      ],
+      "abilityTags": {
+        "technical": 1
+      },
+      "rewardFlag": "m11_reproduce_record"
     },
     {
       "id": "m_grind",
@@ -344,7 +477,6 @@
       "apCost": 1,
       "slots": 1,
       "hCost": 1,
-      "stateDelta": {},
       "rewardFlag": "extra_push",
       "evidenceEligible": false,
       "repeatRule": "once_per_month",
@@ -369,7 +501,20 @@
       "unlockAfter": "M07_RESULT",
       "gatedBy": "month_required",
       "object": "你自己那台电脑",
-      "againLine": "屏幕上还是那些没关的窗口。"
+      "againLine": "屏幕上还是那些没关的窗口。",
+      "btSignals": [
+        {
+          "trait": "C",
+          "dir": 1,
+          "strength": "S",
+          "context": "硬扛",
+          "code": "act_grind_push",
+          "fact": "没人要求，自己把进度往前赶"
+        }
+      ],
+      "abilityTags": {
+        "resilience": 1
+      }
     }
   ]
 }

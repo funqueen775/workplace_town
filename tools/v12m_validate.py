@@ -446,6 +446,59 @@ def main() -> int:
         for shot in card.get("shots") or []:
             if not (PLACE_SHOTS / str(shot)).exists():
                 errors.append(f"活动 {activity.get('id')} 的讲解卡配图找不到文件：assets/ui/place_cards/{shot}")
+        # 第 39 条：人格信号（算法册 §3.2）。自由活动是 B_t 的正式来源，权重 0.5，
+        # 所以每条活动都得显式标——不产信号的写空数组，空数组也是一种标定，不是漏写。
+        if "btSignals" not in activity:
+            warnings.append(f"活动 {activity.get('id')} 没写 btSignals：不产信号就写空数组")
+        else:
+            signals = activity.get("btSignals")
+            if not isinstance(signals, list):
+                errors.append(f"活动 {activity.get('id')} 的 btSignals 必须是数组")
+            else:
+                codes = []
+                for sig in signals:
+                    if not isinstance(sig, dict):
+                        errors.append(f"活动 {activity.get('id')} 的 btSignals 里有一项不是对象")
+                        continue
+                    trait = str(sig.get("trait", ""))
+                    strength = str(sig.get("strength", ""))
+                    context = str(sig.get("context", ""))
+                    code = str(sig.get("code", ""))
+                    if trait not in {"E", "C", "A", "O"}:
+                        errors.append(f"活动 {activity.get('id')} 的 btSignals 维度非法：{trait}（只允许 E/C/A/O）")
+                    if strength not in {"S", "M", "W"}:
+                        errors.append(f"活动 {activity.get('id')} 的 btSignals 强弱非法：{strength}（只允许 S/M/W）")
+                    if context not in {"独处", "结伴", "硬扛", "帮人"}:
+                        errors.append(f"活动 {activity.get('id')} 的 btSignals 情境非法：{context}")
+                    if int(sig.get("dir", 0)) not in (-1, 1):
+                        errors.append(f"活动 {activity.get('id')} 的 btSignals 方向必须是 -1 或 1")
+                    if not code:
+                        errors.append(f"活动 {activity.get('id')} 的 btSignals 缺 code")
+                    elif code in codes:
+                        errors.append(f"活动 {activity.get('id')} 的 btSignals 里 code 重复：{code}")
+                    else:
+                        codes.append(code)
+                    if not str(sig.get("fact", "")).strip():
+                        errors.append(f"活动 {activity.get('id')} 的 btSignals 缺 fact：报告要拿它说话")
+        # 第 40 条：活动只许动心情（2026-10-31）。四维 S/O/N/D 是转正判定的输入，
+        # 不能由"下班去玩"决定；要给成长就走能力五格（abilityTags），那本账不进判定。
+        act_delta = activity.get("stateDelta") or {}
+        if isinstance(act_delta, dict):
+            for bad_key in ("S", "O", "N", "D"):
+                if bad_key in act_delta and int(act_delta[bad_key]) != 0:
+                    errors.append(
+                        f"活动 {activity.get('id')} 改了四维 {bad_key}：自由活动不能动转正判定，要加成长请用 abilityTags"
+                    )
+        tags = activity.get("abilityTags")
+        if tags is not None:
+            if not isinstance(tags, dict):
+                errors.append(f"活动 {activity.get('id')} 的 abilityTags 必须是对象")
+            else:
+                for tag_name, tag_value in tags.items():
+                    if str(tag_name) not in {"technical", "collaboration", "expression", "integrity", "resilience"}:
+                        errors.append(f"活动 {activity.get('id')} 的能力名非法：{tag_name}")
+                    if int(tag_value) <= 0:
+                        errors.append(f"活动 {activity.get('id')} 的能力点必须为正：{tag_name}={tag_value}")
         # 第 31 条：进门得有一件能按的东西，而且卡上要告诉玩家按什么
         obj = str(activity.get("object", ""))
         if not obj:
