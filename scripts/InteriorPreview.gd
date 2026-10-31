@@ -45,13 +45,11 @@ const ACTIVITY_CARDS := {
 	"G_KTV": "res://assets/01_带缩略图面板/G_KTV_文娱室合唱_KTV_面板.png",
 	"H_BBQ": "res://assets/01_带缩略图面板/H_BBQ_夜间烧烤_篝火_面板.png",
 	"H_BOARD": "res://assets/01_带缩略图面板/H_BOARD_桌游馆_面板.png",
-	# 十二个月自由活动：编号与旧 48 个月那套不同，能对上的先接卡面。
-	"m1_lakeside": "res://assets/01_带缩略图面板/C_LAKE_湖边散步_面板.png",
-	"m1_rooftop": "res://assets/01_带缩略图面板/D_ROOFTOP_书院露台吹风_面板.png",
+	# 十二个月自由活动：卡面标题和区域都印死在图上，只接能真正对上的三张。
+	# 对不上的（工位、水巷、山谷、加班等）继续走原来的活动面板，别硬套。
 	"m7_lawn": "res://assets/01_带缩略图面板/E_SPORT_草坪运动_面板.png",
 	"m9_library": "res://assets/01_带缩略图面板/D_STUDY_独自学习_一起自习_面板.png",
 	"m11_boardgame": "res://assets/01_带缩略图面板/H_BOARD_桌游馆_面板.png",
-	"m11_reproduce": "res://assets/01_带缩略图面板/G_NIGHT_夜间值守_资料整理_面板.png",
 }
 
 var _root: Control
@@ -206,12 +204,14 @@ func set_layout(mode: String) -> void:
 			_scene_size = DEPARTMENT_SCENE_SIZE
 			_bounds = DEPARTMENT_BOUNDS
 			_start_position = DEPARTMENT_START
-			_door_area = DEPARTMENT_DOOR_AREA
-			_door_prompt_at = DEPARTMENT_DOOR_PROMPT
+			# 八张新室内的门位置不统一（有的在左、有的在右），不再要求走到门边；
+			# 右下角固定一颗「返回小镇」，点它就走。
+			_door_area = Rect2(-10, -10, 0, 0)
+			_door_prompt_at = Vector2(1470, 742)
 			_horizontal_only = true
-			_door_x_threshold = DEPARTMENT_DOOR_X
+			_door_x_threshold = -1.0
 			_character_scale = 10.0 / 3.0
-			_door_prompt_text = "返回小镇  →"
+			_door_prompt_text = "返回小镇"
 			_room_stretch = TextureRect.STRETCH_SCALE
 		"activity":
 			_scene_size = SCENE_SIZE
