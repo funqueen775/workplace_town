@@ -175,7 +175,7 @@
       "month": 5,
       "anchor": "shell_toast",
       "trigger": "node_started:M05_OPEN",
-      "title": "周五 14:00 · 运营部",
+      "title": "周五 14:00 · 观澜会展码头",
       "sub": "主讲是你；周四下午先彩排一遍",
       "autoDismissMs": 3000,
       "once": true
@@ -205,7 +205,7 @@
       "month": 5,
       "anchor": "shell_toast",
       "trigger": "node_started:M05_DAWN",
-      "title": "周五 · 运营部",
+      "title": "周五 · 观澜会展码头",
       "sub": "往镇子南边走，两点上台",
       "autoDismissMs": 3000,
       "once": true
@@ -276,7 +276,7 @@
       "anchor": "shell_toast",
       "trigger": "node_started:M07_FREE",
       "title": "这个月三格",
-      "sub": "财务部、草坪、老地方，挑三个",
+      "sub": "松风训练谷、草坪、老地方，挑三个",
       "autoDismissMs": 3000,
       "once": true
     },

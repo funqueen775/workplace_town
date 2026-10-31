@@ -153,11 +153,11 @@
     },
     {
       "id": "m7_valley",
-      "name": "财务部",
+      "name": "松风训练谷",
       "locationId": "E",
-      "location": "财务部",
+      "location": "松风训练谷",
       "description": "跟小赵打第一局，输了没代价。",
-      "scene": "res://assets/八大区域地图重制版/E_财务部.png",
+      "scene": "res://assets/场景内部图/松风训练谷.png",
       "apCost": 1,
       "slots": 1,
       "hCost": 1,
@@ -167,7 +167,7 @@
       },
       "placeLine": "小赵带你打第一局，输赢都不进评估。",
       "card": {
-        "title": "财务部",
+        "title": "松风训练谷",
         "lines": [
           "打牌练的是判断，不算考核。",
           "第一局小赵带你，输了没代价。",
@@ -265,7 +265,7 @@
       "id": "m11_boardgame",
       "name": "桌游角",
       "locationId": "H",
-      "location": "生产部 · 桌游角",
+      "location": "慢生活园 · 桌游角",
       "description": "周末开局，常常三缺一。",
       "scene": "res://assets/weekend_scenes/board_game_v01_enter.png",
       "apCost": 1,
@@ -280,7 +280,7 @@
       },
       "placeLine": "差两个人的牌桌。",
       "card": {
-        "title": "生产部 · 桌游角",
+        "title": "慢生活园 · 桌游角",
         "lines": [
           "周末这儿开局，常常三缺一。",
           "小赵当面问你，不来也没人记。",

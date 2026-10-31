@@ -45,11 +45,9 @@ const ACTIVITY_CARDS := {
 	"G_KTV": "res://assets/01_带缩略图面板/G_KTV_文娱室合唱_KTV_面板.png",
 	"H_BBQ": "res://assets/01_带缩略图面板/H_BBQ_夜间烧烤_篝火_面板.png",
 	"H_BOARD": "res://assets/01_带缩略图面板/H_BOARD_桌游馆_面板.png",
-	# 十二个月自由活动：卡面标题和区域都印死在图上，只接能真正对上的三张。
-	# 对不上的（工位、水巷、山谷、加班等）继续走原来的活动面板，别硬套。
-	"m7_lawn": "res://assets/01_带缩略图面板/E_SPORT_草坪运动_面板.png",
+	# 十二个月自由活动：卡面标题和区域都印死在图上，只接能真正对上的。
+	# E/H 仍是训练谷/慢生活园，卡面却印着财务部/生产部，先不接，继续走原活动面板。
 	"m9_library": "res://assets/01_带缩略图面板/D_STUDY_独自学习_一起自习_面板.png",
-	"m11_boardgame": "res://assets/01_带缩略图面板/H_BOARD_桌游馆_面板.png",
 }
 
 var _root: Control

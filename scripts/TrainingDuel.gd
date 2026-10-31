@@ -1,6 +1,6 @@
 class_name TrainingDuel
 extends RefCounted
-## 财务部 · 熊熊有招 —— 纯规则核心（Batch 4）。
+## 松风训练谷 · 熊熊有招 —— 纯规则核心（Batch 4）。
 ## 规则唯一口径：data/story/training_valley.json + 机制文档 §7。
 ## 核心顺序不可改：先投骰 → 攻方 0/1 张进攻/调整卡 → 守方 0/1 张防御卡 → 结算 → 换人。
 ## 测评红线（机制文档 §10）：胜负 / 骰运 / 卡牌使用 / 选择角色一律不进职业测评，

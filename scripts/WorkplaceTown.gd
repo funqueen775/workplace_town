@@ -126,10 +126,10 @@ const INTERIOR_ASSETS := {
 	"B": "res://assets/八大区域地图重制版/B_研发部.png",
 	"C": "res://assets/八大区域地图重制版/C_销售部.png",
 	"D": "res://assets/八大区域地图重制版/D_人事部.png",
-	"E": "res://assets/八大区域地图重制版/E_财务部.png",
-	"F": "res://assets/八大区域地图重制版/F_运营部.png",
-	"G": "res://assets/八大区域地图重制版/G_行政部.png",
-	"H": "res://assets/八大区域地图重制版/H_生产部.png",
+	"E": "res://assets/场景内部图/松风训练谷.png",
+	"F": "res://assets/场景内部图/观澜展会码头.png",
+	"G": "res://assets/场景内部图/暖邻康护院.png",
+	"H": "res://assets/场景内部图/慢生活园.png",
 }
 ## 小镇出生点，位于 H 区入口外的可通行道路，避开自动传送门感应范围。
 const PLAYER_START_POSITION := Vector2(455, 500)
@@ -146,10 +146,10 @@ var ZONES := [
 	{"id": "b", "code": "B", "name": "研发部", "rect": Rect2(760, 80, 320, 205), "center": Vector2(920, 180), "door": "bottom"},
 	{"id": "c", "code": "C", "name": "销售部", "rect": Rect2(1450, 150, 390, 250), "center": Vector2(1645, 275), "door": "left"},
 	{"id": "d", "code": "D", "name": "人事部", "rect": Rect2(55, 420, 330, 250), "center": Vector2(220, 545), "door": "right"},
-	{"id": "e", "code": "E", "name": "财务部", "rect": Rect2(410, 760, 320, 230), "center": Vector2(570, 875), "door": "top"},
-	{"id": "f", "code": "F", "name": "运营部", "rect": Rect2(255, 820, 330, 230), "center": Vector2(420, 930), "door": "top"},
-	{"id": "g", "code": "G", "name": "行政部", "rect": Rect2(1320, 650, 360, 300), "center": Vector2(1500, 800), "door": "left"},
-	{"id": "h", "code": "H", "name": "生产部", "rect": Rect2(760, 760, 390, 250), "center": Vector2(955, 885), "door": "top"},
+	{"id": "e", "code": "E", "name": "松风训练谷", "rect": Rect2(410, 760, 320, 230), "center": Vector2(570, 875), "door": "top"},
+	{"id": "f", "code": "F", "name": "观澜会展码头", "rect": Rect2(255, 820, 330, 230), "center": Vector2(420, 930), "door": "top"},
+	{"id": "g", "code": "G", "name": "暖邻康护院", "rect": Rect2(1320, 650, 360, 300), "center": Vector2(1500, 800), "door": "left"},
+	{"id": "h", "code": "H", "name": "慢生活园", "rect": Rect2(760, 760, 390, 250), "center": Vector2(955, 885), "door": "top"},
 ]
 var NPCS := [
 	{"zone": "a", "name": "陈工", "role": "邻组 Leader", "loadout": "bear_orange_blazer", "route": PackedVector2Array([Vector2(405, 345), Vector2(510, 345), Vector2(510, 390), Vector2(405, 390)]), "prompt": "结论是什么？预算和工期，一句话说完。"},
@@ -385,7 +385,7 @@ var _sleep_gap_text := ""
 ## 黄线也寻不到路。这里写的是墙内最近的一块空地（人事部牌楼斜对面）。
 const STORY_DOOR_POSITIONS := {
 	"door_library": Vector2(1424, 720),
-	# 第 5 月运营部：F 区在北侧开口，门就立在镇子最南边那排台阶前
+	# 第 5 月观澜会展码头：F 区在北侧开口，门就立在镇子最南边那排台阶前
 	# （和 MONTH_NODE_POINTS 的 M05_DEMO 同一个点）。
 	"door_expo": Vector2(702, 833),
 }
@@ -2752,10 +2752,19 @@ func _update_location_marker_visibility() -> void:
 				entered_code = String(zone["code"])
 				break
 	for marker in _location_markers:
-		# 十二个月这条线不挂这批木牌：那八张是从旧 48 个月裁出来的（市场部 / 人事部 / 行政部…），
-		# 而现在的底图自己已经把「市场部 / 人事部 / 行政部」画在建筑上了，
+		# 十二个月这条线不挂这批木牌：那八张是从旧 48 个月裁出来的（市场部 / 人事部 / 暖邻康护院…），
+		# 而现在的底图自己已经把「市场部 / 人事部 / 暖邻康护院」画在建筑上了，
 		# 挂出来就是同一个门口两个名字打架（2026-10-28 实机截图里撞见）。
 		marker.visible = not _month12_active and marker.name == "LocationMarker%s" % entered_code
+
+
+func _use_interior_layout(code: String) -> void:
+	# A–D 换成了队友的部门室内（1848×851，右下角固定返回）；
+	# E–H 在剧情里还是训练谷/会展码头/康护院/慢生活园，继续用旧图和旧动线。
+	if code in ["A", "B", "C", "D"]:
+		_interior_preview.use_department_layout(true)
+	else:
+		_interior_preview.use_activity_layout(false)
 
 
 func _enter_nearby_zone() -> void:
@@ -2779,7 +2788,7 @@ func _enter_nearby_zone() -> void:
 		tag.visible = is_current
 	var texture_path := String(INTERIOR_ASSETS.get(String(_active_zone["code"]), ""))
 	# 区的室内用默认动线；上一趟活动场景可能换过一套。
-	_interior_preview.use_department_layout(true)
+	_use_interior_layout(String(_active_zone["code"]))
 	if not texture_path.is_empty():
 		_interior_preview.present(_active_zone, texture_path)
 		_interior_preview.set_phase(String(WorldClock.snapshot().get("phaseId", "work")))
@@ -4021,8 +4030,8 @@ func _start_month_opening() -> void:
 	# 首月把入口传送门全部收掉：不是自由活动，别让玩家误入别的区。
 	for marker in _entrance_markers:
 		(marker as Node2D).visible = false
-	# 旧 48 个月那批地名牌（市场部 / 人事部 / 行政部…）在这条线上永久收起：
-	# 现在的底图自己已经把「市场部 / 人事部 / 行政部」画在建筑上，
+	# 旧 48 个月那批地名牌（市场部 / 人事部 / 暖邻康护院…）在这条线上永久收起：
+	# 现在的底图自己已经把「市场部 / 人事部 / 暖邻康护院」画在建筑上，
 	# 再挂一层就是同一个门口两个名字打架（2026-10-28 实机截图撞见）。
 	for marker in _location_markers:
 		marker.visible = false
@@ -4714,8 +4723,8 @@ func _ensure_month12_place(activity_id: String) -> void:
 	# （见 _enter_month12_place → _show_month12_place_list）。所以同一个区只立一扇门，
 	# 后来解锁的活动只进"已解锁"名单，不再在旁边多长一扇——B 区就撞过这个：
 	# 「组内小工具」和「把活往前赶」都写 zoneId B，结果一个地方两团光叠着。
-	# E 区同理（2026-10-30 实机反馈）：「财务部」原来写 zoneId E，和湖边那扇
-	# 「湖边散步」（landmark heart_lake）在湖南岸上下叠出两团光；现在财务部也挂
+	# E 区同理（2026-10-30 实机反馈）：「松风训练谷」原来写 zoneId E，和湖边那扇
+	# 「湖边散步」（landmark heart_lake）在湖南岸上下叠出两团光；现在松风训练谷也挂
 	# heart_lake，解锁后只进区清单，门只留湖边那一扇。
 	var door_key := _month12_place_door_key(activity)
 	for existing_id in _month12_place_portals:
@@ -4935,7 +4944,7 @@ func _enter_month12_interior(zone: Dictionary, scene_path := "") -> void:
 		texture_path = String(INTERIOR_ASSETS.get(String(zone.get("code", "")), ""))
 	# 活动图和人站的位置得配套：活动场景地板低，部门室内是右侧出口，先换动线再摆人。
 	if scene_path.is_empty():
-		_interior_preview.use_department_layout(true)
+		_use_interior_layout(String(zone.get("code", "")))
 	else:
 		_interior_preview.use_activity_layout(true)
 	if not texture_path.is_empty():
@@ -4977,7 +4986,7 @@ func _show_month12_place_list(zone_code: String) -> void:
 		var pid := String(act.get("id", ""))
 		if not _month12_place_portals.has(pid) and not _month12_unlocked_places.has(pid):
 			# 门没开的去处不列出来：这一屋子只放"你去得了的地方"。
-			# 之前是把全区清单照抄，第 7 月小赵那句话还没说，财务部和草坪就已经挂在列表里了。
+			# 之前是把全区清单照抄，第 7 月小赵那句话还没说，松风训练谷和草坪就已经挂在列表里了。
 			continue
 		var shots: Array = (act.get("card", {}) as Dictionary).get("shots", []) as Array
 		var thumb := String(act.get("scene", ""))
@@ -5363,9 +5372,9 @@ func _start_sleep_walk(finished_month: int, then := Callable(), wake_phase := "e
 	_walk_skip_offered = false
 	_walk_pause_started_msec = 0
 	if _town_ui_v2 != null:
-		_town_ui_v2.set_task_card("回宿舍", "生产部 · 宿舍与桌游馆")
+		_town_ui_v2.set_task_card("回宿舍", "慢生活园 · 宿舍与桌游馆")
 		_town_ui_v2.set_task_note("回去睡一觉，明天再继续")
-	_set_objective("第 %d 月" % finished_month, "生产部 · 宿舍", "回去睡一觉", "", false)
+	_set_objective("第 %d 月" % finished_month, "慢生活园 · 宿舍", "回去睡一觉", "", false)
 	if _guide_line != null and _player != null:
 		_guide_line.set_path(_build_guide_path(_player.position, door))
 
@@ -5745,7 +5754,7 @@ const MONTH_NODE_POINTS := {
 	"E10": Vector2(1424, 273),
 	# 第 4 月复盘会：通知出现后走到 A 区复盘会议室（E07 在数据里是 walk）。
 	"E07": Vector2(416, 241),
-	# 第 5 月客户 Demo：深夜之后走到运营部（M05_DEMO 在数据里是 walk）。
+	# 第 5 月客户 Demo：深夜之后走到观澜会展码头（M05_DEMO 在数据里是 walk）。
 	"M05_DEMO": Vector2(702, 833),
 	# 第 5 月彩排：周四下午还在自己工位（同一张桌子，不切场，只是把落点写实）。
 	"M05_PREP": Vector2(1008, 240),
@@ -5782,7 +5791,7 @@ const LOCATION_POINTS := {
 	"C 区 销售部 · 客户展厅": Vector2(1424, 273),
 	"C 区 展厅门口": Vector2(1424, 273),
 	"C 区销售部外摆": Vector2(1424, 273),
-	"运营部": Vector2(702, 833),
+	"观澜会展码头": Vector2(702, 833),
 }
 
 
@@ -6998,7 +7007,7 @@ func runner_deliver_phone(node: Dictionary) -> bool:
 	# 由下面那条钉住的横幅来说，免得两条叠在顶上说同一件事。
 	if not bool(node.get("requireRead", false)):
 		_show_reminder_toast("手机有消息", "右下角手机带红点，点开查看；不回也没关系")
-	# 一条消息点亮多处入口（第 7 月小赵那句"周末打球不"一次开草坪 + 财务部）。
+	# 一条消息点亮多处入口（第 7 月小赵那句"周末打球不"一次开草坪 + 松风训练谷）。
 	# 这种钩子只立门、不弹讲解卡——卡是"有人当面指到那地方"才弹，消息带的是"顺带开两处"。
 	for hook in (node.get("placeHooks", []) as Array):
 		_light_places_by_hook(String(hook))
@@ -7524,8 +7533,8 @@ func _arm_month12_place_visit(node: Dictionary, visit_id: String) -> void:
 	_runner_place_player(node, false)
 	_town_ui_v2.set_task_card(String(place.get("name", "去看一眼")), String(place.get("location", "")))
 	_town_ui_v2.set_task_note("走到门口，按 E 进去")
-	# 提示条那句由节点自己写：镇上的区域名还是老部门名（regions.json 里 F=运营部），
-	# 拿它报地点会变成"门在运营部"，和第 5 月这次去的运营部对不上。
+	# 提示条那句由节点自己写：镇上的区域名还是老部门名（regions.json 里 F=观澜会展码头），
+	# 拿它报地点会变成"门在观澜会展码头"，和第 5 月这次去的观澜会展码头对不上。
 	var door_hint := String(place.get("doorHint", ""))
 	if door_hint.is_empty():
 		door_hint = "门在那边"

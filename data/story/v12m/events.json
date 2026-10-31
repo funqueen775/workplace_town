@@ -1557,7 +1557,7 @@
       "title": "工位上的路演袋",
       "locationId": "B",
       "location": "B 区工位",
-      "departNote": "周五下午两点，运营部。在那之前，周四下午先彩排一遍。",
+      "departNote": "周五下午两点，观澜会展码头。在那之前，周四下午先彩排一遍。",
       "durationMinutes": 15,
       "situation": "weak",
       "autoComplete": true,
@@ -1593,7 +1593,7 @@
         },
         {
           "type": "narration",
-          "text": "袋里一张路演流程单：「周五 14:00 · 运营部 · 客户现场」。最后一行用马克笔加粗了——主讲，你。",
+          "text": "袋里一张路演流程单：「周五 14:00 · 观澜会展码头 · 客户现场」。最后一行用马克笔加粗了——主讲，你。",
           "emphasis": [
             "主讲，你"
           ]
@@ -1626,7 +1626,7 @@
         },
         {
           "type": "narration",
-          "text": "四天：一天彩排，三天改稿，最后一天到运营部。",
+          "text": "四天：一天彩排，三天改稿，最后一天到观澜会展码头。",
           "goalLine": true
         }
       ],
@@ -2401,7 +2401,7 @@
         },
         {
           "type": "narration",
-          "text": "财务部那一局他赢了你。说好的，输赢不算考核，也没人把它记进任何一份名单。",
+          "text": "松风训练谷那一局他赢了你。说好的，输赢不算考核，也没人把它记进任何一份名单。",
           "when": {
             "flag": "m07_valley_first"
           }
@@ -3114,7 +3114,7 @@
       "guideBy": "小林",
       "walkNote": "告警叠了四张，都在演示线",
       "allNighter": true,
-      "departNote": "太晚了，回不去了。天亮还得去运营部。"
+      "departNote": "太晚了，回不去了。天亮还得去观澜会展码头。"
     },
     {
       "id": "M06_WALL",
@@ -4285,7 +4285,7 @@
         },
         {
           "type": "narration",
-          "text": "十一点半，你出门。运营部在镇子最南边，坐车过去还要一段。"
+          "text": "十一点半，你出门。观澜会展码头在镇子最南边，坐车过去还要一段。"
         },
         {
           "type": "narration",
@@ -4300,15 +4300,15 @@
         "title": "第五月 · 客户 Demo",
         "lines": [
           "八点四十醒，十一点半出门",
-          "运营部在镇子最南边",
+          "观澜会展码头在镇子最南边",
           "两点上台 · 麦在你手上"
         ],
         "shots": [
           "place_card_expo_1.png"
         ]
       },
-      "walkNote": "出门，去南边的运营部",
-      "departNote": "去南边的运营部。到了主厅，先找那块大屏。",
+      "walkNote": "出门，去南边的观澜会展码头",
+      "departNote": "去南边的观澜会展码头。到了主厅，先找那块大屏。",
       "xunOpen": "跨夜：上旬深夜改到中旬清晨，首拍蒙蒙亮即交代"
     },
     {
@@ -4621,7 +4621,7 @@
       "required": true,
       "title": "客户 Demo",
       "locationId": "F",
-      "location": "运营部",
+      "location": "观澜会展码头",
       "durationMinutes": 90,
       "situation": "strong",
       "autoComplete": false,
@@ -4842,16 +4842,16 @@
       "reportUse": "evidence",
       "zoneCut": "F",
       "guideBy": "小林",
-      "walkNote": "去南边的运营部",
+      "walkNote": "去南边的观澜会展码头",
       "enterPlace": "m5_expo",
       "doorHook": "door_expo",
       "visit": {
-        "name": "运营部",
+        "name": "观澜会展码头",
         "object": "主厅那块大屏",
         "rowNote": "两点上台，屏幕不是我们的",
         "placeLine": "客户现场，第二组上台，主讲是你。",
         "card": {
-          "title": "运营部",
+          "title": "观澜会展码头",
           "lines": [
             "客户现场。镇子最南边，出门过码头广场。",
             "周五下午两点，第二组上台。屏幕是展厅的，接口自己带。",

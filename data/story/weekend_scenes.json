@@ -51,7 +51,7 @@
       ]
     },
     "D3_lawn_sports": {
-      "title": "财务部 · 运动场",
+      "title": "松风训练谷 · 运动场",
       "image": "res://assets/weekend_scenes/sports_field.png",
       "lines": [
         { "text": "球场上正缺人。你和{who}一队，跑起来之后谁还记得今天是休息日。" },
@@ -59,7 +59,7 @@
       ]
     },
     "D4_camp_bbq": {
-      "title": "财务部 · 夜间烧烤草坪",
+      "title": "松风训练谷 · 夜间烧烤草坪",
       "image": "res://assets/weekend_scenes/bbq_lawn.png",
       "lines": [
         { "text": "炭火升起来的时候天刚擦黑。你们围在烤架边，谁翻串、谁刷酱，分工明确。" },
@@ -75,7 +75,7 @@
       ]
     },
     "G1_trust_escape_room": {
-      "title": "财务部 · 密室",
+      "title": "松风训练谷 · 密室",
       "image": "res://assets/weekend_scenes/escape_room.png",
       "lines": [
         { "text": "密室的门在身后锁上的那一刻，你们才开始真正动脑子。线索藏在灯罩里、抽屉夹层，还有一句谁都没在意的台词里。" },
@@ -83,15 +83,15 @@
       ]
     },
     "G2_campfire": {
-      "title": "财务部 · 篝火夜",
+      "title": "松风训练谷 · 篝火夜",
       "image": "res://assets/weekend_scenes/bbq_lawn.png",
       "lines": [
-        { "text": "篝火在财务部的空地上烧起来，火星往夜空里飘。有人弹琴跑了调，笑声比琴声响。" },
+        { "text": "篝火在松风训练谷的空地上烧起来，火星往夜空里飘。有人弹琴跑了调，笑声比琴声响。" },
         { "text": "火堆边坐久了，人和人的距离也被烤得暖暖的。这一晚不谈工作，只谈以后。" }
       ]
     },
     "G3_board_game": {
-      "title": "生产部 · 桌游馆",
+      "title": "慢生活园 · 桌游馆",
       "image": "res://assets/weekend_scenes/board_game.png",
       "lines": [
         {
