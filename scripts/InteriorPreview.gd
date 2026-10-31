@@ -263,18 +263,24 @@ func set_activities(activities: Array, enabled: bool, remaining: int) -> void:
 	for activity in activities:
 		if shown >= _activity_buttons.size():
 			break
-		var activity_id := String((activity as Dictionary).get("id", ""))
-		var card_path := String(ACTIVITY_CARDS.get(activity_id, ""))
+		var dict := activity as Dictionary
+		var activity_id := String(dict.get("id", ""))
+		# 优先用数据里带的整卡（activities.json 的 cardArt），其次才查这张表——
+		# 十二个月那套活动的 id 是 m1_lakeside / m7_lawn，不是图的文件名。
+		var card_path := String(dict.get("cardArt", ""))
+		if card_path.is_empty():
+			card_path = String(ACTIVITY_CARDS.get(activity_id, ""))
 		if card_path.is_empty():
 			continue
 		var button := _activity_buttons[shown]
 		button.texture_normal = _load_texture(card_path)
-		button.disabled = not enabled or remaining <= 0
+		button.disabled = not enabled or remaining <= 0 or bool(dict.get("disabled", false))
 		button.scale = Vector2.ONE
 		button.z_index = 1200
 		button.modulate = Color.WHITE if not button.disabled else Color(0.72, 0.72, 0.72)
-		button.tooltip_text = String((activity as Dictionary).get("title", "活动")) if not button.disabled else "自由活动窗口开放后可进入"
-		button.set_meta("activity", (activity as Dictionary).duplicate(true))
+		button.tooltip_text = String(dict.get("title", "活动")) if not button.disabled \
+			else String(dict.get("note", "自由活动窗口开放后可进入"))
+		button.set_meta("activity", dict.duplicate(true))
 		button.show()
 		shown += 1
 
@@ -434,7 +440,9 @@ func _build_interior_characters(location: Dictionary) -> void:
 	_npc.process_mode = Node.PROCESS_MODE_DISABLED
 
 func _build_activity_cards() -> void:
-	for index in 2:
+	# 3 个位子：一个区里现在最多同时开两条带整卡的去处（E 区湖边散步 + 草坪运动），
+	# 留一位余量，第 4 条以后再说——再多就要考虑这叠要不要滚。
+	for index in 3:
 		var card := TextureButton.new()
 		card.name = "ActivityCard%d" % index
 		card.position = Vector2(1110, 70 + index * 207)

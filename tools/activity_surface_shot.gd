@@ -1,0 +1,106 @@
+extends Node
+
+## 同一个 E 区，两种摆法各拍一张，给玩家挑：
+##   屋里 —— 走进区里，右上角一叠整卡压在室内画面上（队友 10-30 录屏那版）；
+##   整屏 —— 进门弹一整屏卡片列表（票根，字全部现读数据）。
+## 用法：<godot> --path . --resolution 1600x900 res://tools/activity_surface_shot.tscn -- --no-resume
+
+const OUT_DIR := "res://test_artifacts/activity_cards"
+const E_INTERIOR := "res://assets/场景内部图/松风训练谷.png"
+
+var _town: Node
+var _done := false
+
+
+func _ready() -> void:
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT_DIR))
+	_watchdog()
+	_town = load("res://Main.tscn").instantiate()
+	add_child(_town)
+	await get_tree().create_timer(3.2).timeout
+	var start = _town.get("_month12_start_panel")
+	for i in 60:
+		await get_tree().create_timer(0.1).timeout
+		start = _town.get("_month12_start_panel")
+		if start != null and is_instance_valid(start) and bool(start.call("is_open")):
+			_town.call("_on_month_start_continued")
+			await get_tree().create_timer(0.8).timeout
+			break
+	var unlocked: Dictionary = _town.get("_month12_unlocked_places")
+	for id in ["m1_lakeside", "m7_lawn", "m7_valley"]:
+		unlocked[id] = true
+	# 先把还在播的剧情屏收掉：它的黑场会把屋里那一叠压在下面（实拍踩过）。
+	var story = _town.get("_story_event_panel")
+	if story != null and is_instance_valid(story):
+		story.call("dismiss")
+		await get_tree().create_timer(0.4).timeout
+	# 先把人放进 E 区的屋里，再走一遍"进门列地方"那段。
+	var zones: Array = _town.get("ZONES")
+	var zone_e: Dictionary = {}
+	for zone in zones:
+		if String(Dictionary(zone).get("code", "")) == "E":
+			zone_e = Dictionary(zone)
+			break
+	_town.set("_active_zone", zone_e)
+	var preview = _town.get("_interior_preview")
+	preview.call("use_activity_layout", false)
+	preview.call("present", zone_e, E_INTERIOR)
+	await get_tree().create_timer(0.8).timeout
+	_town.call("_show_month12_place_list", "E")
+	await get_tree().create_timer(0.9).timeout
+	var cards = _town.get("_activity_cards")
+	var shown := 0
+	for button in (preview.get("_activity_buttons") as Array):
+		var ctrl := button as Control
+		if ctrl != null and ctrl.visible:
+			shown += 1
+	print("[surface] 屋里：亮着的整卡=", shown, " 整屏列表开着=", bool(cards.call("is_open")),
+		" 室内开着=", bool(preview.call("is_open")))
+	await _shot("摆法_屋里一叠")
+	# 再拍整屏那版：直接叫列表组件开，不改代码里的那个开关。
+	preview.call("set_activities", [], true, 1)
+	cards.call("open", "E 区", _rows_for("E"), "本月还剩 1 格")
+	await get_tree().create_timer(0.7).timeout
+	print("[surface] 整屏：列表开着=", bool(cards.call("is_open")))
+	await _shot("摆法_整屏列表")
+	print("SURFACE_SHOT_DONE")
+	_done = true
+	get_tree().quit(0)
+
+
+## 和 _show_month12_place_list 同一批数据，只是不等那个开关。
+func _rows_for(zone_code: String) -> Array:
+	var rows: Array = []
+	for value in _town.get("_month12_places"):
+		if not (value is Dictionary):
+			continue
+		var act := Dictionary(value)
+		if String(act.get("locationId", "")) != zone_code:
+			continue
+		var pid := String(act.get("id", ""))
+		if not bool((_town.get("_month12_unlocked_places") as Dictionary).has(pid)):
+			continue
+		rows.append({
+			"id": pid,
+			"title": String(act.get("name", "自由活动")),
+			"cardArt": String(act.get("cardArt", "")),
+			"badge": String(_town.call("_month12_zone_name", zone_code)),
+			"cost": int(act.get("hCost", 0)),
+			"note": String(_town.call("_month12_place_row_note", act)),
+		})
+	return rows
+
+
+func _shot(name: String) -> void:
+	await RenderingServer.frame_post_draw
+	await RenderingServer.frame_post_draw
+	var image := get_viewport().get_texture().get_image()
+	image.save_png(ProjectSettings.globalize_path(OUT_DIR + "/" + name + ".png"))
+
+
+func _watchdog() -> void:
+	await get_tree().create_timer(90.0).timeout
+	if _done:
+		return
+	print("WATCHDOG forced quit")
+	get_tree().quit(1)

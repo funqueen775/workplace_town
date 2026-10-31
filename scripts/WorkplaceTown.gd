@@ -30,6 +30,11 @@ const HUD_TOUR := preload("res://scripts/ui/HudTour.gd")
 const MONTH12_ACTIVITY := preload("res://scripts/v12m/Month12ActivityPanel.gd")
 ## 进区之后的卡片列表：一屏一列、每行一张原尺寸活动卡（2026-10-31）。
 const ACTIVITY_CARDS := preload("res://scripts/v12m/ActivityCardList.gd")
+## 自由活动的去处列表摆在哪儿（2026-10-31，两种都还留着）：
+## "room" = 走进区里之后，右上角一叠整卡压在室内画面上——队友 10-30 那版，也是玩家看录屏认下的样子；
+## "page" = 进门弹一整屏卡片列表。
+## 两个的差别只在卡摆哪，点击之后走的仍是同一个到访确认页。
+const MONTH12_CARD_SURFACE := "room"
 const MONTH12_CLOSE := preload("res://scripts/v12m/Month12ClosePanel.gd")
 const MONTH12_START := preload("res://scripts/v12m/MonthStartPanel.gd")
 const HANDBOOK_PANEL := preload("res://scripts/HandbookPanel.gd")
@@ -5050,12 +5055,26 @@ func _show_month12_place_list(zone_code: String) -> void:
 	else:
 		# 首月那一格：口径跟通用月份一致，别再露出旧 48 个月的"剩余行动力"。
 		points_text = "本月还剩 1 格" if slots_left > 0 else "这个月安排完了 · 老地方还能进去坐坐"
-	var has_cards := false
+	var carded: Array = []
+	var plain: Array = []
 	for row_value in rows:
-		if not String(Dictionary(row_value).get("cardArt", "")).is_empty():
-			has_cards = true
-			break
-	if has_cards:
+		var row_dict := Dictionary(row_value)
+		if String(row_dict.get("cardArt", "")).is_empty():
+			plain.append(row_dict)
+		else:
+			carded.append(row_dict)
+	if MONTH12_CARD_SURFACE == "room" and not carded.is_empty():
+		# 屋里右上角那一叠（队友 10-30 录屏那版）：整卡贴上去，不另开一屏。
+		# 能不能点由每行自己的 disabled 决定（H=0 时不缓心情的那几条压灰），
+		# 所以 enabled 给真、remaining 给 1，不再拿旧 48 个月的行动点去压整叠。
+		_interior_preview.set_activities(carded, true, 1)
+		if plain.is_empty():
+			_activity_panel.hide_panel()
+		else:
+			_activity_panel.show_for_region(zone_code, plain, slots_left, slots_total, points_text,
+				_month12_now_line(zone_code))
+		return
+	if not carded.is_empty():
 		_activity_panel.hide_panel()
 		_activity_cards.open("%s 区" % zone_code, rows, points_text)
 		return
