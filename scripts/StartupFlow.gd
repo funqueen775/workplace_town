@@ -325,7 +325,7 @@ func _text_content(frame: Panel, page: Dictionary) -> void:
 		art.size = art_box.size - Vector2(24, 24)
 		art_box.add_child(art)
 
-	var kicker := _label(str(page["kicker"]), 26, BRICK)
+	var kicker := _label(str(page["kicker"]), 30, BRICK)
 	kicker.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	# 卡片左上角自带一条橙色短杠（在 9-patch 被拉伸后的 y≈101 中线上），
 	# 文字要跟它同一条水平中线，不能按标题字号往上顶。
@@ -563,9 +563,9 @@ func _avatar_screen() -> void:
 	back.pressed.connect(func() -> void: _mode = "intro"; _page = PAGES.size() - 1; _rebuild())
 	frame.add_child(back)
 
-	var kicker := _label("准备入职", 22, BRICK)
-	kicker.position = Vector2(250, 54)
-	kicker.size = Vector2(1200, 32)
+	var kicker := _label("准备入职", 30, BRICK)
+	kicker.position = Vector2(250, 48)
+	kicker.size = Vector2(1200, 38)
 	frame.add_child(kicker)
 	var heading := _label("选择你的形象", 44, INK, 0.0, 0.30)
 	heading.position = Vector2(250, 88)

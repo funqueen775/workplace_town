@@ -55,6 +55,8 @@ func _ready() -> void:
 			var stage := String(panel.get("_stage"))
 			if stage == "choices":
 				var ev: Dictionary = panel.get("_event")
+				_note("三选一 %s｜选完会显示：%s" % [
+					String(ev.get("id", "")), String(panel.call("_outcome_text", "A"))])
 				panel.call("_on_choice_picked", String(ev.get("id", "")), "A", 45)
 			elif stage != "interaction" and stage != "handbook":
 				panel.call("_advance")

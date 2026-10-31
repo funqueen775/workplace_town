@@ -8,6 +8,14 @@ const FONT := preload("res://assets/fonts/NotoSansCJKsc-Regular.otf")
 const PAPER_DOLL := preload("res://scripts/PaperDoll64Sprite.gd")
 const OFFICE_NPC := preload("res://scripts/OfficeNpcWalker.gd")
 const INTERIOR_BOUNDS := Rect2(560, 420, 820, 580)
+# 活动专属场景（天台、湖边）：这批图的地板在画面下半部，
+# 用区室内那套上界会把人放到栏杆外面，看着就像站在天上。
+const ACTIVITY_BOUNDS := Rect2(330, 700, 1290, 340)
+const ACTIVITY_START := Vector2(900, 860)
+const ACTIVITY_DOOR_AREA := Rect2(830, 940, 260, 100)
+const ACTIVITY_DOOR_PROMPT := Vector2(900, 898)
+const DOOR_PROMPT_AT := Vector2(900, 682)
+const INTERIOR_START := Vector2(1060, 500)
 # 所有室内图的玻璃门都位于 1920x1080 场景坐标的底部中央。
 const SCENE_SIZE := Vector2(1920, 1080)
 const DOOR_AREA := Rect2(870, 725, 180, 120)
@@ -25,6 +33,12 @@ var _player: Node2D
 var _player_sprite: PaperDoll64Sprite
 var _npc: OfficeNpcWalker
 var _npc_name: Label
+var _npc_suppressed := false
+## 当前这套动线（可行走区 / 出生点 / 出口判定与标识位置）。
+var _bounds := INTERIOR_BOUNDS
+var _start_position := INTERIOR_START
+var _door_area := DOOR_AREA
+var _door_prompt_at := DOOR_PROMPT_AT
 var _npc_data: Dictionary = {}
 var _talk_button: Button
 var _door_prompt: Button
@@ -84,7 +98,7 @@ func present(location: Dictionary, texture_path: String) -> void:
 	_door_prompt = Button.new()
 	_door_prompt.name = "DoorExitPrompt"
 	_door_prompt.text = "出口"
-	_door_prompt.position = Vector2(900, 682)
+	_door_prompt.position = _door_prompt_at
 	_door_prompt.size = Vector2(120, 48)
 	_door_prompt.focus_mode = Control.FOCUS_NONE
 	_door_prompt.add_theme_font_override("font", FONT)
@@ -128,9 +142,38 @@ func enable_exploration() -> void:
 	_update_door_prompt()
 	if _npc == null:
 		return
+	# 活动专属场景（天台、湖边）里不该有同事走动。
+	if _npc_suppressed:
+		_npc.hide()
+		if _npc_name != null:
+			_npc_name.hide()
+		return
 	_npc.show()
 	_npc.process_mode = Node.PROCESS_MODE_INHERIT
 	_update_talk_state()
+
+
+## 收掉室内预览自带的走动同事（天台、湖边这类活动场景用）。
+func suppress_interior_npc(value: bool) -> void:
+	_npc_suppressed = value
+	if value and _npc != null:
+		_npc.hide()
+		if _npc_name != null:
+			_npc_name.hide()
+
+## 活动专属场景换一套动线：地板在画面下半部，出生点、出口判定和「出口」标识都往下挪。
+## 要在 present() 之前调用——出生点是建室内角色时取的。
+func use_activity_layout(value: bool) -> void:
+	if value:
+		_bounds = ACTIVITY_BOUNDS
+		_start_position = ACTIVITY_START
+		_door_area = ACTIVITY_DOOR_AREA
+	else:
+		_bounds = INTERIOR_BOUNDS
+		_start_position = INTERIOR_START
+		_door_area = DOOR_AREA
+	_door_prompt_at = ACTIVITY_DOOR_PROMPT if value else DOOR_PROMPT_AT
+
 
 func is_exploration_enabled() -> bool:
 	return _exploration_enabled
@@ -160,13 +203,13 @@ func _process(delta: float) -> void:
 		direction = _touch_vector
 	var previous := _player.position
 	var target := previous + direction * PLAYER_SPEED * delta
-	target.x = clampf(target.x, INTERIOR_BOUNDS.position.x, INTERIOR_BOUNDS.end.x)
-	target.y = clampf(target.y, INTERIOR_BOUNDS.position.y, INTERIOR_BOUNDS.end.y)
+	target.x = clampf(target.x, _bounds.position.x, _bounds.end.x)
+	target.y = clampf(target.y, _bounds.position.y, _bounds.end.y)
 	_player.position = target
 	_player.z_index = int(target.y)
 	_player_sprite.set_motion(direction, previous.distance_to(target))
 	_update_talk_state()
-	if _exploration_enabled and DOOR_AREA.has_point(_player.position):
+	if _exploration_enabled and _door_area.has_point(_player.position):
 		exit_requested.emit()
 		return
 	_update_door_prompt()
@@ -174,13 +217,15 @@ func _process(delta: float) -> void:
 func _update_door_prompt() -> void:
 	if _door_prompt == null or _player == null:
 		return
+	# 位置在这里刷，不在设置时刷：出口标识是摆场景时才建出来的，早于它就取不到。
+	_door_prompt.position = _door_prompt_at
 	_door_prompt.visible = _exploration_enabled \
 		and (_dialog == null or not _dialog.visible)
 
 func _build_interior_characters(location: Dictionary) -> void:
 	_player = Node2D.new()
 	_player.name = "InteriorPlayer"
-	_player.position = Vector2(1060, 500)
+	_player.position = _start_position
 	_player.z_index = 900
 	# 缩放必须挂在父节点上：精灵的 (-32,-72) 是按 scale=1
 	# 设计的脚底锚点补偿，若直接放大精灵本身，脚底会偏到 (21,48)，影子就跟人物错位。

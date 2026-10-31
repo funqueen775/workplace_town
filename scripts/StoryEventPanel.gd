@@ -51,6 +51,8 @@ const TYPE_INTERVAL := 0.022
 var text_speed := 1
 var large_text := false
 var reduced_motion := false
+## 剧情里的手机演出交给城镇那部真手机去演（城镇在构建面板时接上）。
+var phone_peek := Callable()
 
 ## 入场拍：黑场里先把"这是哪一幕、哪一天、什么地方"压上来，再落进叙述。
 const ENTRY_CARD_IN := 0.35
@@ -143,7 +145,7 @@ func _ready() -> void:
 	_typewriter_timer.timeout.connect(_tick_typewriter)
 
 
-func present(event: Dictionary) -> void:
+func present(event: Dictionary, quiet := false) -> void:
 	_event = event.duplicate(true)
 	_chosen_id = ""
 	_beats = _player_visible_beats(_event.get("beats", []) as Array)
@@ -161,6 +163,11 @@ func present(event: Dictionary) -> void:
 		_beats.append({"type": "choice"})
 	_beat_index = -1
 	_build_stage()
+	if quiet:
+		# 同一间屋子里连着问的后续屏：不再黑一次场、不再报一次标题，直接接上话。
+		_root.show()
+		_end_entry()
+		return
 	_show_entry()
 	_root.show()
 
@@ -323,11 +330,26 @@ func clock_text() -> String:
 		return "第 %d 月 · %s · %s" % [
 			int(_event.get("month", 1)),
 			_xun_label(String(_event.get("phase", "early"))),
-			_time_word(int(_event.get("hour", 9))),
+			_band_word(),
 		]
 	return "第 %d 月 %d 日 · %02d:00" % [
 		int(_event.get("month", 1)), int(_event.get("day", 1)), int(_event.get("hour", 9)),
 	]
+
+
+## 时段那一个词。十二个月这条线一律以节点写的 timeBand 为准：
+## 数据里 hour 多半没跟着填（几十处是缺省的 9 点），拿 hour 去算就会出现
+## 标题写着"周四深夜 02:10"、日期牌上却写着"上午"（2026-10-29 与 10-30 两次实机）。
+## 日期牌和入场卡两处都要用它，口径不能一边改一边忘。
+func _band_word() -> String:
+	var band := String(_event.get("timeBand", ""))
+	if band == "night":
+		return "夜里"
+	if band == "afternoon":
+		return "午后"
+	if band == "morning":
+		return "上午"
+	return _time_word(int(_event.get("hour", 9)))
 
 
 ## 日期牌的显示口径：月/日 + 周几 + 时段，和 WorldClock 的 30 天月制对齐（不做真实历法）。
@@ -338,7 +360,7 @@ func _date_stamp(month: int, day: int, hour: int) -> Dictionary:
 		return {
 			"date": "第 %d 月" % maxi(month, 1),
 			"weekday": _xun_label(String(_event.get("phase", "early"))),
-			"phase": _time_word(hour),
+			"phase": _band_word(),
 		}
 	const WEEKDAYS := ["周一", "周二", "周三", "周四", "周五", "周六", "周日"]
 	var total := (maxi(month, 1) - 1) * 30 + (maxi(day, 1) - 1)
@@ -415,6 +437,8 @@ func _next_beat() -> void:
 			_show_interact(beat)
 		"choice":
 			_show_choices(String(beat.get("prompt", "")))
+		"phone_cinematic":
+			_show_phone_message(beat)
 		_:
 			_show_narration(String(beat.get("text", "")), beat.get("emphasis", []) as Array)
 
@@ -460,6 +484,18 @@ func _show_narration(text: String, emphasis: Array = []) -> void:
 	_start_typewriter(text)
 	_add_dialogue_hint(bubble)
 	_add_term_dot(bubble, term)
+
+
+## 手机演出拍：剧情里收到一条消息，交给系统里那部真手机演——右下角那颗的右侧抽屉
+## 拉开、停一会儿、自己收回。这里不另画卡；手机还没建出来时才退回旁白，不让这一拍空白。
+func _show_phone_message(beat: Dictionary) -> void:
+	_stage = "narration"
+	_clear_ui()
+	var speaker := String(beat.get("speaker", ""))
+	var text := String(beat.get("text", ""))
+	if phone_peek.is_valid() and bool(phone_peek.call(speaker, text, _event)):
+		return
+	_show_narration(text)
 
 
 ## 可交互拍：不推进剧情，等玩家去碰它。
@@ -557,6 +593,10 @@ func _show_outcome(choice_id: String) -> void:
 	_stop_typewriter()
 	_clear_ui()
 	var text := _outcome_text(choice_id)
+	var spoken := _split_spoken_outcome(text)
+	if not spoken.is_empty():
+		_show_outcome_spoken(choice_id, String(spoken["who"]), String(spoken["said"]))
+		return
 	var bubble := _make_dialogue_frame(false)
 	var body := _emphasis_label(text, 28, _choice_emphasis(choice_id), 10)
 	body.position = Vector2(92.0, 57.0)
@@ -564,6 +604,33 @@ func _show_outcome(choice_id: String) -> void:
 	bubble.add_child(body)
 	_typewriter_rich = body
 	_start_typewriter(text)
+	_finish_outcome_frame(bubble, choice_id)
+
+
+## 结果句写成"某某：……"的，就当那个人在说话：名字牌、立绘都照台词摆。
+## 它仍然是"结果"这一拍（点一下才收），不能被当成下一句台词。
+func _show_outcome_spoken(choice_id: String, who: String, said: String) -> void:
+	var profile := _profile_by_name(who)
+	# 演员表里没有这个人（"大领导""跨部门评委"这种只在台上出现一次的）：
+	# 照样给他一块名字牌，只是没有立绘——比把台词当旁白念强。
+	if profile.is_empty():
+		profile = {"name": who, "id": who}
+	var portrait_name := _portrait_name(String(profile.get("name", who)))
+	var bubble := _make_dialogue_frame(true)
+	var body := _emphasis_label(said, 30, _choice_emphasis(choice_id), 14)
+	body.position = Vector2(520.0, 72.0) if not portrait_name.is_empty() else Vector2(95.0, 72.0)
+	body.size = Vector2(bubble.size.x - body.position.x - 90.0, bubble.size.y - 118.0)
+	bubble.add_child(body)
+	_typewriter_rich = body
+	_start_typewriter(said)
+	if not portrait_name.is_empty():
+		_add_speaker_portrait(portrait_name, _expression_for(said))
+	_add_asset_name_plate(bubble, profile, who)
+	_finish_outcome_frame(bubble, choice_id)
+
+
+## 结果这一拍底下共用的两行：你选了什么、记忆墙上贴一张、右下角"点击继续"。
+func _finish_outcome_frame(bubble: Control, choice_id: String) -> void:
 	var echo := _label("你选择了 · %s" % _choice_text(choice_id), 18, Color("9b6a48"))
 	echo.position = Vector2(92.0, bubble.size.y - 70.0)
 	echo.size = Vector2(bubble.size.x - 320.0, 28.0)
@@ -571,6 +638,32 @@ func _show_outcome(choice_id: String) -> void:
 	bubble.add_child(echo)
 	_add_memo_note(choice_id)
 	_add_dialogue_hint(bubble)
+
+
+## "大领导：“这句比刚才那句有用。”" → {who: 大领导, said: “这句……”}
+## 冒号必须在前 8 个字里，冒号前面不能带标点——免得把正文里的冒号当成人在说话。
+func _split_spoken_outcome(text: String) -> Dictionary:
+	var idx := text.find("：")
+	if idx <= 0 or idx > 8:
+		return {}
+	var who := text.substr(0, idx).strip_edges()
+	var said := text.substr(idx + 1).strip_edges()
+	if who.is_empty() or said.is_empty():
+		return {}
+	if who.contains("，") or who.contains("。") or who.contains("“") or who.contains(" "):
+		return {}
+	return {"who": who, "said": said}
+
+
+## 按**显示名**找演员：结果句里写的是"大领导"，不是演员表里的 id。
+func _profile_by_name(name: String) -> Dictionary:
+	if (_event.get("speakers", {}) as Dictionary).has(name):
+		return _speaker_profile(name)
+	for value in _cast_list():
+		var actor := Dictionary(value)
+		if String(actor.get("name", "")) == name:
+			return actor
+	return {}
 
 
 func _finish_without_choice() -> void:
@@ -835,7 +928,7 @@ func _add_dialogue_hint(frame: Control) -> void:
 # ---------------------------------------------------------------- 行话小圆点
 #
 # 只做一件事：台词里冒出一个玩家不可能懂的专业词，给一句人话。
-# 不记录听过没听过、不进档案页、不呼吸提示。全年就六个词（data/story/v12m/terms.json），
+# 不记录听过没听过、不进档案页、不呼吸提示。全年八个词（data/story/v12m/terms.json），
 # 不点什么都不发生，点一下浮一句，再点任意地方收起。
 
 const TERMS_PATH := "res://data/story/v12m/terms.json"
@@ -1149,7 +1242,19 @@ func _speaker_profile(speaker_id: String) -> Dictionary:
 	return {}
 
 
+## 结果页那句"谁说了什么"读的是**选项自己带的 outcome**（开发册 11.4 第 2 条）。
+## 以前只查事件级那张旧 outcome 表——全年 39 个带选项的节点都把话写在选项上，
+## 表是空的，于是每次选完都掉到"你的选择被记录下来了"这句兜底里。
 func _outcome_text(choice_id: String) -> String:
+	for value in (_event.get("choices", []) as Array):
+		if not (value is Dictionary):
+			continue
+		var choice := Dictionary(value)
+		if String(choice.get("id", "")) != choice_id:
+			continue
+		var per_choice := String(choice.get("outcome", ""))
+		if not per_choice.is_empty():
+			return per_choice
 	var outcomes: Dictionary = _event.get("outcome", {})
 	return String(outcomes.get(choice_id, "你的选择被记录下来了。"))
 
@@ -1168,6 +1273,8 @@ func _memo_payload(choice_id: String, note: Dictionary) -> Dictionary:
 		"actTitle": String(_event.get("actTitle", "")),
 		"month": int(_event.get("month", 1)),
 		"day": int(_event.get("day", 1)),
+		# 十二个月的日期口径是"上/中/下旬"，便签要跟着它写，别再用旧时钟算出来的"几日"。
+		"phase": String(_event.get("phase", "")),
 		"choiceId": choice_id,
 		"choiceText": _choice_text(choice_id),
 		"text": String(note.get("text", "")),

@@ -454,6 +454,27 @@ def main() -> int:
             errors.append(f"活动 {activity.get('id')} 没有 againLine：第二次去是空场景")
         if obj and lines and obj not in str(lines[-1]):
             errors.append(f"活动 {activity.get('id')} 的卡片最后一行没提到「{obj}」，玩家进门不知道该按什么")
+
+    # §4.25 心情账（2026-10-30）：R1 每处至少一个非零效果；R2 每月至少各有一个回心处、耗心处。
+    def _mood(activity: dict) -> tuple[int, int]:
+        return (max(0, int(activity.get("hCost", 0))),
+                int((activity.get("stateDelta") or {}).get("H", 0)))
+
+    for activity in activity_by_id.values():
+        cost, gain = _mood(activity)
+        state = activity.get("stateDelta") or {}
+        if cost == 0 and gain == 0 and not any(int(v or 0) != 0 for v in state.values()):
+            errors.append(f"活动 {activity.get('id')} 既不扣心也不回心、属性也全空：玩家没有理由去（§4.25 R1）")
+    for node in nodes:
+        if str(node.get("nodeType")) != "activity":
+            continue
+        pool = [activity_by_id.get(str(x)) or {} for x in (node.get("activityIds") or [])]
+        if not pool:
+            continue
+        if not any(_mood(a)[1] > 0 for a in pool):
+            errors.append(f"{node['id']} 这一月没有回心的去处：累了没地方缓（§4.25 R2）")
+        if not any(_mood(a)[0] > 0 for a in pool):
+            errors.append(f"{node['id']} 这一月没有耗心的去处：心情永远满着，翻倍和强制休息都撞不上（§4.25 R2）")
     # 第 29 条：贴封条的地点，所在月必须有必玩主线，否则封条永远不存在
     required_months = {int(n.get("month", 0)) for n in nodes if n.get("required") and str(n.get("nodeType")) == "main_story"}
     for node in nodes:
@@ -533,11 +554,14 @@ def main() -> int:
             written.setdefault(f"visit_{month}_{aid}", []).append("engine:到访结算")
     SETTLEMENT_FLAGS = {
         "m07_probation_deferred", "m12_not_nominated", "m12_not_passed",
+        # 第六月末一次定：判定与结局旗标由城镇写，不在数据里（4.21）。
+        "probation_confirmed", "probation_not_confirmed", "probation_terminated",
+        "probation_ended", "m07_closure_seen",
     }
 
     def _engine_flag(flag: str) -> bool:
         return (flag.startswith(("visit_", "peak_", "hook_", "handbook_page_"))
-                or flag in SETTLEMENT_FLAGS or flag in {"handbook_read", "activity", "e02"})
+                or flag in SETTLEMENT_FLAGS or flag in {"handbook_read", "activity", "e02", "m06_has_notes"})
 
     unconsumed = sorted(flag for flag in written
                         if flag not in referenced and flag not in read_negatively
@@ -545,6 +569,18 @@ def main() -> int:
     if unconsumed:
         line = f"这些旗标没有消费者：{unconsumed}"
         (errors if args.full else warnings).append(line + ("（后面几个月的节点还没填，切片阶段只警告）" if not args.full else ""))
+
+    # §4.25 R3：扣心的去处必须带一条能被读到的后果，否则这次去等于白去。
+    # 现在先记 WARN——第 7/9/11 月那三条后果还没写；补完之后这条改 append 到 errors。
+    for activity in (activities or {}).get("activities", []):
+        cost = max(0, int(activity.get("hCost", 0)))
+        if cost <= 0:
+            continue
+        reward = str(activity.get("rewardFlag", ""))
+        if not reward:
+            warnings.append(f"活动 {activity.get('id')} 扣 {cost} 心却没有 rewardFlag：只扣不回报（§4.25 R3）")
+        elif reward not in referenced and reward not in read_negatively:
+            warnings.append(f"活动 {activity.get('id')} 扣 {cost} 心，但 {reward} 没人读：这次去没有任何后续（§4.25 R3；后果补完后改成 error）")
 
     unknown_refs = sorted(ref for ref in referenced if ref not in written and not _engine_flag(ref))
     if unknown_refs:
@@ -738,23 +774,90 @@ def main() -> int:
                         f"但还在同一旬：要么改 phase，要么过场会把这次跨日藏起来"
                     )
 
-    # 第 34 条：常驻目标。玩家反馈"被剧情牵着走、不知道在干什么"——
-    # 屏幕上只有地点没有目标。所以每月必须有一个节点写 goal（一句要办成什么事）。
+    # 第 36 条：跨旬必须交代（2026-10-30）。旬卡只在到达那一刻翻页，如果后一屏
+    # 首拍不报时，玩家看到的就是"突然就中旬了"。交代三选一：首拍/ note / walkNote
+    # / departNote 里带旬名或时间词；或节点写 xunOpen 显式声明已有交代。
+    xun_words = ("上旬", "中旬", "下旬", "两周", "这一旬", "第二天", "第三天", "几天", "隔了", "上周", "当天", "昨天")
+    phase_name = {"early": "上旬", "mid": "中旬", "late": "下旬"}
+    for month in sorted(scope):
+        chain = sorted((n for n in nodes if int(n.get("month", 0)) == month), key=lambda n: int(n.get("order", 0)))
+        for prev, cur in zip(chain, chain[1:]):
+            if str(cur.get("nodeType", "")) != "main_story":
+                continue
+            if str(cur.get("phase", "")) == str(prev.get("phase", "")):
+                continue
+            if cur.get("xunOpen"):
+                continue
+            beats0 = (cur.get("beats") or [{}])[0].get("text", "") if cur.get("beats") else ""
+            haystack = " ".join([
+                str(beats0),
+                str(cur.get("note", "")),
+                str(cur.get("walkNote", "")),
+                str(cur.get("departNote", "")),
+            ])
+            if not any(w in haystack for w in xun_words):
+                warnings.append(
+                    f"第 {month} 月 {prev['id']}→{cur['id']} 跨旬（{phase_name.get(prev.get('phase'), '?')}→{phase_name.get(cur.get('phase'), '?')}）"
+                    f"但首屏没有旬首交代：补一句报时，或给节点写 xunOpen"
+                )
+
+    # 第 37 条：天黑到天白必须回宿舍睡觉（2026-10-30）。同月相邻两屏里，前一屏是夜里、
+    # 后一屏是白天，玩家不该站在原地看天亮。前一屏写 sleepHome：读完走回宿舍、进门熄灯、
+    # 天亮再回来；通宵那类（第 5 月深夜改到凌晨、人没走）写 allNighter 放行。
+    for month in sorted(scope):
+        chain = sorted((n for n in nodes if int(n.get("month", 0)) == month), key=lambda n: int(n.get("order", 0)))
+        for prev, cur in zip(chain, chain[1:]):
+            if str(prev.get("timeBand", "")) != "night" or str(cur.get("timeBand", "")) != "morning":
+                continue
+            if bool(prev.get("sleepHome", False)) or bool(prev.get("allNighter", False)):
+                continue
+            errors.append(
+                f"第 {month} 月 {prev['id']}→{cur['id']} 从夜里直接到白天，没有回宿舍睡觉："
+                f"给 {prev['id']} 写 sleepHome（走回宿舍、熄灯、天亮），通宵没走就写 allNighter"
+            )
+
+    # 第 38 条（WARN）：进夜那一屏要说清"这段时间在干什么"（2026-10-30）。
+    # 天不是自己黑的：玩家得先读到「忙到收工 / 改到几点 / 天已经暗了」，才接受画面转夜。
+    night_words = ("收工", "加班", "天黑", "暗了", "暗下来", "傍晚", "今晚", "点了", "点钟",
+                   "点零", "灯", "通宵", "熬夜", "忙到", "等到", "睡", "夜里", "半夜")
+    for month in sorted(scope):
+        chain = sorted((n for n in nodes if int(n.get("month", 0)) == month), key=lambda n: int(n.get("order", 0)))
+        for prev, cur in zip(chain, chain[1:]):
+            if str(cur.get("nodeType", "")) != "main_story":
+                continue
+            if str(cur.get("timeBand", "")) != "night" or str(prev.get("timeBand", "")) == "night":
+                continue
+            haystack = " ".join(
+                [str(b.get("text", "")) for b in (cur.get("beats") or [])]
+                + [str(cur.get("note", "")), str(cur.get("walkNote", "")), str(cur.get("departNote", ""))]
+            )
+            if any(w in haystack for w in night_words):
+                continue
+            warnings.append(
+                f"第 {month} 月 {cur['id']} 从白天进夜里，但这一屏没有交代这段时间在干什么："
+                f"补一句「忙到收工 / 改到几点 / 天已经暗了」"
+            )
+
+    # 第 34 条：这一月要办成什么，必须由剧情里的一句话交代——
+    # 上月末那条消息、或本月开场某个人当面说的。屏幕上不常驻目标文字：
+    # 玩家不该提前知道还没发生的事（2026-10-29 定）。
+    all_carriers: dict[int, list[str]] = {}
+    for node in nodes:
+        node_month = int(node.get("month", 0))
+        for beat in all_beats(node) + (node.get("messages", []) or []):
+            if not beat.get("goalLine"):
+                continue
+            # 上月末发的那条消息说的是下一个月的任务：按它指向的月份算。
+            target = int(beat.get("goalForMonth", node_month))
+            all_carriers.setdefault(target, []).append(str(node.get("id")))
     for month in sorted(scope):
         if month == 1:
-            continue  # 新手月有自己的开场流程
-        goals = [node for node in nodes
-                 if int(node.get("month", 0)) == month and str(node.get("goal", "")).strip()]
-        if not goals:
-            errors.append(f"第 {month} 月没有任何常驻目标：玩家抬头看不见这个月要办成什么")
-        if len(goals) > 1:
-            errors.append(f"第 {month} 月有 {len(goals)} 个节点写了 goal，任务卡会被反复改写")
-        for node in goals:
-            goal = str(node.get("goal", "")).strip()
-            if visible_length(goal) > 18:
-                errors.append(f"{node['id']} 的 goal 超过 18 字：{goal}")
-            if goal[:2] in {f"{z} 区" for z in ZONE_IDS} or goal.endswith("会议室"):
-                errors.append(f"{node['id']} 的 goal 写成了地点：{goal}——要写「这月要办成什么事」")
+            continue  # 新手月由入职通知和带巡交代，另有一套
+        carriers = all_carriers.get(month, [])
+        if not carriers:
+            errors.append(f"第 {month} 月没人说清这个月要办成什么：给那条消息或那句台词打上 goalLine")
+        if len(carriers) > 1:
+            errors.append(f"第 {month} 月有 {len(carriers)} 处 goalLine（{carriers}）：一个月只需要一句")
 
     if FIXTURES.exists():
         for fixture in FIXTURES.glob("*.json"):

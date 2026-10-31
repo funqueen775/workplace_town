@@ -32,11 +32,11 @@ def main() -> int:
 
     nodes.append({
         "id": "M03_PHONE_1", "month": 3, "order": 195, "nodeType": "phone_batch",
-        "required": False, "batchId": "m03_batch_xiaolin", "senderId": "xiao_lin",
-        "senderName": "小林", "senderRole": "产品",
+        "required": False, "batchId": "m03_batch_wang", "senderId": "wang_ge",
+        "senderName": "王哥", "senderRole": "技术导师",
         "messages": [
-            {"id": "m03_lin_1", "text": "周三上午十点，客户到展厅谈合同，陈工让我一起参加。别迟到。"},
-            {"id": "m03_lin_2", "text": "他们要的是定心丸，不是学术报告。"},
+            {"id": "m03_wang_1", "text": "周三上午十点，客户到展厅谈合同。陈工今天盯回滚，来不了——你替我去，小林带你。"},
+            {"id": "m03_wang_2", "text": "他们要的是定心丸，不是学术报告。"},
         ],
         "replyOptions": [{"id": "ack", "text": "知道了，我提前到。"}],
         "timeBand": "morning", "phase": "early", "reportUse": "story_only",
@@ -57,7 +57,7 @@ def main() -> int:
         "todayCard": {
             "title": "第三月 · 客户来访",
             "lines": [
-                "小林一早就发消息：十点，C 区展厅。",
+                "王哥一早就发消息：十点，C 区展厅，你替我去。",
                 "客户要的是定心丸，不是学术报告。",
                 "带上合同草稿，别的现场再说。",
             ],

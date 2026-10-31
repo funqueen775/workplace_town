@@ -16,6 +16,7 @@ const PAW_TEXTURE := preload("res://assets/ui/rework_v1/task_book/22_页面装�
 const HEROES := {
 	"archive": preload("res://assets/ui/rework_v1/hud/components/16_圆钮统一_archive.png"),
 	"manual": preload("res://assets/ui/rework_v1/hud/components/16_圆钮统一_manual.png"),
+	"mood": preload("res://assets/ui/rework_v1/hud/components/05_蜂蜜罐_满.png"),
 }
 
 const INK := Color("2b2119")
@@ -39,9 +40,15 @@ var _preview_title: Label
 var _preview_text: Label
 var _step_titles: Array[Label] = []
 var _step_subs: Array[Label] = []
+var _step_rows: Array[Control] = []
+var _steps_box: VBoxContainer
+## 条目区的顶边与每行的高度：按钮和小字都按实际条数往下排，条数变了不会压到一起。
+const STEPS_TOP := 240.0
+const STEP_ROW_H := 60.0
 var _open_button: Button
 var _later_button: Button
 var _fineprint: Label
+var _hide_later := false
 var _on_open := Callable()
 var _on_later := Callable()
 
@@ -83,18 +90,45 @@ func open(config: Dictionary, on_open: Callable, on_later: Callable) -> void:
 	_preview_text.text = String(config.get("preview_text", ""))
 	_open_button.text = String(config.get("open_label", "打开"))
 	_fineprint.text = String(config.get("fineprint", ""))
+	# 心情那张没有"打开某个面板"这一步（顶上那罐点不动），所以只有一个按钮：
+	# 没有"稍后"，Esc 也按"知道了"处理——它不是入口，讲完就得让它过去。
+	_hide_later = bool(config.get("hide_later", false))
+	_later_button.visible = not _hide_later
+	# 条目按需生成：手册三行、档案四行，行数不同就按行数把按钮往下推。
 	var steps: Array = config.get("steps", [])
+	while _step_titles.size() < steps.size():
+		_add_step(_step_titles.size())
 	for i in _step_titles.size():
-		if i < steps.size():
-			var step: Dictionary = steps[i]
-			_step_titles[i].text = "%02d %s" % [i + 1, String(step.get("title", ""))]
-			_step_subs[i].text = String(step.get("sub", ""))
+		var used := i < steps.size()
+		_step_rows[i].visible = used
+		if not used:
+			continue
+		var step: Dictionary = steps[i]
+		_step_titles[i].text = "%02d %s" % [i + 1, String(step.get("title", ""))]
+		_step_subs[i].text = String(step.get("sub", ""))
+	var steps_bottom := STEPS_TOP + float(steps.size()) * STEP_ROW_H
+	_open_button.position.y = maxf(steps_bottom + 12.0, 470.0)
+	_later_button.position.y = maxf(steps_bottom + 20.0, 480.0)
+	_fineprint.position.y = maxf(steps_bottom + 80.0, 540.0)
+
 	_root.show()
+	var card_scale := _ui_scale()
 	_card.modulate = Color(1, 1, 1, 0)
-	_card.scale = Vector2(0.965, 0.965)
+	_card.scale = Vector2(0.965, 0.965) * card_scale
 	var tween := create_tween().set_parallel(true)
 	tween.tween_method(func(v: float) -> void: _card.modulate = Color(1, 1, 1, v), 0.0, 1.0, 0.18)
-	tween.tween_property(_card, "scale", Vector2.ONE, 0.24).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tween.tween_property(_card, "scale", Vector2.ONE * card_scale, 0.24).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+
+
+## 手机竖屏时 Godot 的 expand 会把视口拉到很高，按 1920×1080 排的卡片在屏幕上只剩一条，
+## 字就跟着变小。按视口短边换算倍数放大：桌面 16:9 恒为 1，手机竖屏约 1.8。
+## 再卡一次宽度，别让卡片顶出屏幕两侧。
+func _ui_scale() -> float:
+	var view := get_viewport().get_visible_rect().size
+	var scale_by_short_side := clampf(minf(view.x, view.y) / 1080.0, 1.0, 2.0)
+	# 卡片两侧还挂着胶带和印章这些伸出卡外的装饰，留够边距才不会被屏幕切掉。
+	var scale_by_width := (view.x * 0.88 - 80.0) / CARD_SIZE.x
+	return maxf(1.0, minf(scale_by_short_side, scale_by_width))
 
 
 func _on_open_pressed() -> void:
@@ -124,7 +158,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not is_open():
 		return
 	if event.is_action_pressed("ui_cancel"):
-		_on_later_pressed()
+		if _hide_later:
+			_on_open_pressed()
+		else:
+			_on_later_pressed()
 		get_viewport().set_input_as_handled()
 
 
@@ -199,19 +236,20 @@ func _build_card() -> void:
 	content.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_card.add_child(content)
 
-	_kicker = _label("怎么用", 14, Color("a35a3a"), true, 580)
+	_kicker = _label("怎么用", 22, Color("a35a3a"), true, 580)
 	_kicker.position = Vector2(0, 0)
-	_kicker.size = Vector2(580, 22)
+	_kicker.size = Vector2(580, 28)
 	content.add_child(_kicker)
 	_title = _label("", 54, INK, true, 580)
-	_title.position = Vector2(0, 22)
+	_title.position = Vector2(0, 30)
 	_title.size = Vector2(580, 64)
 	content.add_child(_title)
 	_lede = _label("", 22, Color("6b5540"), false, 560)
-	_lede.position = Vector2(0, 92)
+	_lede.position = Vector2(0, 100)
 	_lede.size = Vector2(560, 36)
 	content.add_child(_lede)
 
+	# 预览框保持原位：lede 那行一旦折成两行会往下溢出十几像素，框往上挪就会压到它。
 	var preview := Panel.new()
 	preview.position = Vector2(0, 138)
 	preview.size = Vector2(560, 86)
@@ -227,14 +265,12 @@ func _build_card() -> void:
 	_preview_text.size = Vector2(520, 34)
 	preview.add_child(_preview_text)
 
-	var steps := VBoxContainer.new()
-	steps.position = Vector2(0, 240)
-	steps.size = Vector2(560, 210)
-	steps.add_theme_constant_override("separation", 0)
-	steps.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	content.add_child(steps)
-	for i in 3:
-		_add_step(steps, i)
+	_steps_box = VBoxContainer.new()
+	_steps_box.position = Vector2(0, STEPS_TOP)
+	_steps_box.size = Vector2(560, 280)
+	_steps_box.add_theme_constant_override("separation", 0)
+	_steps_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	content.add_child(_steps_box)
 
 	_open_button = Button.new()
 	_open_button.name = "OpenButton"
@@ -268,29 +304,30 @@ func _build_card() -> void:
 	_card.add_child(paw)
 
 
-func _add_step(parent: VBoxContainer, index: int) -> void:
+func _add_step(index: int) -> void:
 	var row := Control.new()
-	row.custom_minimum_size = Vector2(560, 68)
+	row.custom_minimum_size = Vector2(560, STEP_ROW_H)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	parent.add_child(row)
-	var box := _texture(CHECK_TEXTURE, Rect2(0, 10, 34, 34), TextureRect.STRETCH_SCALE)
+	_steps_box.add_child(row)
+	var box := _texture(CHECK_TEXTURE, Rect2(0, 8, 32, 32), TextureRect.STRETCH_SCALE)
 	row.add_child(box)
 	var title := _label("", 22, INK, true, 490)
-	title.position = Vector2(54, 0)
-	title.size = Vector2(490, 30)
+	title.position = Vector2(52, 0)
+	title.size = Vector2(490, 28)
 	row.add_child(title)
 	_step_titles.append(title)
 	var sub := _label("", 16, MUTED, false, 490)
-	sub.position = Vector2(54, 30)
+	sub.position = Vector2(52, 27)
 	sub.size = Vector2(490, 24)
 	row.add_child(sub)
 	_step_subs.append(sub)
 	var line := ColorRect.new()
 	line.color = Color(0.35, 0.24, 0.12, 0.16)
-	line.position = Vector2(0, 67)
+	line.position = Vector2(0, STEP_ROW_H - 1.0)
 	line.size = Vector2(560, 1)
 	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(line)
+	_step_rows.append(row)
 
 
 # ---------------------------------------------------------------- 组件

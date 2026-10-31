@@ -18,6 +18,9 @@ signal tutorial_skipped()
 signal tutorial_completed()
 ## 只借这张讲解卡时：玩家点「打开手机」不打开预览抽屉，交给城镇的真手机。
 signal tutorial_open_requested()
+## 会话列表里点开了谁 / 谁的消息被看过了（红点该收掉）。
+signal conversation_opened(conversation_id: String)
+signal conversation_read(conversation_id: String)
 
 const FONT := preload("res://assets/fonts/NotoSansCJKsc-Regular.otf")
 const BG_TEXTURE := preload("res://assets/场景内部图/熊起东方总部.png")
@@ -31,6 +34,17 @@ const LOCK_TEXTURE := preload("res://assets/ui/rework_v1/task_book/05_锁图标_
 const CHECK_TEXTURE := preload("res://assets/ui/rework_v1/task_book/16_未勾选框.png")
 const AVATAR_FRAME := preload("res://assets/ui/rework_v1/profile/components/03_人际关系/NPC_通用头像框.png")
 const PAW_TEXTURE := preload("res://assets/ui/rework_v1/task_book/22_页面装饰爪印.png")
+
+## 通讯录里四个常驻同事的立绘：头像统一裁头部那一小块。
+const CONTACT_SPRITES := {
+	"wang_ge": "res://assets/characters/paper_doll_64/compiled/bear_plaid_glasses_walk_64.png",
+	"chen_gong": "res://assets/characters/paper_doll_64/compiled/bear_orange_blazer_walk_64.png",
+	"xiao_lin": "res://assets/characters/paper_doll_64/compiled/bear_beige_blazer_walk_64.png",
+	"lao_zhou": "res://assets/characters/paper_doll_64/compiled/bear_green_cardigan_walk_64.png",
+	# 小赵没画过专属立绘：借 avatar_xiaoye 那只熊（蓝夹克），和四位同事的衬衫/西装分得开，
+	# 免得列表里只剩一个"通用头像框 + 小"的灰方块。
+	"xiao_zhao": "res://assets/characters/paper_doll_64/compiled/avatar_xiaoye_walk_64.png",
+}
 
 const INK := Color("2b2119")
 const INK_SOFT := Color("5a4635")
@@ -83,9 +97,15 @@ var contact_name := "王哥"
 var contact_role := "技术导师"
 var contact_avatar: Texture2D = WANG_SPRITE
 var contact_avatar_region := Rect2(22, 6, 36, 32)
-var thread_date := "今天 14:20"
+## 这一屏的时间分隔：城镇侧按剧情给（"第 3 月 · 周三上午"）；不喂就不画时间，
+## 不拿"今天 14:20"这种编出来的读数冒充（2026-10-30）。
+var thread_date := ""
 var thread_messages: Array = []
 var reply_options: Array = []
+## 会话列表（通讯录）：每一项是一位同事。
+## {id, name, role, messages:[{speaker,text}], unread:bool, date:String, reply_options:Array}
+## 空着的时候就退回老样子——打开手机直接是那一条聊天。
+var conversations: Array = []
 var reply_hint := "点一下回复就行。"
 ## 退出用的那颗：留空就不画。它是"先不回"，不是发给对方的一句话。
 var decline_label := "先不回，收起手机"
@@ -106,6 +126,16 @@ var _header_name: Label
 var _header_role: Label
 var _header_avatar: Control
 var _reply_bar: Panel
+## 当前是「会话列表」还是「某个人的聊天」；没有 conversations 时永远是 chat（兼容老用法）。
+var _view := "chat"
+## 聊天页当前是谁的会话，回列表、回消息都靠它找回原会话。
+var _active_id := ""
+var _list: Control
+var _list_scroll: ScrollContainer
+var _list_box: VBoxContainer
+var _header_back: Button
+## 聊天页里回复栏本该不该出现：列表页要把它藏起来，但回聊天时得原样还回来。
+var _reply_bar_wanted := false
 
 
 func _ready() -> void:
@@ -143,6 +173,15 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 
 
+## 讲解卡在手机竖屏下的放大倍数：桌面 1920×1080 恒为 1，手机约 1.5～1.8。
+## 卡两侧挂着伸出卡外的胶带和印章，所以按屏宽卡一次，别让装饰被屏幕切掉。
+func _ui_scale() -> float:
+	var view := get_viewport().get_visible_rect().size
+	var scale_by_short_side := clampf(minf(view.x, view.y) / 1080.0, 1.0, 2.0)
+	var scale_by_width := (view.x * 0.88 - 80.0) / CARD_SIZE.x
+	return maxf(1.0, minf(scale_by_short_side, scale_by_width))
+
+
 func open_tutorial() -> void:
 	_hud_button.visible = not tutorial_only and not hide_own_hud
 	_phone.visible = false
@@ -158,12 +197,15 @@ func open_tutorial() -> void:
 		_step_subs[i].text = String(step.get("sub", ""))
 	_card.pivot_offset = CARD_SIZE * 0.5
 	_card.modulate = Color(1, 1, 1, 0)
-	_card.scale = Vector2(0.96, 0.96)
+	# 手机竖屏时视口被 expand 拉得很高，卡按 1920×1080 排就只剩中间一条。
+	# 按视口短边换算倍数放大（桌面 16:9 恒为 1），和另外两张讲解卡同一套算法。
+	var card_scale := _ui_scale()
+	_card.scale = Vector2(0.96, 0.96) * card_scale
 	_lock.modulate = Color(1, 1, 1, 0.62)
 
 	var tween := create_tween().set_parallel(true)
 	tween.tween_method(func(v: float) -> void: _card.modulate = Color(1, 1, 1, v), 0.0, 1.0, 0.26)
-	tween.tween_property(_card, "scale", Vector2.ONE, 0.34).from(Vector2(0.96, 0.96)) \
+	tween.tween_property(_card, "scale", Vector2.ONE * card_scale, 0.34).from(Vector2(0.96, 0.96) * card_scale) \
 		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	tween.set_parallel(false)
 	tween.tween_method(func(v: float) -> void: _lock.modulate = Color(1, 1, 1, v), 0.62, 0.34, 0.55).set_delay(0.18)
@@ -179,7 +221,18 @@ func close_tutorial() -> void:
 	tutorial_skipped.emit()
 
 
-func open_phone() -> void:
+## 换联系人：名字、身份、头像一起换。
+## 头像优先用通讯录里的立绘（王哥、陈工、小林、老周都有），查不到的人才退成通用框 + 姓氏。
+func set_contact(contact_id: String, display_name: String, role: String) -> void:
+	contact_name = display_name
+	contact_role = role
+	contact_avatar = _sprite_for(contact_id)
+	if _phone != null and _phone.visible:
+		_fill_thread()
+		_apply_view()
+
+
+func open_phone(show_list := false) -> void:
 	if tutorial_only:
 		# 讲解卡上的「打开手机」交给城镇真手机，不打开这张预览抽屉。
 		_hide_card()
@@ -193,8 +246,24 @@ func open_phone() -> void:
 	_tutorial_completed = true
 	mark_step(0)
 	mark_step(1)
-	# 每次打开都按当前变量重排一次：联系人、消息、回复项都可能已经换了。
-	_fill_thread()
+	# 有通讯录就直接落在最近有消息的那位头上（手机是通知面板，点开先看到最新那条）；
+	# 一条消息都没有才退回列表。剧情弹手机没有通讯录，走单条聊天。
+	if conversations.is_empty():
+		_view = "chat"
+		_fill_thread()
+		_apply_view()
+		# 单条聊天（剧情弹手机）也可能带一长串历史，先停在最新那条。
+		await _scroll_to_latest()
+	else:
+		var newest: String = "" if show_list else _newest_conversation_id()
+		if newest.is_empty():
+			_view = "list"
+			_fill_thread()
+			_fill_list()
+			_apply_view()
+		else:
+			# 走玩家点会话那条路：填聊天页、停在最新一条，返回键可以退回列表。
+			await _open_conversation(newest)
 
 	_backdrop.visible = true
 	_backdrop.modulate = Color(1, 1, 1, 0)
@@ -223,6 +292,40 @@ func close_phone() -> void:
 	tween.tween_method(func(v: float) -> void: _backdrop.modulate = Color(1, 1, 1, v), _backdrop.modulate.a, 0.0, 0.22)
 	tween.set_parallel(false)
 	tween.tween_callback(_finish_close_phone)
+
+
+## 剧情里的手机演出：这条消息用真手机演一次——从右侧拉开，停在这里等玩家自己关。
+## 和收件箱不同：不置已读、不出回复、不动会话列表。之前的往来通过 history 一起带进来，
+## 让玩家看得到上下文，而不是孤零零一句。
+var _peek_base_layer := -1
+func peek_message(contact_id: String, sender_name: String, sender_role: String, history: Array, text: String) -> void:
+	if _phone_open:
+		return
+	# 头像按发件人取，不再用默认那只熊；查不到的人才退回首字。
+	set_contact(contact_id, sender_name if not sender_name.is_empty() else "手机", sender_role)
+	conversations = []
+	# 只有这条新消息是"此刻到的"（顶"刚刚"）；之前的往来各带自己那批的时间话，
+	# 没带的就别拿"刚刚"去顶（也所以这里不靠 thread_date 兜底）。
+	thread_date = ""
+	# 剧情里弹手机是"读到一条消息"，不是一次对话：不给回复项，只留收起。
+	reply_options = []
+	decline_label = "收起手机"
+	var thread: Array = []
+	for value in history:
+		var item := value as Dictionary
+		var who := String(item.get("speaker", "npc"))
+		var entry := {"speaker": "me" if who == "我" else "npc", "text": String(item.get("text", ""))}
+		# 历史各自带时间话（投递那一批的月+旬+时段）：带上，好按批次顶分隔。
+		var stamp := String(item.get("time", ""))
+		if not stamp.is_empty():
+			entry["time"] = stamp
+		thread.append(entry)
+	thread.append({"speaker": "npc", "text": text, "time": "刚刚"})
+	thread_messages = thread
+	# 抽屉平时在 145 层，剧情面板在 150 —— 演这一下期间临时抬上去，关掉再放回。
+	_peek_base_layer = layer
+	layer = 152
+	open_phone()
 
 
 func is_open() -> bool:
@@ -257,6 +360,10 @@ func _emit_phone_opened() -> void:
 
 
 func _finish_close_phone() -> void:
+	if _peek_base_layer >= 0:
+		layer = _peek_base_layer
+		_peek_base_layer = -1
+		decline_label = "先不回，收起手机"
 	if is_instance_valid(_phone):
 		_phone.visible = false
 	if is_instance_valid(_backdrop):
@@ -511,6 +618,14 @@ func _build_phone_drawer() -> void:
 	close.pressed.connect(close_phone)
 	_phone.add_child(close)
 
+	# 聊天页左上角的「返回通讯录」：列表页不出现。
+	_header_back = _ui_button("返回", Vector2(60, 40), UI_GOLD, 16)
+	_header_back.name = "BackToListButton"
+	_header_back.position = Vector2(_screen_left - 4, _header_y + 14)
+	_header_back.visible = false
+	_header_back.pressed.connect(back_to_list)
+	_phone.add_child(_header_back)
+
 	var rule := ColorRect.new()
 	rule.color = Color(UI_INK.r, UI_INK.g, UI_INK.b, 0.12)
 	rule.position = Vector2(_screen_left, _header_y + _header_h)
@@ -540,7 +655,303 @@ func _build_phone_drawer() -> void:
 	_reply_bar.add_theme_stylebox_override("panel", _reply_bar_style())
 	_phone.add_child(_reply_bar)
 
+	_build_conversation_list()
 	_fill_thread()
+
+
+## 会话列表（通讯录）：四个同事固定在这儿，谁有新消息谁那行亮红点。
+func _build_conversation_list() -> void:
+	_list = Control.new()
+	_list.name = "ConversationList"
+	_list.position = Vector2(_screen_left, _header_y + _header_h + 10.0)
+	_list.size = Vector2(_thread_width, 320.0)
+	_list.visible = false
+	_list.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_phone.add_child(_list)
+
+	_list_scroll = ScrollContainer.new()
+	_list_scroll.name = "ConversationScroll"
+	_list_scroll.position = Vector2.ZERO
+	_list_scroll.size = _list.size
+	_list_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_list_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	_list_scroll.mouse_filter = Control.MOUSE_FILTER_PASS
+	_list.add_child(_list_scroll)
+
+	_list_box = VBoxContainer.new()
+	_list_box.name = "ConversationBox"
+	_list_box.add_theme_constant_override("separation", 10)
+	_list_box.custom_minimum_size = Vector2(_thread_width - 12, 0)
+	_list_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_list_scroll.add_child(_list_box)
+
+
+## 视图切换：列表页把聊天那一套（气泡、回复栏、返回）收起来，聊天页原样还回来。
+func _apply_view() -> void:
+	if _phone == null:
+		return
+	var in_chat := _view == "chat" or conversations.is_empty()
+	if _list != null:
+		_list.visible = not in_chat
+		var list_h := _screen_bottom - (_header_y + _header_h + 10.0) - 10.0
+		_list.size = Vector2(_thread_width, maxf(list_h, 120.0))
+		_list_scroll.size = _list.size
+	if _scroll != null:
+		_scroll.visible = in_chat
+	if _reply_bar != null:
+		_reply_bar.visible = in_chat and _reply_bar_wanted
+	if _header_back != null:
+		# 返回键只在聊天页出现；列表页左边留给「消息」这两个字。
+		_header_back.visible = in_chat
+	# 列表页头像是"消息"总览，不指向某一个人。
+	if is_instance_valid(_header_avatar):
+		_header_avatar.visible = in_chat
+		_header_avatar.position.x = _screen_left + (68.0 if in_chat else 0.0)
+	if _header_name != null and _header_role != null:
+		if in_chat:
+			_header_name.text = contact_name
+			_header_role.text = contact_role
+			# 返回键占了最左边那 68px，头像和名字整体往右让开。
+			_header_name.position.x = _screen_left + 136
+			_header_role.position.x = _screen_left + 136
+		else:
+			var waiting := 0
+			for value in conversations:
+				if value is Dictionary and bool((value as Dictionary).get("unread", false)):
+					waiting += 1
+			_header_name.text = "消息"
+			if waiting > 0:
+				_header_role.text = "%d 位联系人 · %d 人找你" % [conversations.size(), waiting]
+			else:
+				_header_role.text = "%d 位联系人" % conversations.size()
+			_header_name.position.x = _screen_left + 6
+			_header_role.position.x = _screen_left + 6
+
+
+func back_to_list() -> void:
+	if conversations.is_empty():
+		close_phone()
+		return
+	_view = "list"
+	_fill_list()
+	_apply_view()
+	_scroll.scroll_vertical = 0
+
+
+## 外面换了会话数据（新消息到了 / 某条已读）之后调一下：列表和红点跟着重画。
+func refresh_conversations() -> void:
+	if _phone == null:
+		return
+	_fill_list()
+	_apply_view()
+
+
+## 点开某位同事：把这一条会话的内容接到聊天页上。
+func _open_conversation(conversation_id: String) -> void:
+	var conv := _find_conversation(conversation_id)
+	if conv.is_empty():
+		return
+	_active_id = conversation_id
+	contact_name = String(conv.get("name", ""))
+	contact_role = String(conv.get("role", ""))
+	contact_avatar = _sprite_for(conversation_id)
+	thread_messages = (conv.get("messages", []) as Array).duplicate(true)
+	reply_options = (conv.get("reply_options", []) as Array).duplicate(true)
+	# 空会话的人没有时间戳，就别顶上一个别人的时间。
+	thread_date = String(conv.get("date", ""))
+	var was_unread := bool(conv.get("unread", false))
+	if was_unread:
+		conv["unread"] = false
+	_view = "chat"
+	_fill_thread()
+	_apply_view()
+	# 会话能跨好几个月，点进来先停在最新那条：停最上面，玩家看到的是三个月前的信，
+	# 回复键却是这个月的（2026-10-30 第 11 月实拍）。等一帧让容器算完高度再滚。
+	await _scroll_to_latest()
+	conversation_opened.emit(conversation_id)
+	if was_unread:
+		conversation_read.emit(conversation_id)
+
+
+## 滚到聊天最底下：新消息总在底部，打开谁的会话都该先看到它。
+func _scroll_to_latest() -> void:
+	await get_tree().process_frame
+	if _scroll != null and is_instance_valid(_scroll):
+		_scroll.scroll_vertical = 99999
+
+
+func _find_conversation(conversation_id: String) -> Dictionary:
+	for value in conversations:
+		if not (value is Dictionary):
+			continue
+		var conv := Dictionary(value)
+		if String(conv.get("id", "")) == conversation_id:
+			return conv
+	return {}
+
+
+## 通讯录每一行：头像 / 名字 / 身份 / 最后一条 / 时间 / 未读红点。
+func _fill_list() -> void:
+	if _list_box == null:
+		return
+	for child in _list_box.get_children():
+		_list_box.remove_child(child)
+		child.free()
+	var row_w := _thread_width - 12.0
+	for value in _ranked_conversations():
+		if not (value is Dictionary):
+			continue
+		_add_conversation_row(Dictionary(value), row_w)
+
+
+## 会话按最近一批的时间倒序：小赵刚发的那条要排在最上面，没聊过的垫底。
+## `sort` 由城镇按「月 ×100 + 旬 ×10 + 时段」算；没有这格的老数据/探针数据按原顺序排。
+func _ranked_conversations() -> Array:
+	var indexed: Array = []
+	for index in conversations.size():
+		var value = conversations[index]
+		if value is Dictionary:
+			indexed.append({"i": index, "c": value})
+	indexed.sort_custom(func(a, b):
+		var sa := int((a["c"] as Dictionary).get("sort", -1))
+		var sb := int((b["c"] as Dictionary).get("sort", -1))
+		if sa != sb:
+			return sa > sb
+		return int(a["i"]) < int(b["i"])
+	)
+	var out: Array = []
+	for entry in indexed:
+		out.append(entry["c"])
+	return out
+
+
+## 打开手机先落到谁头上：优先还没看的那位（红点亮着，玩家点手机就是来看他的），
+## 都看过了就落到最近有消息的那位；一条消息都没有才返回空串（退回列表）。
+func _newest_conversation_id() -> String:
+	var fallback := ""
+	for value in _ranked_conversations():
+		var conv := value as Dictionary
+		if (conv.get("messages", []) as Array).is_empty():
+			continue
+		if bool(conv.get("unread", false)):
+			return String(conv.get("id", ""))
+		if fallback.is_empty():
+			fallback = String(conv.get("id", ""))
+	return fallback
+
+
+func _add_conversation_row(conv: Dictionary, row_w: float) -> void:
+	var row_h := 84.0
+	var unread := bool(conv.get("unread", false))
+	var plate := PanelContainer.new()
+	plate.name = "Row_%s" % String(conv.get("id", ""))
+	plate.custom_minimum_size = Vector2(row_w, row_h)
+	plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	plate.add_theme_stylebox_override("panel", _row_style(unread))
+	_list_box.add_child(plate)
+
+	var hit := Button.new()
+	hit.name = "Open_%s" % String(conv.get("id", ""))
+	hit.flat = true
+	hit.focus_mode = Control.FOCUS_NONE
+	hit.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
+	hit.add_theme_stylebox_override("hover", StyleBoxEmpty.new())
+	hit.add_theme_stylebox_override("pressed", StyleBoxEmpty.new())
+	hit.pressed.connect(_open_conversation.bind(String(conv.get("id", ""))))
+	plate.add_child(hit)
+
+	var inner := Control.new()
+	inner.custom_minimum_size = Vector2(row_w, row_h)
+	inner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	plate.add_child(inner)
+
+	var contact_id := String(conv.get("id", ""))
+	var face := _row_avatar(contact_id, String(conv.get("name", "")))
+	face.position = Vector2(14, 18)
+	inner.add_child(face)
+
+	var name_text := String(conv.get("name", ""))
+	var name_label := _label(name_text, 20, UI_INK, true, 200)
+	name_label.position = Vector2(74, 12)
+	name_label.size = Vector2(200, 28)
+	inner.add_child(name_label)
+
+	var name_w := FONT.get_string_size(name_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 20).x
+	var role_label := _label(String(conv.get("role", "")), _small_font - 1, Color(UI_INK.r, UI_INK.g, UI_INK.b, 0.55), false, 160)
+	role_label.position = Vector2(74 + name_w + 10, 17)
+	role_label.size = Vector2(160, 20)
+	inner.add_child(role_label)
+
+	var messages: Array = conv.get("messages", [])
+	var preview := "还没有消息"
+	if not messages.is_empty():
+		preview = _preview_of(messages)
+	var preview_label := _label(preview, _small_font, Color(UI_INK.r, UI_INK.g, UI_INK.b, 0.72), false, row_w - 74 - 92)
+	preview_label.position = Vector2(74, 46)
+	preview_label.size = Vector2(row_w - 74 - 92, 26)
+	preview_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	preview_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	inner.add_child(preview_label)
+
+	# 列表这格只放得下月份（"第 3 月"）；哪一旬、哪个时段点进会话看分隔。
+	var date_text := String(conv.get("date_short", ""))
+	if date_text.is_empty():
+		date_text = String(conv.get("date", ""))
+	if not date_text.is_empty():
+		var date_label := _label(date_text, _small_font - 2, Color(UI_INK.r, UI_INK.g, UI_INK.b, 0.45), false, 96, HORIZONTAL_ALIGNMENT_RIGHT)
+		date_label.position = Vector2(row_w - 104, 16)
+		date_label.size = Vector2(88, 20)
+		inner.add_child(date_label)
+
+	if unread:
+		var dot := Panel.new()
+		dot.name = "UnreadDot"
+		dot.position = Vector2(row_w - 30, 46)
+		dot.size = Vector2(10, 10)
+		dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		dot.add_theme_stylebox_override("panel", _pill_style(RED, Color(0, 0, 0, 0)))
+		inner.add_child(dot)
+
+
+## 列表预览只取最后一条，超过一行交给省略号。
+func _preview_of(messages: Array) -> String:
+	for index in range(messages.size() - 1, -1, -1):
+		var value = messages[index]
+		if not (value is Dictionary):
+			continue
+		var text := String((value as Dictionary).get("text", ""))
+		if text.is_empty():
+			continue
+		if String((value as Dictionary).get("speaker", "")) == "我":
+			return "我：" + text
+		return text
+	return ""
+
+
+## 列表行的小头像：有立绘裁头，没有就通用框 + 姓氏。
+func _row_avatar(contact_id: String, display_name: String) -> Control:
+	var box := Control.new()
+	box.size = Vector2(48, 48)
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var sprite := _sprite_for(contact_id)
+	if sprite != null:
+		var head := AtlasTexture.new()
+		head.atlas = sprite
+		head.region = contact_avatar_region
+		box.add_child(_texture(head, Rect2(0, 0, 48, 48), TextureRect.STRETCH_KEEP_ASPECT_COVERED))
+		return box
+	box.add_child(_texture(AVATAR_FRAME, Rect2(0, 0, 48, 48), TextureRect.STRETCH_SCALE))
+	var initial := _label(display_name.left(1), 20, Color("5a3a26"), true, 48, HORIZONTAL_ALIGNMENT_CENTER)
+	initial.position = Vector2(0, 10)
+	initial.size = Vector2(48, 28)
+	box.add_child(initial)
+	return box
+
+
+func _sprite_for(contact_id: String) -> Texture2D:
+	if CONTACT_SPRITES.has(contact_id):
+		return load(String(CONTACT_SPRITES[contact_id])) as Texture2D
+	return null
 
 
 ## 抽屉里的一切文字都从上面的变量来：换联系人、换消息、换回复项，不用重建控件树。
@@ -559,11 +970,16 @@ func _fill_thread() -> void:
 	for child in _thread.get_children():
 		_thread.remove_child(child)
 		child.free()
-	_add_date(thread_date, _small_font)
+	# 空会话把提示摆在中间，有消息时还是从底部往上堆。
+	_thread.alignment = BoxContainer.ALIGNMENT_CENTER if thread_messages.is_empty() else BoxContainer.ALIGNMENT_END
+	# 每条消息都按自己的剧情时间分隔：先放时间药丸，再放气泡；没有 time 就用会话的 thread_date 兜底。
+	# 时间没变就不再加药丸——同一批两三条、或者跟在后面的回复，只该顶一个时间。
 	if thread_messages.is_empty():
-		_add_bubble("周会排期改了，你先看下。", false, _body_font)
-		_add_bubble("以后有事，我在手机上找你。", false, _body_font)
+		if not thread_date.is_empty():
+			_add_date(thread_date, _small_font)
+		_add_empty_hint("还没有消息。")
 	else:
+		var last_time := ""
 		for value in thread_messages:
 			if not (value is Dictionary):
 				continue
@@ -571,6 +987,12 @@ func _fill_thread() -> void:
 			var text := String(item.get("text", ""))
 			if text.is_empty():
 				continue
+			var t := String(item.get("time", ""))
+			if t.is_empty():
+				t = thread_date
+			if not t.is_empty() and t != last_time:
+				_add_date(t, _small_font)
+				last_time = t
 			_add_bubble(text, String(item.get("speaker", "")) == "我", _body_font)
 
 	_reply_buttons.clear()
@@ -578,13 +1000,26 @@ func _fill_thread() -> void:
 		_reply_bar.remove_child(child)
 		child.free()
 	var count := reply_options.size()
-	# 「先不回」不是一句回复，是退出：单独一颗中性色按钮，点了不发气泡、也不算回应。
-	# 以前它和真回复混在同一排绿钮里，玩家以为按下去是关手机，结果把"稍后再说"发给了领导。
-	var decline_h := 0.0 if decline_label.is_empty() else _button_height + 12.0
-	var reply_h := (104.0 if count <= 2 else 44.0 + count * (_button_height + 10.0)) if count > 0 else 16.0
-	_reply_bar.size = Vector2(_thread_width, reply_h + decline_h)
-	_reply_bar.position = Vector2(_screen_left, _screen_bottom - _reply_bar.size.y)
-	_reply_bar.visible = count > 0 or decline_h > 0.0
+	# 「先不回」不是一句回复，是退出：中性色按钮，点了不发气泡、也不算回应。
+	# 但它现在和回复项排在同一张网格里、一样宽——以前它单占一行整宽，
+	# 跟上面那颗短短回复凑成"一长一短"，很难看。
+	# 空会话没东西可回，这颗也收起来——右上角的 × 一直都在。
+	var show_decline := not decline_label.is_empty() and (count > 0 or not thread_messages.is_empty())
+	var total := count + (1 if show_decline else 0)
+	# 回复项不超过两颗时两列并排；三颗以上还是整行一颗（文案长，挤半宽会折行）。
+	var cols := 2 if count > 0 and count <= 2 else 1
+	var rows := 0 if total == 0 else int(ceil(float(total) / float(cols)))
+	var gap := 14.0
+	var button_w := _thread_width - 32.0
+	if cols > 1:
+		button_w = (_thread_width - 32.0 - gap) * 0.5
+	var reply_h := 16.0
+	if total > 0:
+		reply_h = 38.0 + float(rows) * (_button_height + 10.0) + 6.0
+	_reply_bar.size = Vector2(_thread_width, reply_h)
+	_reply_bar.position = Vector2(_screen_left, _screen_bottom - reply_h)
+	_reply_bar_wanted = total > 0
+	_reply_bar.visible = _reply_bar_wanted
 	var thread_top := _header_y + _header_h + 14.0
 	_scroll.position = Vector2(_screen_left, thread_top)
 	_scroll.size = Vector2(_thread_width, maxf(_reply_bar.position.y - 16.0 - thread_top, 120.0))
@@ -596,35 +1031,40 @@ func _fill_thread() -> void:
 		hint.size = Vector2(_thread_width, _small_font + 12)
 		_reply_bar.add_child(hint)
 
-		for index in count:
-			var option := Dictionary(reply_options[index])
-			var label := String(option.get("text", ""))
-			var option_id := String(option.get("id", "reply_%d" % index))
-			var fill := UI_GREEN
-			if index == 1:
-				fill = UI_GOLD
-			elif index > 1:
-				fill = Color("cbb18b")
-			var button: Button
-			if count <= 2:
-				var gap := 14.0
-				var width := (_thread_width - gap) * 0.5 - 16.0
-				button = _ui_button(label, Vector2(width, _button_height), fill, _button_font)
-				button.position = Vector2(16.0 + float(index) * (width + gap), 38)
-			else:
-				button = _ui_button(label, Vector2(_thread_width - 32.0, _button_height), fill, _button_font)
-				button.position = Vector2(16.0, 34.0 + float(index) * (_button_height + 10.0))
-			button.name = "Reply_%s" % option_id
-			button.pressed.connect(_on_reply_pressed.bind(option_id, label))
-			_reply_bar.add_child(button)
-			_reply_buttons.append(button)
+	var slot := 0
+	for index in count:
+		var option := Dictionary(reply_options[index])
+		var label := String(option.get("text", ""))
+		var option_id := String(option.get("id", "reply_%d" % index))
+		var fill := UI_GREEN
+		if index == 1:
+			fill = UI_GOLD
+		elif index > 1:
+			fill = Color("cbb18b")
+		var button := _ui_button(label, Vector2(button_w, _button_height), fill, _button_font)
+		button.position = _reply_slot_position(slot, cols, button_w, gap)
+		button.name = "Reply_%s" % option_id
+		button.pressed.connect(_on_reply_pressed.bind(option_id, label))
+		_reply_bar.add_child(button)
+		_reply_buttons.append(button)
+		slot += 1
 
-	if decline_h > 0.0:
-		var decline := _ui_button(decline_label, Vector2(_thread_width - 32.0, _button_height), UI_PAPER, _small_font)
+	if show_decline:
+		var decline := _ui_button(decline_label, Vector2(button_w, _button_height), UI_PAPER, _small_font)
 		decline.name = "DeclineReplyButton"
-		decline.position = Vector2(16.0, _reply_bar.size.y - decline_h + 8.0)
+		decline.position = _reply_slot_position(slot, cols, button_w, gap)
 		decline.pressed.connect(close_phone)
 		_reply_bar.add_child(decline)
+
+
+## 回复栏里第 slot 颗按钮该放哪儿：一行 cols 颗，格子宽度一样。
+func _reply_slot_position(slot: int, cols: int, button_w: float, gap: float) -> Vector2:
+	var row := int(floor(float(slot) / float(cols)))
+	var column := slot % cols
+	return Vector2(16.0 + float(column) * (button_w + gap), 38.0 + float(row) * (_button_height + 10.0))
+
+	# 回复栏有没有内容已经定了：该收的收（列表页），该还的还（聊天页）。
+	_apply_view()
 
 
 ## 头像：有立绘就裁立绘，没立绘的人用通用头像框 + 姓氏占位。
@@ -708,9 +1148,38 @@ func _add_step(parent: VBoxContainer, number: String, title: String, sub: String
 	row.add_child(line)
 
 
+## 聊天里的时间分隔：居中、半透明纸色小药丸，把对话按剧情时间一段段分开。
 func _add_date(text: String, font_size: int = 16) -> void:
-	var label := _label(text, font_size, Color(UI_INK.r, UI_INK.g, UI_INK.b, 0.55), false, _thread_width, HORIZONTAL_ALIGNMENT_CENTER)
-	label.custom_minimum_size = Vector2(_thread_width, font_size + 12)
+	var chip := PanelContainer.new()
+	# 一个会话里会有好几个时间药丸；同名会被 Godot 改成 @PanelContainer@xx，
+	# 探针和截图脚本就认不出来了。编号起名，谁都能按 "TimeDivider" 前缀找。
+	chip.name = "TimeDivider_%d" % _thread.get_child_count()
+	chip.custom_minimum_size = Vector2(_thread_width, font_size + 14)
+	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	chip.add_theme_stylebox_override("panel", _time_chip_style())
+	var label := _label(text, font_size, Color(UI_INK.r, UI_INK.g, UI_INK.b, 0.62), false, _thread_width, HORIZONTAL_ALIGNMENT_CENTER)
+	label.custom_minimum_size = Vector2(_thread_width, font_size + 14)
+	chip.add_child(label)
+	_thread.add_child(chip)
+
+
+## 时间分隔药丸的底：半透明纸色，圆角，不要边框和阴影，别抢气泡的戏。
+func _time_chip_style() -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(UI_PAPER.r, UI_PAPER.g, UI_PAPER.b, 0.5)
+	style.set_corner_radius_all(10)
+	style.content_margin_left = 0
+	style.content_margin_right = 0
+	style.content_margin_top = 4
+	style.content_margin_bottom = 4
+	return style
+
+
+## 空会话（还没聊过的人）不编假消息，直接说没有。
+func _add_empty_hint(text: String) -> void:
+	var label := _label(text, _small_font + 2, Color(UI_INK.r, UI_INK.g, UI_INK.b, 0.45), false, _thread_width, HORIZONTAL_ALIGNMENT_CENTER)
+	label.custom_minimum_size = Vector2(_thread_width, 92)
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_thread.add_child(label)
 
 
@@ -737,14 +1206,21 @@ func _add_bubble(text: String, outgoing: bool, font_size: int = 22) -> void:
 
 func _on_reply_pressed(id: String, text: String) -> void:
 	_add_bubble(text, true, _message_font)
+	# 会话里也得长这一句：退回列表、下次再点进来，预览和聊天记录才对得上。
+	var conv := _find_conversation(_active_id)
+	if not conv.is_empty():
+		var list: Array = conv.get("messages", [])
+		list.append({"speaker": "我", "text": text, "time": thread_date})
+		conv["messages"] = list
+		conv["reply_options"] = []
+		conv["date"] = thread_date
+		thread_messages = list.duplicate(true)
 	mark_step(2)
 	for button in _reply_buttons:
 		button.disabled = true
-	show_toast("已回复。手机只负责把话带到，不替你判断对错。")
+	show_toast("已回复")
 	reply_sent.emit(id, text)
-	await get_tree().process_frame
-	if _scroll != null and is_instance_valid(_scroll):
-		_scroll.scroll_vertical = 99999
+	await _scroll_to_latest()
 
 
 func _on_hud_pressed() -> void:
@@ -783,6 +1259,23 @@ func _soft_panel_style() -> StyleBoxFlat:
 	style.border_color = Color(0.35, 0.24, 0.12, 0.12)
 	style.set_border_width_all(1)
 	style.set_corner_radius_all(14)
+	return style
+
+
+## 通讯录每一行：有未读的那位纸更亮、描边也重一点，扫一眼就知道谁在等回复。
+func _row_style(unread: bool) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(1, 0.965, 0.885, 0.94) if unread else Color(1, 0.975, 0.9, 0.66)
+	style.border_color = Color(UI_WOOD.r, UI_WOOD.g, UI_WOOD.b, 0.30 if unread else 0.16)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(14)
+	style.shadow_color = Color(UI_INK.r, UI_INK.g, UI_INK.b, 0.06)
+	style.shadow_size = 3
+	style.shadow_offset = Vector2(0, 2)
+	style.content_margin_left = 0
+	style.content_margin_top = 0
+	style.content_margin_right = 0
+	style.content_margin_bottom = 0
 	return style
 
 

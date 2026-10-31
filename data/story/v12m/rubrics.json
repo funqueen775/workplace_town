@@ -43,30 +43,65 @@
     }
   },
   "m6": {
-    "direct": {
+    "redlinesFirst": true,
+    "redlineClauses": {
+      "m03_e10_overpromise": "未经授权不得向客户承诺合同以外的东西",
+      "m05_e17_blame_network": "事故归因先按可核验记录，不得推给不可控因素",
+      "m05_night_hotfix_unlogged": "紧急通道可以用，但当天必须把工单补齐"
+    },
+    "postProbationWarningClauses": {
+      "m08_e25_observe": "已知的风险压着不上报",
+      "m10_name_kept_by_silence": "不属于自己署名不更正"
+    },
+    "confirmed": {
       "minEach": 3,
-      "minTotal": 14,
-      "requireAllSufficient": true
-    },
-    "deferred": {
-      "minTotal": 11,
-      "maxTotal": 13,
-      "minThreeAtLeast": 3,
-      "minRemaining": 2
-    },
-    "nearMiss": {
-      "minTotal": 14,
-      "exactlyOneAtTwo": true
+      "minTotal": 14
     },
     "notConfirmed": {
       "anyBelow": 2,
+      "dimensionsBelow": 2,
       "totalBelow": 11
+    },
+    "evidenceFloor": {
+      "minObservedDimensions": 3,
+      "minRecordsPerDimension": 2
     }
   },
   "m7": {
-    "minShortDimension": 3,
-    "minTotal": 13,
-    "minAnyDimension": 2
+    "judgement": false,
+    "handoverOnly": true
+  },
+  "m12": {
+    "ruleTable": true,
+    "requireNomination": true,
+    "vetoFlags": [
+      "m12_ownership_overclaim",
+      "m12_ownership_unverified",
+      "m12_metric_l3_unsupported_cause",
+      "m10_name_kept_by_silence"
+    ],
+    "needAny": {
+      "ownership": [
+        "m12_ownership_precise"
+      ],
+      "metric": [
+        "m12_metric_l1_specified",
+        "m12_metric_l2_windowed",
+        "m12_metric_l2_limitation"
+      ],
+      "honesty": [
+        "m12_metric_l3_admitted_limit",
+        "m12_metric_l3_causal_scope"
+      ],
+      "nextLevel": [
+        "m12_next_level_expanded_scope"
+      ]
+    },
+    "evidenceFloor": {
+      "minStrongDimensions": 3,
+      "minRecordsPerDimension": 2,
+      "strongAnchor": 3
+    }
   },
   "bt": {
     "minIndependentEvents": 3,

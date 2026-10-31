@@ -1,13 +1,13 @@
 extends Node
 
-## 底部四颗圆钮的尺寸核对：档案 / 手册 / 手机 / 设置，拍一排看牌面是不是一样大、
-## 有没有因为月历删掉而留下空位。
+## 底部圆钮的尺寸核对：手册 / 手机 / 设置，拍一排看牌面是不是一样大、
+## 有没有因为月历、档案撤下而留下空位（档案入口已改到左上角岗位栏，不再占圆钮）。
 ## 用法：<godot> --path <proj> --resolution 1600x900 res://tools/hud_buttons_shot.tscn
 
 const SHOT_DIR := "res://test_artifacts/hud_buttons"
 const UI := preload("res://scripts/TownUiV2.gd")
 
-const KEYS := ["_archive_button", "_manual_button", "_phone_button", "_settings_button"]
+const KEYS := ["_manual_button", "_phone_button", "_settings_button"]
 
 var _done := false
 
@@ -24,7 +24,6 @@ func _ready() -> void:
 	await _wait(0.3)
 	ui.call("set_phone_visible", true)
 	ui.call("set_manual_visible", true)
-	ui.call("set_archive_visible", true)
 	ui.call("set_phone_red_dot", true)
 	ui.call("_layout_hud")
 	await _wait(0.4)

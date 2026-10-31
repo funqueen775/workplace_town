@@ -15,6 +15,9 @@ var _months: Array[int] = []
 var _seed_path := "A"
 var _last_node := ""
 var _taken := {}
+## 卡住检测：同一个相位+节点连着几十拍没动，就替他放行并大声记一笔。
+var _last_sig := ""
+var _stall := 0
 
 
 func _ready() -> void:
@@ -45,6 +48,8 @@ func _ready() -> void:
 func _play_month(month_value: int) -> void:
 	var tag := "m%02d" % month_value
 	print("== 第 %d 月" % month_value)
+	_last_sig = ""
+	_stall = 0
 	_town.call("debug_jump_to_month", month_value, _seed_path)
 	await get_tree().create_timer(2.4).timeout
 	# 月首卡会挡在剧情前面：先关掉它再往下走（2026-10-29 新增）。
@@ -59,11 +64,14 @@ func _play_month(month_value: int) -> void:
 		_dbg_tick += 1
 		if _dbg_tick % 25 == 0:
 			var dbg_runner = _town.get("_month_runner")
-			print("  · 相位=%s 节点=%s 等走位=%s 面板=%s 玩家=%s" % [
+			print("  · 相位=%s 节点=%s 等走位=%s 面板=%s 手机门=%s/%s 在读=%s 玩家=%s" % [
 				String(_town.get("_month12_phase")),
 				String((dbg_runner.get("current") as Dictionary).get("id", "")) if dbg_runner != null else "-",
 				str(bool(dbg_runner.get("waiting_walk"))) if dbg_runner != null else "-",
 				str(bool(_town.get("_story_event_panel").call("is_open"))) if _town.get("_story_event_panel") != null else "-",
+				str(bool(_town.get("_phone_gate_waiting"))),
+				str(bool(_town.get("_phone_gate_read"))),
+				str(bool(_town.call("_month12_reading"))),
 				_town.get("_player").position])
 		var phase := String(_town.get("_month12_phase"))
 		if phase == "close":
@@ -76,12 +84,78 @@ func _play_month(month_value: int) -> void:
 			break
 		if phase == "done":
 			break
+		# 手机前置那一屏（requireRead）：真人会点收件箱，自动播也要替他点一下，
+		# 否则整月卡在第一屏，看片看不出后面的节奏。
+		# 收手机必须走面板自己的 close_phone：它的 phone_closed 信号才会把播放器接回正轨。
+		# 直接叫城镇那个回调等于"手机还开着人已经走了"——_month12_reading() 恒真，
+		# 下一屏的黄线永远走不到终点，整月就卡在 node_walk（2026-10-30 第 3 月就是这么卡的）。
+		if bool(_town.get("_phone_gate_waiting")):
+					# 面板这时可能还没被城镇建出来（消息批次才刚投完），先替他建好并接上信号。
+					var inbox = _town.get("_month_phone_panel")
+					if inbox == null or not is_instance_valid(inbox):
+						inbox = _town.call("_ensure_month_phone_panel")
+					# 讲解卡不是这一屏要看的东西：划掉它，不然 _show_month_phone_drawer 只会一遍遍弹卡，
+					# 而 close_phone() 因为手机根本没开直接返回，"在读"永远是真的。
+					if not bool(inbox.get("_tutorial_completed")):
+						inbox.set("_tutorial_completed", true)
+					if bool(inbox.call("is_open")):
+						inbox.call("close_tutorial")
+						inbox.call("close_phone")
+						await get_tree().create_timer(0.6).timeout
+					if not bool(_town.get("_phone_gate_read")):
+						_town.call("_open_ui_phone")
+						await get_tree().create_timer(0.5).timeout
+					# 收手机走面板自己的 close_phone：它的 phone_closed 信号才会把播放器接回正轨。
+					# 直接叫城镇那个回调等于"手机还开着人已经走了"——_month12_reading() 恒真，
+					# 下一屏的黄线永远走不到终点，整月卡在 node_walk（2026-10-30 第 3 月就是这么卡的）。
+					inbox.call("close_phone")
+					await get_tree().create_timer(0.7).timeout
+					# 信号没接上（面板压根没真开起来）时兜底放行，不死在这一屏。
+					if bool(_town.get("_phone_gate_waiting")) and bool(_town.get("_phone_gate_read")):
+						_town.set("_phone_gate_waiting", false)
+						_town.set("_phone_gate_read", false)
+						var gate_runner = _town.get("_month_runner")
+						if gate_runner != null and is_instance_valid(gate_runner):
+							gate_runner.call("on_panel_closed")
+					continue
 		if phase == "activity":
 			if _once(tag + "_activity"):
 				await get_tree().create_timer(0.6).timeout
 				await _shot(tag + "_70_自由活动")
 			_town.call("_on_end_month_pressed")
 			continue
+		# 卡住兜底：这个工具的目的是把整月的节奏看完，不是原样守住游戏里的坑——
+		# 坑由这行警告记进日志，放行动作只做"真人做得出来"的那几样。
+		var stall_runner = _town.get("_month_runner")
+		var stall_id := "-"
+		var stall_walk := false
+		if stall_runner != null:
+			stall_id = String((stall_runner.get("current") as Dictionary).get("id", ""))
+			stall_walk = bool(stall_runner.get("waiting_walk"))
+		var sig := phase + "|" + stall_id + "|" + str(stall_walk)
+		if sig == _last_sig:
+			_stall += 1
+		else:
+			_last_sig = sig
+			_stall = 0
+		if _stall >= 45:
+			_stall = 0
+			print("  ！卡住：%s 连着 %.1f 秒没动，替他放行（这一处要单独查）" % [sig, 45 * 0.06])
+			var hb = _town.get("_month12_handbook")
+			if hb != null and is_instance_valid(hb) and bool(hb.call("is_open")):
+				hb.call("close")
+			var inbox2 = _town.get("_month_phone_panel")
+			if inbox2 != null and is_instance_valid(inbox2):
+				inbox2.call("close_tutorial")
+				inbox2.call("close_phone")
+			if stall_runner != null and is_instance_valid(stall_runner):
+				if bool(stall_runner.get("waiting_walk")):
+					var here: Vector2 = _town.get("_month12_waypoint")
+					if here.x > -90000.0:
+						_town.get("_player").position = here
+					stall_runner.call("on_walk_arrived")
+				else:
+					stall_runner.call("on_panel_closed")
 		var panel = _town.get("_story_event_panel")
 		if panel != null and bool(panel.call("is_open")):
 			var runner = _town.get("_month_runner")

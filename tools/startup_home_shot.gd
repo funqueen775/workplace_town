@@ -13,8 +13,15 @@ func _capture() -> void:
 	var output := ProjectSettings.globalize_path("res://tools/startup_home_preview.png")
 	var result := root.get_viewport().get_texture().get_image().save_png(output)
 	print("STARTUP_HOME_SHOT ", output, " result=", result)
-	var start_button := startup.get_node("HomeCanvas/StartGame") as TextureButton
-	start_button.mouse_entered.emit()
+	var start_button: Button = null
+	var stage := startup.get_node_or_null("TitleStage")
+	if stage != null:
+		for child in stage.get_children():
+			if child is Button:
+				start_button = child
+				break
+	if start_button != null:
+		start_button.mouse_entered.emit()
 	await create_timer(0.22).timeout
 	await RenderingServer.frame_post_draw
 	var hover_output := ProjectSettings.globalize_path("res://tools/startup_home_hover_preview.png")

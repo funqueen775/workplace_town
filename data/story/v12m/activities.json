@@ -7,9 +7,10 @@
       "locationId": "B",
       "location": "B 区工位",
       "description": "把重复的检查做成一个小工具。",
+      "scene": "res://assets/场景内部图/云栖科技丘.png",
       "apCost": 1,
       "slots": 1,
-      "hCost": 0,
+      "hCost": 1,
       "stateDelta": {
         "S": 1
       },
@@ -48,7 +49,7 @@
       "scene": "res://assets/weekend_scenes/rooftop.png",
       "apCost": 1,
       "slots": 1,
-      "hCost": 1,
+      "hCost": 0,
       "stateDelta": {
         "H": 1
       },
@@ -93,6 +94,9 @@
         "landmark": "heart_lake"
       },
       "hCost": 0,
+      "stateDelta": {
+        "H": 1
+      },
       "placeLine": "沿湖走一圈，不赶时间。",
       "card": {
         "title": "心湖步道",
@@ -126,6 +130,9 @@
         "zoneId": "C"
       },
       "hCost": 0,
+      "stateDelta": {
+        "H": 1
+      },
       "placeLine": "坐一下午，不加分，也不掉东西。",
       "card": {
         "title": "水巷外摆",
@@ -143,6 +150,226 @@
       "object": "吧台前那把高脚凳",
       "againLine": "凳子有点晃，咖啡还是那个味。",
       "unlockHook": "unlock_waterway"
+    },
+    {
+      "id": "m7_valley",
+      "name": "松风训练谷",
+      "locationId": "E",
+      "location": "松风训练谷",
+      "description": "跟小赵打第一局，输了没代价。",
+      "scene": "res://assets/场景内部图/松风训练谷.png",
+      "apCost": 1,
+      "slots": 1,
+      "hCost": 1,
+      "mode": "solo",
+      "portal": {
+        "landmark": "heart_lake"
+      },
+      "placeLine": "小赵带你打第一局，输赢都不进评估。",
+      "card": {
+        "title": "松风训练谷",
+        "lines": [
+          "打牌练的是判断，不算考核。",
+          "第一局小赵带你，输了没代价。",
+          "走到那块记分牌底下。"
+        ],
+        "shots": [
+          "place_card_valley_1.png"
+        ],
+        "pages": 1
+      },
+      "object": "那块记分牌",
+      "againLine": "记分牌上还是那几个人，你翻了翻自己的牌。",
+      "outcome": "小赵带你打了第一局。输了，没人在记分牌上记你的名字。",
+      "rewardFlag": "m07_valley_first",
+      "repeatRule": "once_per_month",
+      "evidenceEligible": false,
+      "gatedBy": "month_required",
+      "unlockHook": "unlock_sports"
+    },
+    {
+      "id": "m7_lawn",
+      "name": "草坪运动",
+      "locationId": "E",
+      "location": "E 区草坪",
+      "description": "一群人踢球待一下午。",
+      "scene": "res://assets/weekend_scenes/bbq_lawn.png",
+      "apCost": 1,
+      "slots": 1,
+      "hCost": 0,
+      "stateDelta": {
+        "H": 1
+      },
+      "mode": "multi",
+      "portal": {
+        "landmark": "lawn"
+      },
+      "placeLine": "下班后一群人踢球，输赢没人记。",
+      "card": {
+        "title": "E 区草坪",
+        "lines": [
+          "下班后有一群人在这儿踢球。",
+          "占你一格时间，输赢没人记。",
+          "去坐场边那张野餐垫。"
+        ],
+        "shots": [
+          "place_card_lawn_1.png"
+        ],
+        "pages": 1
+      },
+      "object": "那张野餐垫",
+      "againLine": "垫子上已经坐了人，你站着看了一会儿。",
+      "outcome": "一群人待了一下午，谁也没谈工作。输赢不进评估。",
+      "repeatRule": "once_per_month",
+      "evidenceEligible": false,
+      "gatedBy": "month_required",
+      "unlockAfter": "M07_RESULT"
+    },
+    {
+      "id": "m9_library",
+      "name": "书院长桌",
+      "locationId": "D",
+      "location": "树影书院 · 长桌",
+      "description": "别在工位上写，去长桌。",
+      "scene": "res://assets/场景内部图/树影图书馆.png",
+      "apCost": 1,
+      "slots": 1,
+      "hCost": 2,
+      "mode": "solo",
+      "portal": {
+        "zoneId": "D"
+      },
+      "placeLine": "两张长桌，各翻各的东西。",
+      "card": {
+        "title": "树影书院 · 长桌",
+        "lines": [
+          "王哥说别在工位上写。",
+          "两张长桌，两杯茶，各翻各的。",
+          "按桌上那本翻开的旧交接册。"
+        ],
+        "shots": [
+          "place_card_library_1.png"
+        ],
+        "pages": 1
+      },
+      "object": "那本翻开的旧交接册",
+      "againLine": "长桌还是那两杯茶，对面的人换了。",
+      "outcome": "你在长桌上把该写的写成了别人能接的样子。",
+      "rewardFlag": "m09_longtable",
+      "repeatRule": "once_per_month",
+      "evidenceEligible": false,
+      "gatedBy": "month_required",
+      "unlockAfter": "M09_NAME"
+    },
+    {
+      "id": "m11_boardgame",
+      "name": "桌游角",
+      "locationId": "H",
+      "location": "慢生活园 · 桌游角",
+      "description": "周末开局，常常三缺一。",
+      "scene": "res://assets/weekend_scenes/board_game_v01_enter.png",
+      "apCost": 1,
+      "slots": 1,
+      "hCost": 0,
+      "stateDelta": {
+        "H": 1
+      },
+      "mode": "multi",
+      "portal": {
+        "zoneId": "H"
+      },
+      "placeLine": "差两个人的牌桌。",
+      "card": {
+        "title": "慢生活园 · 桌游角",
+        "lines": [
+          "周末这儿开局，常常三缺一。",
+          "小赵当面问你，不来也没人记。",
+          "去那张差两个人的牌桌。"
+        ],
+        "shots": [
+          "place_card_boardgame_1.png"
+        ],
+        "pages": 1
+      },
+      "object": "差两个人的牌桌",
+      "againLine": "桌边又少了一个人，你帮着喊了一声。",
+      "outcome": "一晚上都在算牌，没人提工作。输赢不进评估。",
+      "repeatRule": "once_per_month",
+      "evidenceEligible": false,
+      "gatedBy": "month_required",
+      "unlockAfter": "M11_OPEN"
+    },
+    {
+      "id": "m11_reproduce",
+      "name": "复现论文",
+      "locationId": "D",
+      "location": "书院长桌 · 复现",
+      "description": "把一篇论文从头算一遍，占两格。",
+      "scene": "res://assets/场景内部图/树影图书馆.png",
+      "apCost": 2,
+      "slots": 2,
+      "hCost": 2,
+      "mode": "solo",
+      "portal": {
+        "zoneId": "D"
+      },
+      "placeLine": "占两格，卡在半路也算你来过。",
+      "card": {
+        "title": "复现一篇论文",
+        "lines": [
+          "把一篇论文从头算一遍。",
+          "占两格，卡在半路也算你来过。",
+          "从长桌上那叠打印稿开始。"
+        ],
+        "shots": [
+          "place_card_library_1.png"
+        ],
+        "pages": 1
+      },
+      "object": "那叠打印稿",
+      "againLine": "打印稿还在长桌角上，你翻了翻批注。",
+      "outcome": "复现不到一半，你发现原文少写了两个关键条件。你把复现记录带到 A 区会议室的指标复盘会上，看看增长和转化之外，哪些人还没有被帮到。",
+      "repeatRule": "once_per_month",
+      "evidenceEligible": false,
+      "gatedBy": "month_required",
+      "unlockAfter": "M11_MATERIAL"
+    },
+    {
+      "id": "m_grind",
+      "name": "把活往前赶",
+      "locationId": "B",
+      "location": "B 区工位",
+      "description": "坐下把手上的活往前赶一格。",
+      "scene": "res://assets/场景内部图/云栖科技丘.png",
+      "apCost": 1,
+      "slots": 1,
+      "hCost": 1,
+      "stateDelta": {},
+      "rewardFlag": "extra_push",
+      "evidenceEligible": false,
+      "repeatRule": "once_per_month",
+      "outcome": "你把手上的活往前赶了一段。桌上那杯水从热放到凉，你没顾上喝。",
+      "mode": "solo",
+      "portal": {
+        "zoneId": "B"
+      },
+      "placeLine": "没有哪个月是闲的，手一伸就够得着活。",
+      "card": {
+        "title": "B 区工位",
+        "lines": [
+          "活永远做不完，主动权在你手上。",
+          "赶一格进度，就拿一格余力换。",
+          "坐下，打开你自己那台电脑。"
+        ],
+        "shots": [
+          "place_card_tool_1.png"
+        ],
+        "pages": 1
+      },
+      "unlockAfter": "M07_RESULT",
+      "gatedBy": "month_required",
+      "object": "你自己那台电脑",
+      "againLine": "屏幕上还是那些没关的窗口。"
     }
   ]
 }

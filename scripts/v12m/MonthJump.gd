@@ -13,10 +13,14 @@ extends RefCounted
 ##   老地方     —— 每月自由活动节点列出的去处都算去过：落 visit_ 旗标、
 ##                 它的 rewardFlag、它的 hook，并把门留在镇上（"门开过就一直在"）
 ##   能力账     —— 选项与剧情拍上的 abilityTags 累计，abilityPeak 点亮第 5 格
+##   四维锚点   —— 选项的 competency 一并补上，第七月那一屏才有真结论可看
 ##
-## 不补什么：转正结果、提名、答辩通过这类"由系统判出来"的旗标
-## （m07_probation_deferred / m12_not_nominated / m12_not_passed）。
-## 跳月看的是 A 路线的样子，那些分支留给真玩到的人。
+## 第六月的转正结论是判出来的，不是补出来的：跳到第七月及以后会真跑一次判定。
+## 另外两个看片专用路线：--v12m-path=P 强制"未转正"那一版，=R 强制"违纪解除"那一版
+## （这两条停在第七月，本来就没有第八到第十二月可跳）。
+##
+## 不补什么：提名与晋升结果（m12_not_nominated / m12_not_passed）——那是第十一、十二月
+## 当场选出来的，跳月看片要按真选择走。
 ##
 ## 只在调试里用：按 F8 或命令行 --v12m-month=N，玩家包里撞不到这两个入口。
 
@@ -37,7 +41,7 @@ static func apply(town: Node, target_month: int, path_letter := "A") -> Dictiona
 	var points: Dictionary = town.get("_ability_points")
 	var report := {
 		"month": target_month, "path": path_letter,
-		"flags": 0, "places": 0, "points": {}, "peaks": [], "missing": []
+		"flags": 0, "places": 0, "points": {}, "peaks": [], "anchors": 0, "missing": []
 	}
 	var written := _all_written_flags(nodes)
 
@@ -87,10 +91,25 @@ static func apply(town: Node, target_month: int, path_letter := "A") -> Dictiona
 		for ability in (picked.get("abilityPeak", []) as Array):
 			_light_peak(flags, String(ability), report)
 		_merge_tags(points, picked.get("abilityTags"), report)
+		_merge_anchors(town, picked, report)
 
 	# 第 1 月「手册读没读」是一对互斥旗标，看片默认给"读了"那一版（有铅笔字的那句）。
 	if target_month > 2:
 		_mark(flags, "m01_handbook_read", report)
+
+	# 跳到第七月及以后：转正结论是判出来的，不是补出来的。
+	# 补完四维锚点就真跑一次判定，这样"结果那一屏"和真玩到第七月看到的是同一个结论。
+	if target_month >= 7 and not flags.has("m06_probation_status"):
+		report["probation"] = String(town.call("_evaluate_probation"))
+	if path_letter == "P":
+		# 看片专用：强制未转正那一版（第八到第十二月本来就不会开，只在第七月有用）。
+		town.call("_finish_probation", "not_confirmed", "", {}, 0)
+		report["probation"] = "not_confirmed（看片强制）"
+	elif path_letter == "R":
+		# 看片专用：强制违纪解除那一版，顺带给一条真红线让台词有得展开。
+		_mark(flags, "m03_e10_overpromise", report)
+		town.call("_finish_probation", "terminated", "m03_e10_overpromise", {}, 0)
+		report["probation"] = "terminated（看片强制）"
 
 	# 只被读、没人写的条件句：跳月补不出来，报在终端上——那是真缺陷，不是工具的锅。
 	for entry in _orphans(nodes, written, target_month):
@@ -124,6 +143,21 @@ static func _merge_tags(points: Dictionary, raw, report: Dictionary) -> void:
 		var name := String(key)
 		points[name] = int(points.get(name, 0)) + int((raw as Dictionary)[key])
 		(report["points"] as Dictionary)[name] = int(points[name])
+
+
+## 四维锚点也要补上：转正判定读的就是这一堆（各维取最高那档）。
+static func _merge_anchors(town: Node, picked: Dictionary, report: Dictionary) -> void:
+	var anchors: Dictionary = town.get("_dim_anchors")
+	for entry in (picked.get("competency", []) as Array):
+		if not (entry is Dictionary):
+			continue
+		var dim := String((entry as Dictionary).get("dimension", ""))
+		if not anchors.has(dim):
+			continue
+		var bucket: Array = anchors[dim]
+		bucket.append(int((entry as Dictionary).get("anchor", 0)))
+		anchors[dim] = bucket
+		report["anchors"] = int(report["anchors"]) + 1
 
 
 static func _light_peak(flags: Dictionary, ability: String, report: Dictionary) -> void:

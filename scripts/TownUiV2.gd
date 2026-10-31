@@ -4,7 +4,7 @@ extends CanvasLayer
 ## 前端界面改造 V1.0(2) 的运行时界面。
 ## HUD、员工档案和主线任务册使用 assets/ui/rework_v1 的分件；外部数据和信号协议不变。
 
-signal archive_requested
+signal profile_requested
 signal memory_wall_requested
 signal standing_requested
 signal task_requested
@@ -41,23 +41,24 @@ const HUD_HONEY_EMPTY := preload("res://assets/ui/rework_v1/hud/components/06_�
 const HUD_TASK := preload("res://assets/ui/rework_v1/hud/components/07_任务名称_空白小底板.png")
 const HUD_PIN := preload("res://assets/ui/rework_v1/hud/components/08_任务_定位图标.png")
 const HUD_VIEW := preload("res://assets/ui/rework_v1/hud/components/09_查看按钮_无字.png")
-## 圆钮五件（手机/月历/手册/档案/设置）统一重切过：同一张 1280 画布、牌面直径都是 1000，
+## 圆钮原来有五件（手机/月历/手册/档案/设置），统一重切过：同一张 1280 画布、牌面直径都是 1000，
 ## 放进 104 的槽里牌面一样大（原来的图留白和叶片外扩各不相同，直接摆会一大一小）。
-## 月历那颗 2026-10-29 已从 HUD 撤下，屏幕上现在只有档案/手册/手机/设置四颗。
+## 月历 2026-10-29 撤下；档案同日撤下——它没有独有的内容，岗位、能力、人际、记忆墙、处境
+## 全从左上角那条岗位栏进，右下角不再占一颗钮。屏幕上现在只有手册/手机/设置三颗。
 const HUD_PHONE := preload("res://assets/ui/rework_v1/hud/components/16_圆钮统一_phone.png")
-## 手册 / 档案两颗圆钮：与手机、日历同一套画法（米色圆牌 + 木边 + 走线虚圈 + 左下两片叶）。
+## 手册圆钮：与手机同一套画法（米色圆牌 + 木边 + 走线虚圈 + 左下两片叶）。
 ## 以前手册是代码画的深底白字圆，跟手机那颗完全不像，一排摆在一起像两套 UI。
 const HUD_MANUAL := preload("res://assets/ui/rework_v1/hud/components/16_圆钮统一_manual.png")
-const HUD_ARCHIVE := preload("res://assets/ui/rework_v1/hud/components/16_圆钮统一_archive.png")
+## 档案圆钮：把原来那两颗没有字的深色圆钮（记忆墙 / 你的处境）收进来。
+## 圆钮本体 2026-10-30 撤下（玩家：入口改点左上角岗位栏），这张图只剩讲解卡在用。
 const HUD_ADVANCE := preload("res://assets/ui/rework_v1/hud/components/13_推进月份_无字标签.png")
 const HUD_TASK_PANEL := preload("res://assets/ui/rework_v1/hud/revisions/03_主线任务空白面板.png")
 const HUD_SETTINGS := preload("res://assets/ui/rework_v1/hud/components/16_圆钮统一_settings.png")
-## 五颗圆钮的牌面直径（1280 画布上按不透明像素最宽一条量出来的）：档案 720、手册 844、
-## 手机 993、月历 1001、设置 975。槽位都是 104，图里的留白却不一样，直接摆会一大一小；
-## 按 1001 对齐，整张图（连叶片）一起缩放，五颗看起来一样大。
+## 牌面直径（1280 画布上按不透明像素最宽一条量出来的）：手册 844、手机 993、月历 1001、设置 975。
+## 槽位都是 104，图里的留白却不一样，直接摆会一大一小；
+## 按 1001 对齐，整张图（连叶片）一起缩放，几颗看起来一样大。
 const HUD_PLATE_TARGET := 1001.0
 const HUD_PLATE_DIAMETER := {
-	"archive": 720.0,
 	"manual": 844.0,
 	"phone": 993.0,
 	"month": 1001.0,
@@ -151,6 +152,8 @@ const SETTINGS_TITLE := preload("res://assets/ui/rework_v1/profile/components/01
 ## （WorkplaceTown.ability_display_levels：起点 + 攒点 + 剧情点亮到顶）。
 ## 没挂上就退回旧的下线读法，不挡着别的界面用。
 var ability_source := Callable()
+## 档案页"留下的材料"：由城镇按已经发生过的旗标给，空数组就写"还没有"。
+var material_source := Callable()
 
 var _hud: Control
 var _act_label: Label
@@ -161,12 +164,13 @@ var _date_xun_cell: Label
 var _date_band_cell: Label
 var _date_separators: Array[Label] = []
 var _job_label: Button
+## 岗位栏下面那一行处境读数：稳定时不出现，被观察起才亮字（原来是档案圆钮上的那颗点）。
+var _standing_line: Label
 var _energy_label: Label
 var _task_title: Label
 var _task_meta: Label
 var _task_note: Label
 var _task_caption: Label
-var _archive_button: Button
 var _root: Control
 var _view: String = ""
 var _energy_panel: Control
@@ -196,7 +200,11 @@ func _ready() -> void:
 	get_viewport().size_changed.connect(_layout_hud)
 
 
-func refresh(snapshot: Dictionary, event: Dictionary, energy := 0, energy_max := 3, energy_caption := "精力") -> void:
+## update_card：要不要顺手把右上角那张「本月主线」卡刷回 WorldClock 的主线。
+## 十二个月流程下卡片归剧情这边写（自由安排会写「还剩几格」），
+## 心情一变就重画那罐蜂蜜时若还刷卡片，标题会被打回 WorldClock 的旧主线，
+## 于是出现「标题写着新员工手册、第三行却写着还剩 1 格」这种半新半旧的卡。
+func refresh(snapshot: Dictionary, event: Dictionary, energy := 0, energy_max := 3, energy_caption := "精力", update_card := true) -> void:
 	_layout_hud()
 	var month := int(snapshot.get("month", 1))
 	# 十二个月流程下左上角那格是日期栏，不再回写幕名，否则会把「第几月」刷掉。
@@ -208,6 +216,8 @@ func refresh(snapshot: Dictionary, event: Dictionary, energy := 0, energy_max :=
 	var lit := int(round(float(energy) / maxf(1.0, float(energy_max)) * float(_honey_icons.size())))
 	for index in _honey_icons.size():
 		_honey_icons[index].texture = HUD_HONEY_FULL if index < lit else HUD_HONEY_EMPTY
+	if not update_card:
+		return
 	if event.is_empty():
 		set_task_card("主线已完成", "继续探索小镇")
 	else:
@@ -328,14 +338,32 @@ func _build_hud() -> void:
 	_act_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	act.add_child(_act_label)
 	_build_date_cells(act)
-	# 左上这条只报"你现在是什么岗位"，不再当档案入口：档案走右下角那颗，
-	# 第 1 月月末才给。之前两个入口都开同一页，而且左上这条从开局就能点，
-	# 等于把月末才该露的东西提前漏出去了。
+	# 左上这条岗位栏就是档案入口（2026-10-30 玩家定）：右下角那颗圆钮撤掉，点这里翻档案。
+	# 开局就能点，不设解锁；处境那行字单独挂在它下面，点了同样开档案。
 	var profile := _art_button(HUD_JOB, "当前职位  实习开发师", Vector2(36, 146), Vector2(440, 96))
-	profile.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	profile.mouse_filter = Control.MOUSE_FILTER_STOP
 	profile.focus_mode = Control.FOCUS_NONE
+	profile.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	profile.pressed.connect(func(): profile_requested.emit())
+	# 牌面是张图，没有按钮样式的 hover，只能靠一点点提亮告诉玩家这里能点。
+	profile.mouse_entered.connect(func(): profile.modulate = Color(1.06, 1.03, 0.99))
+	profile.mouse_exited.connect(func(): profile.modulate = Color.WHITE)
 	_hud.add_child(profile)
 	_job_label = profile
+	# 处境警示从"档案钮上一颗点"改成"岗位栏底下一行字"：点没了，提醒还得留着，
+	# 而且字比点诚实——被观察还是要危急，玩家一眼看到的是那句人话。
+	# 稳定（或还没跟后台上账）时这一行根本不出现，左上角保持日期 + 岗位两条。
+	_standing_line = _label("", 20)
+	_standing_line.position = Vector2(58, 248)
+	_standing_line.size = Vector2(392, 30)
+	_standing_line.add_theme_color_override("font_color", Color("e0a63c"))
+	_standing_line.add_theme_color_override("font_outline_color", Color("2a1c10"))
+	_standing_line.add_theme_constant_override("outline_size", 5)
+	_standing_line.mouse_filter = Control.MOUSE_FILTER_STOP
+	_standing_line.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	_standing_line.gui_input.connect(_on_standing_line_input)
+	_standing_line.hide()
+	_hud.add_child(_standing_line)
 	_art(HUD_PORTRAIT, Vector2(46, 158), Vector2(72, 72), _hud)
 	_player_portrait = _art(HUD_PLAYER_PORTRAITS.get(PlayerProfile.get_selected_avatar_id(), HUD_PLAYER_PORTRAITS["avatar_player"]), Vector2(53, 165), Vector2(58, 58), _hud)
 	var energy := _art(HUD_ENERGY, Vector2.ZERO, Vector2(440, 98), _hud)
@@ -360,7 +388,7 @@ func _build_hud() -> void:
 	# 落到 390×380 上就是 x 45..345、y 33..347。下面四行全部按这个内框排，
 	# 不再出现"标题飘在纸上、下面一大片空"。
 	# 起点 104 是给左上角那条红丝带让位：丝带压在 x 55..95，字从它右边开始。
-	var caption := _label("本月主线", 24)
+	var caption := _label("本月主线", 30)
 	caption.position = Vector2(104, 38); caption.size = Vector2(216, 40); task.add_child(caption)
 	_task_caption = caption
 	# 标题底下一条圆角暖黄条，与交付稿同一层结构（标题压在条上，不直接落纸）。
@@ -372,7 +400,7 @@ func _build_hud() -> void:
 	_task_title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	task.add_child(_task_title)
 	_art(HUD_PIN, Vector2(56, 188), Vector2(32, 32), task)
-	_task_meta = _label("第 2 月 · A 区", 23)
+	_task_meta = _label("第 2 月 · A 区", 28)
 	_task_meta.position = Vector2(96, 186); _task_meta.size = Vector2(250, 36)
 	_task_meta.clip_text = true; _task_meta.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	task.add_child(_task_meta)
@@ -398,14 +426,9 @@ func _build_hud() -> void:
 	_manual_button.pressed.connect(func(): manual_requested.emit())
 	_hud.add_child(_manual_button)
 	_manual_button.visible = false
-	# 档案：把原来那两颗没有字的深色圆钮（记忆墙 / 你的处境）收进来。
-	_archive_button = _hud_round_button(HUD_ARCHIVE, "archive")
-	_archive_button.pressed.connect(func(): archive_requested.emit())
-	_hud.add_child(_archive_button)
-	# 纯图标按钮必须带字：手机/手册/档案/设置只靠图标，玩家猜不出来。
+	# 纯图标按钮必须带字：手机/手册/设置只靠图标，玩家猜不出来。
 	_hud_caption(phone, "手机")
 	_hud_caption(_manual_button, "手册")
-	_hud_caption(_archive_button, "档案")
 	_hud_caption(settings, "设置")
 	_layout_hud()
 
@@ -485,7 +508,7 @@ func _layout_hud() -> void:
 ## 只给当前可见的图标排槽，按钮组贴右侧，隐藏入口不再留下空位。
 func _layout_bottom_buttons(viewport_size: Vector2) -> void:
 	var buttons: Array[Button] = []
-	for button in [_archive_button, _manual_button, _phone_button, _settings_button]:
+	for button in [_manual_button, _phone_button, _settings_button]:
 		if button != null and button.visible:
 			buttons.append(button)
 	if buttons.is_empty():
@@ -565,6 +588,15 @@ func _build_profile(page: Panel, _payload: Dictionary) -> void:
 			_art(PROFILE_HEART_FULL if heart < relation_level else PROFILE_HEART_EMPTY, Vector2(505 + heart * 25, y + 19), Vector2(21, 20), page)
 		if relation_level >= 4:
 			_art(PROFILE_RECOGNITION, Vector2(651, y + 9), Vector2(21, 22), page)
+
+	# 留下的材料：只列真的发生过的。现在有旗标的只有小工具和交接文档，
+	# 评测表 / 署名纪要还没旗标——不在这里编一个"看起来有"的名字。
+	var materials: Array = material_source.call() if material_source.is_valid() else []
+	var material_text := "留下的材料：" + ("、".join(PackedStringArray(materials)) if not materials.is_empty() else "还没有")
+	var material_label := _label(material_text, 14)
+	material_label.position = Vector2(95, 511)
+	material_label.size = Vector2(580, 20)
+	page.add_child(material_label)
 
 	# 底部两个入口：原来挂在地图右上角那两颗没有字的深色圆钮上，玩家猜不出来。
 	# 现在收进档案页，名字直接写在按钮上。
@@ -1113,11 +1145,22 @@ func set_manual_red_dot(value: bool) -> void:
 		_manual_dot.visible = value
 
 
-## 档案圆钮同样按剧情解锁：首月开局先藏，月末第一次有"你的记录"时才给。
-func set_archive_visible(value: bool) -> void:
-	if _archive_button != null:
-		_archive_button.visible = value
-		_layout_hud()
+## 处境那一行字。stable 或还没跟后台上账就不出现；
+## 出现时直接把话说完（"处境 · 被观察"），颜色只是快读辅助，语义靠文字兜着（§2.4）。
+func set_standing_line(label_text: String, color_hex: String) -> void:
+	if _standing_line == null:
+		return
+	if label_text.is_empty():
+		_standing_line.hide()
+		return
+	_standing_line.text = "处境 · %s" % label_text
+	_standing_line.add_theme_color_override("font_color", Color(color_hex))
+	_standing_line.visible = _job_label != null and _job_label.visible
+
+
+func _on_standing_line_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and (event as InputEventMouseButton).pressed:
+		profile_requested.emit()
 
 
 func set_view_visible(value: bool) -> void:
@@ -1157,9 +1200,10 @@ func set_task_caption(text: String) -> void:
 		_task_caption.text = text
 
 
-## 档案圆钮本体：处境警示点挂在它上面（WorkplaceTown._attach_standing_badge）。
-func archive_button() -> Button:
-	return _archive_button
+## 左上角岗位栏本体：它就是档案入口，处境那一行字挂在它下面
+## （WorkplaceTown._refresh_standing_line）。
+func job_button() -> Button:
+	return _job_label
 
 
 ## 手机有新消息时用呼吸式缩放提醒，直到玩家点开手机。

@@ -82,6 +82,17 @@ func _next() -> void:
 func _dispatch(node: Dictionary) -> void:
 	current = node
 	var type := String(node.get("nodeType", "main_story"))
+	# 主线由 runner_walk_to 在出发前翻日期；其余节点没有走位，
+	# 也必须在打开手册/手机/活动/月末卡前完成同一套日期同步。
+	if type != "main_story":
+		town.call("runner_prepare_node_date", node, Callable(self, "_dispatch_prepared"))
+		return
+	_dispatch_prepared()
+
+
+func _dispatch_prepared() -> void:
+	var node: Dictionary = current
+	var type := String(node.get("nodeType", "main_story"))
 	if type == "handbook":
 		town.call("runner_unlock_handbook", node)
 		_next()
