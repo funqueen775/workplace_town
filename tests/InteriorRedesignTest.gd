@@ -48,6 +48,16 @@ func _ready() -> void:
 		preview.call("_close_dialog")
 		player.position = Vector2(930, preview.ROAD_Y)
 		var cards := preview.get("_activity_buttons") as Array
+		var board := preview.get("_activity_board") as TextureRect
+		if board == null or board.visible != (not activities.is_empty()) or (not activities.is_empty() and board.texture == null):
+			_fail("%s 区活动底板显示状态不正确" % code)
+			return
+		if not board.size.is_equal_approx(preview.ACTIVITY_BOARD_SIZE):
+			_fail("%s 区活动底板尺寸不正确" % code)
+			return
+		if board.position.x < scene.size.x * 0.5 or board.position.x + board.size.x > scene.size.x - 30.0 or board.position.y < 0.0 or board.position.y + board.size.y > scene.size.y - 30.0:
+			_fail("%s 区活动底板超出场景边界" % code)
+			return
 		for index in 2:
 			var card := cards[index] as TextureButton
 			if card.visible != (index < activities.size()):
@@ -56,6 +66,14 @@ func _ready() -> void:
 			if card.visible and (card.texture_normal == null or card.position.x < scene.size.x * 0.5):
 				_fail("%s 区活动卡没有显示在右侧" % code)
 				return
+			if card.visible and (card.position.x < board.position.x or card.position.y < board.position.y or card.position.x + card.size.x > board.position.x + board.size.x or card.position.y + card.size.y > board.position.y + board.size.y):
+				_fail("%s 区第 %d 张卡超出活动底板" % [code, index + 1])
+				return
+			if card.visible:
+				card.pressed.emit()
+				if _selected_id != String(activities[index]["id"]):
+					_fail("%s 区第 %d 张卡跳转到错误活动" % [code, index + 1])
+					return
 		if code == "C":
 			cards[0].mouse_entered.emit()
 			await get_tree().create_timer(0.15).timeout

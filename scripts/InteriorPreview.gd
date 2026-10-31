@@ -32,29 +32,41 @@ const DOOR_AREA := Rect2(870, 725, 180, 120)
 const PLAYER_SPEED := 260.0
 const TALK_DISTANCE := 165.0
 const CHARACTER_SCALE := 10.0 / 3.0
+const ACTIVITY_UI_SCALE := 0.82
+const ACTIVITY_BOARD_POSITION := Vector2(1190, 12)
+const ACTIVITY_BOARD_SIZE := Vector2(690, 550) * ACTIVITY_UI_SCALE
+const ACTIVITY_CARD_SIZE := Vector2(585, 159) * ACTIVITY_UI_SCALE
+const ACTIVITY_CARD_X := ACTIVITY_BOARD_POSITION.x + 54.0 * ACTIVITY_UI_SCALE
+const ACTIVITY_CARD_TOP_Y := ACTIVITY_BOARD_POSITION.y + 153.0 * ACTIVITY_UI_SCALE
+const ACTIVITY_CARD_BOTTOM_Y := ACTIVITY_BOARD_POSITION.y + 316.0 * ACTIVITY_UI_SCALE
+const ACTIVITY_BOARDS := {
+	"C": "res://assets/小场景新UI/销售部/01_背景面板.png",
+	"D": "res://assets/小场景新UI/人事部/01_背景面板.png",
+	"E": "res://assets/小场景新UI/财务部/01_背景面板.png",
+	"F": "res://assets/小场景新UI/运营部/01_背景面板.png",
+	"G": "res://assets/小场景新UI/行政部/01_背景面板.png",
+	"H": "res://assets/小场景新UI/生产部/01_背景面板.png",
+}
 const ACTIVITY_CARDS := {
-	"C_LAKE": "res://assets/01_带缩略图面板/C_LAKE_湖边散步_面板.png",
-	"C_COFFEE": "res://assets/01_带缩略图面板/C_COFFEE_小馆咖啡聊天_面板.png",
-	"D_STUDY": "res://assets/01_带缩略图面板/D_STUDY_独自学习_一起自习_面板.png",
-	"D_ROOFTOP": "res://assets/01_带缩略图面板/D_ROOFTOP_书院露台吹风_面板.png",
-	"E_SPORT": "res://assets/01_带缩略图面板/E_SPORT_草坪运动_面板.png",
-	"E_ESCAPE": "res://assets/01_带缩略图面板/E_ESCAPE_团队密室_面板.png",
-	"F_STAGE": "res://assets/01_带缩略图面板/F_STAGE_舞台后台排练_面板.png",
-	"F_RAIN": "res://assets/01_带缩略图面板/F_RAIN_雨天共伞_面板.png",
-	"G_NIGHT": "res://assets/01_带缩略图面板/G_NIGHT_夜间值守_资料整理_面板.png",
-	"G_KTV": "res://assets/01_带缩略图面板/G_KTV_文娱室合唱_KTV_面板.png",
-	"H_BBQ": "res://assets/01_带缩略图面板/H_BBQ_夜间烧烤_篝火_面板.png",
-	"H_BOARD": "res://assets/01_带缩略图面板/H_BOARD_桌游馆_面板.png",
-	# 十二个月自由活动：卡面标题和区域都印死在图上，只接能真正对上的。
-	# E/H 仍是训练谷/慢生活园，卡面却印着财务部/生产部，先不接，继续走原活动面板。
-	"m9_library": "res://assets/01_带缩略图面板/D_STUDY_独自学习_一起自习_面板.png",
+	"C_LAKE": "res://assets/小场景新UI/销售部/02_上方活动卡.png",
+	"C_COFFEE": "res://assets/小场景新UI/销售部/03_下方活动卡.png",
+	"D_STUDY": "res://assets/小场景新UI/人事部/02_独自学习_一起自习.png",
+	"D_ROOFTOP": "res://assets/小场景新UI/人事部/03_书院露台吹风.png",
+	"E_SPORT": "res://assets/小场景新UI/财务部/02_上方活动卡.png",
+	"E_ESCAPE": "res://assets/小场景新UI/财务部/03_下方活动卡.png",
+	"F_STAGE": "res://assets/小场景新UI/运营部/02_上方活动卡.png",
+	"F_RAIN": "res://assets/小场景新UI/运营部/03_下方活动卡.png",
+	"G_NIGHT": "res://assets/小场景新UI/行政部/02_上方活动卡.png",
+	"G_KTV": "res://assets/小场景新UI/行政部/03_下方活动卡.png",
+	"H_BBQ": "res://assets/小场景新UI/生产部/02_上方活动卡.png",
+	"H_BOARD": "res://assets/小场景新UI/生产部/03_下方活动卡.png",
+	# 十二个月这条线优先读活动数据里带的 cardArt，这张表只给没填数据的兜底。
+	"m9_library": "res://assets/小场景新UI/人事部/02_独自学习_一起自习.png",
 }
 
-## 屋里右上角那一叠的格子位置（场景坐标，1920×1080 那套动线）。
-## 整卡和现画的票根共用这三个数，两种卡才不会错开半格。
-const ACTIVITY_SLOT_AT := Vector2(1110, 70)
-const ACTIVITY_SLOT_SIZE := Vector2(670, 190)
-const ACTIVITY_SLOT_STEP := 207.0
+## 现画票根和板子上那两张卡共用同一套格子：同一个 X、同样的间距、同样的尺寸，
+## 这样第三处往后接在板子下面时，看不出来是两种东西。
+const ACTIVITY_CARD_STEP := ACTIVITY_CARD_BOTTOM_Y - ACTIVITY_CARD_TOP_Y
 ## 现画票根上那枚蜂蜜罐（从整卡上切下来的零件，见 tools/v12m_cut_activity_cards.py）。
 const ACTIVITY_JAR_TEX := "res://assets/ui/activity_cards/honey_jar.png"
 
@@ -89,6 +101,8 @@ var _send_button: Button
 var _touch_vector := Vector2.ZERO
 var _exploration_enabled := false
 var _activity_buttons: Array[TextureButton] = []
+## 屋里那块"××部"底板：部门名画在板子的标签上，卡上不再重复烙区名。
+var _activity_board: TextureRect
 ## 没有整卡的那几处，按同一版式现画的票根（每次 set_activities 重画一遍）。
 var _drawn_cards: Array[Control] = []
 
@@ -110,6 +124,7 @@ func present(location: Dictionary, texture_path: String) -> void:
 	_talk_button = null
 	_dialog = null
 	_activity_buttons.clear()
+	_activity_board = null
 	var backdrop := ColorRect.new()
 	backdrop.color = Color("10151e")
 	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -153,7 +168,7 @@ func present(location: Dictionary, texture_path: String) -> void:
 	_door_prompt.hide()
 	_scene.add_child(_door_prompt)
 	_build_interior_characters(location)
-	_build_activity_cards()
+	_build_activity_cards(String(location.get("code", "")))
 	_root.show()
 	if room.texture == null:
 		# Keep the preview usable when an editor import cache is missing.
@@ -267,6 +282,7 @@ func has_activity_card(activity_id: String) -> bool:
 	return ACTIVITY_CARDS.has(activity_id)
 
 func set_activities(activities: Array, enabled: bool, remaining: int) -> void:
+	_activity_board.visible = not activities.is_empty() and _activity_board.texture != null
 	for button in _activity_buttons:
 		button.hide()
 	# 上一轮现画的票根先收掉，这轮按这一屋子的去处重画。
@@ -276,8 +292,6 @@ func set_activities(activities: Array, enabled: bool, remaining: int) -> void:
 	_drawn_cards.clear()
 	var shown := 0
 	for activity in activities:
-		if shown >= _activity_buttons.size():
-			break
 		var dict := activity as Dictionary
 		var activity_id := String(dict.get("id", ""))
 		# 优先用数据里带的整卡（activities.json 的 cardArt），其次才查这张表——
@@ -286,9 +300,10 @@ func set_activities(activities: Array, enabled: bool, remaining: int) -> void:
 		if card_path.is_empty():
 			card_path = String(ACTIVITY_CARDS.get(activity_id, ""))
 		var can_go := enabled and remaining > 0 and not bool(dict.get("disabled", false))
-		if card_path.is_empty():
-			# 没有整卡的也留在这一叠里，同版式现画一张：
-			# 之前它掉到右下角那块面板上，屋里一叠 + 右下角一份，同一件事读两遍。
+		# 没有整卡的也留在这块板子上，同版式现画一张：之前它掉到右下角那块面板上，
+		# 板子一份 + 右下角一份，同一件事读两遍。
+		var in_board := shown < _activity_buttons.size()
+		if card_path.is_empty() or not in_board:
 			_drawn_cards.append(_draw_activity_ticket(shown, dict, can_go))
 		else:
 			var button := _activity_buttons[shown]
@@ -304,61 +319,40 @@ func set_activities(activities: Array, enabled: bool, remaining: int) -> void:
 		shown += 1
 
 
-## 没整卡时现画的那张票根：版式照 assets/01_带缩略图面板 那套横票根，
-## 区名、名字、消耗全部读传进来的数据，不烙死在图上。
+## 板子里只有两个位子；没整卡的、以及第三处往后接在板子下面的，用这张现画的同版式票根。
+## 名字、小字、消耗全部读传进来的数据，不烙死在图上。
 func _draw_activity_ticket(slot: int, dict: Dictionary, can_go: bool) -> Control:
 	var card := Panel.new()
 	card.name = "ActivityTicket%d" % slot
-	card.position = ACTIVITY_SLOT_AT + Vector2(0, ACTIVITY_SLOT_STEP * slot)
-	card.size = ACTIVITY_SLOT_SIZE
+	card.position = Vector2(ACTIVITY_CARD_X, ACTIVITY_CARD_TOP_Y + ACTIVITY_CARD_STEP * slot)
+	card.size = ACTIVITY_CARD_SIZE
 	card.z_index = 1200
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color("fdf6e6")
 	style.border_color = Color("f0a63c")
-	style.set_border_width_all(4)
-	style.set_corner_radius_all(20)
+	style.set_border_width_all(3)
+	style.set_corner_radius_all(16)
 	card.add_theme_stylebox_override("panel", style)
 	if not can_go:
 		card.modulate = Color(0.72, 0.72, 0.72)
 	_scene.add_child(card)
 
-	# 区名和活动同名的那条（松风训练谷）不重复写两遍：牌子直接省掉，留名字那行。
-	var badge_text := String(dict.get("badge", ""))
-	if badge_text == String(dict.get("title", "")):
-		badge_text = ""
-	if not badge_text.is_empty():
-		var badge := Panel.new()
-		badge.position = Vector2(16, 10)
-		badge.size = Vector2(maxf(96.0, badge_text.length() * 26.0 + 34.0), 38)
-		var badge_style := StyleBoxFlat.new()
-		badge_style.bg_color = Color("4e9a2f")
-		badge_style.border_color = Color("2c5a17")
-		badge_style.set_border_width_all(2)
-		badge_style.set_corner_radius_all(18)
-		badge.add_theme_stylebox_override("panel", badge_style)
-		card.add_child(badge)
-		var badge_label := _label(badge_text, 22, Color("f4ffe8"))
-		badge_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		badge_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		badge.add_child(badge_label)
-
-	var title := _label(String(dict.get("title", "自由活动")), 34, Color("3a2a1d"))
-	# 现画的票根标题别跟着 _label 的自动换行走：套上 clip_text 之后实测整行不显示，
-	# 名字这一行本来就一行装得下。
+	var title := _label(String(dict.get("title", "自由活动")), 25, Color("3a2a1d"))
+	# 现画的票根标题别跟着 _label 的自动换行走：实测套上换行再裁宽度，整行会不显示。
 	title.autowrap_mode = TextServer.AUTOWRAP_OFF
-	title.position = Vector2(22, 56)
-	title.size = Vector2(430, 48)
+	title.position = Vector2(16, 12)
+	title.size = Vector2(300, 32)
 	card.add_child(title)
-	var note := _label(String(dict.get("note", "")), 19, Color("7a5a40"))
-	note.position = Vector2(22, 108)
-	note.size = Vector2(430, 62)
+	var note := _label(String(dict.get("note", "")), 15, Color("7a5a40"))
+	note.position = Vector2(16, 48)
+	note.size = Vector2(296, 64)
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	note.add_theme_constant_override("line_spacing", 2)
 	card.add_child(note)
 
 	var cost_box := Panel.new()
-	cost_box.position = Vector2(ACTIVITY_SLOT_SIZE.x - 118, 16)
-	cost_box.size = Vector2(102, ACTIVITY_SLOT_SIZE.y - 32)
+	cost_box.position = Vector2(ACTIVITY_CARD_SIZE.x - 96, 10)
+	cost_box.size = Vector2(84, ACTIVITY_CARD_SIZE.y - 20)
 	var cost_style := StyleBoxFlat.new()
 	cost_style.bg_color = Color("dcefc6")
 	cost_style.border_color = Color("b0d094")
@@ -366,9 +360,9 @@ func _draw_activity_ticket(slot: int, dict: Dictionary, can_go: bool) -> Control
 	cost_style.set_corner_radius_all(12)
 	cost_box.add_theme_stylebox_override("panel", cost_style)
 	card.add_child(cost_box)
-	var cost_title := _label("消耗", 18, Color("6b4a2a"))
-	cost_title.position = Vector2(0, 6)
-	cost_title.size = Vector2(102, 24)
+	var cost_title := _label("消耗", 15, Color("6b4a2a"))
+	cost_title.position = Vector2(0, 4)
+	cost_title.size = Vector2(84, 20)
 	cost_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	cost_box.add_child(cost_title)
 	var cost := int(dict.get("cost", 0))
@@ -378,16 +372,16 @@ func _draw_activity_ticket(slot: int, dict: Dictionary, can_go: bool) -> Control
 		jar.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		jar.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		jar.texture = load(ACTIVITY_JAR_TEX)
-		jar.position = Vector2(32, 34)
-		jar.size = Vector2(38, 46)
+		jar.position = Vector2(27, 28)
+		jar.size = Vector2(30, 36)
 		jar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		if cost <= 0:
 			jar.modulate = Color(0.72, 0.70, 0.66, 0.55)
 		cost_box.add_child(jar)
-	var cost_value := _label("不花" if cost <= 0 else str(cost), 24,
+	var cost_value := _label("不花" if cost <= 0 else str(cost), 18,
 		Color("8b857c") if cost <= 0 else Color("a35a3a"))
-	cost_value.position = Vector2(0, cost_box.size.y - 52)
-	cost_value.size = Vector2(102, 32)
+	cost_value.position = Vector2(0, cost_box.size.y - 34)
+	cost_value.size = Vector2(84, 26)
 	cost_value.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	cost_box.add_child(cost_value)
 
@@ -395,7 +389,7 @@ func _draw_activity_ticket(slot: int, dict: Dictionary, can_go: bool) -> Control
 	hit.focus_mode = Control.FOCUS_NONE
 	hit.flat = true
 	hit.position = Vector2.ZERO
-	hit.size = ACTIVITY_SLOT_SIZE
+	hit.size = ACTIVITY_CARD_SIZE
 	hit.disabled = not can_go
 	for state in ["normal", "hover", "pressed", "disabled", "focus"]:
 		hit.add_theme_stylebox_override(state, StyleBoxEmpty.new())
@@ -558,14 +552,26 @@ func _build_interior_characters(location: Dictionary) -> void:
 	_npc.hide()
 	_npc.process_mode = Node.PROCESS_MODE_DISABLED
 
-func _build_activity_cards() -> void:
-	# 3 个位子：一个区里现在最多同时开两条带整卡的去处（E 区湖边散步 + 草坪运动），
-	# 留一位余量，第 4 条以后再说——再多就要考虑这叠要不要滚。
-	for index in 3:
+func _build_activity_cards(region_code: String) -> void:
+	# 底板是队友 10-31 16:10 那版：一块写着"××部"的板子，两张卡贴在板子里面。
+	# 区名画在板子的标签上，卡上不再烙区名——之前那批整卡把区名印死在左上角，
+	# 和 ZONES 里的名字打架就是没法收拾的根。
+	_activity_board = TextureRect.new()
+	_activity_board.name = "ActivityBoard"
+	_activity_board.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_activity_board.stretch_mode = TextureRect.STRETCH_SCALE
+	_activity_board.texture = _load_texture(String(ACTIVITY_BOARDS.get(region_code, "")))
+	_activity_board.position = ACTIVITY_BOARD_POSITION
+	_activity_board.size = ACTIVITY_BOARD_SIZE
+	_activity_board.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_activity_board.z_index = 1100
+	_activity_board.hide()
+	_scene.add_child(_activity_board)
+	for index in 2:
 		var card := TextureButton.new()
 		card.name = "ActivityCard%d" % index
-		card.position = ACTIVITY_SLOT_AT + Vector2(0, ACTIVITY_SLOT_STEP * index)
-		card.size = ACTIVITY_SLOT_SIZE
+		card.position = Vector2(ACTIVITY_CARD_X, ACTIVITY_CARD_TOP_Y if index == 0 else ACTIVITY_CARD_BOTTOM_Y)
+		card.size = ACTIVITY_CARD_SIZE
 		card.ignore_texture_size = true
 		card.stretch_mode = TextureButton.STRETCH_SCALE
 		card.pivot_offset = card.size * 0.5
@@ -655,6 +661,8 @@ func _close_dialog() -> void:
 	_update_door_prompt()
 
 func _load_texture(path: String) -> Texture2D:
+	if path.is_empty():
+		return null
 	var imported := load(path) as Texture2D
 	if imported != null:
 		return imported
