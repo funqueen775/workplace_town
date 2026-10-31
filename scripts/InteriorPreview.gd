@@ -32,13 +32,25 @@ const DOOR_AREA := Rect2(870, 725, 180, 120)
 const PLAYER_SPEED := 260.0
 const TALK_DISTANCE := 165.0
 const CHARACTER_SCALE := 10.0 / 3.0
+## 屋里右上角挂什么（2026-10-31 深夜定）：
+## false = 一张一张**横卡**叠在右上角——录屏那版，也是玩家指认的样子；
+## true = 先挂那块底板、再往板子里贴两张卡。
+## 底板素材是 1405×1119、接近正方形，摆出来是一整块总览面板，把屋子盖掉大半，
+## 玩家原话："应该每个都是这样的横着的，不是总体视图"。所以默认关掉，代码留着。
+const SHOW_ACTIVITY_BOARD := false
+## 横卡这一叠的格子（场景坐标）。
+const ACTIVITY_CARD_X := 1110.0
+const ACTIVITY_CARD_TOP_Y := 70.0
+const ACTIVITY_CARD_STEP := 207.0
+const ACTIVITY_CARD_SIZE := Vector2(670, 190)
+const ACTIVITY_SLOTS := 4
+## 底板那套坐标只在 SHOW_ACTIVITY_BOARD 为真时用。
 const ACTIVITY_UI_SCALE := 0.82
 const ACTIVITY_BOARD_POSITION := Vector2(1190, 12)
 const ACTIVITY_BOARD_SIZE := Vector2(690, 550) * ACTIVITY_UI_SCALE
-const ACTIVITY_CARD_SIZE := Vector2(585, 159) * ACTIVITY_UI_SCALE
-const ACTIVITY_CARD_X := ACTIVITY_BOARD_POSITION.x + 54.0 * ACTIVITY_UI_SCALE
-const ACTIVITY_CARD_TOP_Y := ACTIVITY_BOARD_POSITION.y + 153.0 * ACTIVITY_UI_SCALE
-const ACTIVITY_CARD_BOTTOM_Y := ACTIVITY_BOARD_POSITION.y + 316.0 * ACTIVITY_UI_SCALE
+const ACTIVITY_BOARD_CARD_X := ACTIVITY_BOARD_POSITION.x + 54.0 * ACTIVITY_UI_SCALE
+const ACTIVITY_BOARD_CARD_TOP_Y := ACTIVITY_BOARD_POSITION.y + 153.0 * ACTIVITY_UI_SCALE
+const ACTIVITY_BOARD_CARD_BOTTOM_Y := ACTIVITY_BOARD_POSITION.y + 316.0 * ACTIVITY_UI_SCALE
 const ACTIVITY_BOARDS := {
 	"C": "res://assets/小场景新UI/销售部/01_背景面板.png",
 	"D": "res://assets/小场景新UI/人事部/01_背景面板.png",
@@ -69,9 +81,7 @@ const ACTIVITY_CARDS := {
 	"m9_library": "res://assets/小场景新UI/人事部/02_独自学习_一起自习.png",
 }
 
-## 现画票根和板子上那两张卡共用同一套格子：同一个 X、同样的间距、同样的尺寸，
-## 这样第三处往后接在板子下面时，看不出来是两种东西。
-const ACTIVITY_CARD_STEP := ACTIVITY_CARD_BOTTOM_Y - ACTIVITY_CARD_TOP_Y
+## 现画票根和整卡共用上面那一套 ACTIVITY_CARD_* 格子，两种卡不会错开半格。
 ## 现画票根上那枚蜂蜜罐（从整卡上切下来的零件，见 tools/v12m_cut_activity_cards.py）。
 const ACTIVITY_JAR_TEX := "res://assets/ui/activity_cards/honey_jar.png"
 
@@ -296,18 +306,18 @@ func has_activity_card(activity_id: String) -> bool:
 	return ACTIVITY_CARDS.has(activity_id)
 
 func set_activities(activities: Array, enabled: bool, remaining: int) -> void:
-	# 底板用哪一块：美术那张只在"这一屋子不超过两个位子"时装得下；
-	# 超过两个（E 区就有三处）改用现画的并按张数加高，免得卡挂到板子外面。
 	var count := activities.size()
-	var use_art := _activity_board != null and _activity_board.texture != null and count <= _activity_buttons.size()
+	# 关掉底板时这一叠就是纯横卡：板子、板子上那块区名标签都不出现，
+	# 屋子的名字本来就画在室内背景上，不需要再挂一块面板。
+	var use_art := SHOW_ACTIVITY_BOARD and _activity_board != null \
+		and _activity_board.texture != null and count <= 2
 	_activity_board.visible = use_art and count > 0
-	var use_live := not use_art and count > 0
+	var use_live := SHOW_ACTIVITY_BOARD and not use_art and count > 0
 	_board_live.visible = use_live
-	# 不管用哪块板子，那块写区名的牌子都是现画的——美术板子上烙死的部门名被它盖住。
-	_board_tab.visible = count > 0
+	_board_tab.visible = SHOW_ACTIVITY_BOARD and count > 0
 	_board_tab_title.text = _board_title
 	if use_live:
-		var bottom := ACTIVITY_CARD_TOP_Y + ACTIVITY_CARD_STEP * (count - 1) + ACTIVITY_CARD_SIZE.y
+		var bottom := ACTIVITY_BOARD_CARD_TOP_Y + (ACTIVITY_BOARD_CARD_BOTTOM_Y - ACTIVITY_BOARD_CARD_TOP_Y) * (count - 1) + ACTIVITY_CARD_SIZE.y * 0.82
 		_board_live.size = Vector2(ACTIVITY_BOARD_SIZE.x, bottom - ACTIVITY_BOARD_POSITION.y + 20)
 	for button in _activity_buttons:
 		button.hide()
@@ -363,22 +373,22 @@ func _draw_activity_ticket(slot: int, dict: Dictionary, can_go: bool) -> Control
 		card.modulate = Color(0.72, 0.72, 0.72)
 	_scene.add_child(card)
 
-	var title := _label(String(dict.get("title", "自由活动")), 25, Color("3a2a1d"))
+	var title := _label(String(dict.get("title", "自由活动")), 38, Color("3a2a1d"))
 	# 现画的票根标题别跟着 _label 的自动换行走：实测套上换行再裁宽度，整行会不显示。
 	title.autowrap_mode = TextServer.AUTOWRAP_OFF
-	title.position = Vector2(16, 12)
-	title.size = Vector2(300, 32)
+	title.position = Vector2(30, 30)
+	title.size = Vector2(430, 52)
 	card.add_child(title)
-	var note := _label(String(dict.get("note", "")), 15, Color("7a5a40"))
-	note.position = Vector2(16, 48)
-	note.size = Vector2(296, 64)
+	var note := _label(String(dict.get("note", "")), 20, Color("7a5a40"))
+	note.position = Vector2(30, 92)
+	note.size = Vector2(430, 72)
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	note.add_theme_constant_override("line_spacing", 2)
 	card.add_child(note)
 
 	var cost_box := Panel.new()
-	cost_box.position = Vector2(ACTIVITY_CARD_SIZE.x - 96, 10)
-	cost_box.size = Vector2(84, ACTIVITY_CARD_SIZE.y - 20)
+	cost_box.position = Vector2(ACTIVITY_CARD_SIZE.x - 150, 20)
+	cost_box.size = Vector2(130, ACTIVITY_CARD_SIZE.y - 40)
 	var cost_style := StyleBoxFlat.new()
 	cost_style.bg_color = Color("dcefc6")
 	cost_style.border_color = Color("b0d094")
@@ -386,9 +396,9 @@ func _draw_activity_ticket(slot: int, dict: Dictionary, can_go: bool) -> Control
 	cost_style.set_corner_radius_all(12)
 	cost_box.add_theme_stylebox_override("panel", cost_style)
 	card.add_child(cost_box)
-	var cost_title := _label("消耗", 15, Color("6b4a2a"))
-	cost_title.position = Vector2(0, 4)
-	cost_title.size = Vector2(84, 20)
+	var cost_title := _label("消耗", 22, Color("6b4a2a"))
+	cost_title.position = Vector2(0, 10)
+	cost_title.size = Vector2(130, 30)
 	cost_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	cost_box.add_child(cost_title)
 	var cost := int(dict.get("cost", 0))
@@ -398,16 +408,16 @@ func _draw_activity_ticket(slot: int, dict: Dictionary, can_go: bool) -> Control
 		jar.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		jar.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		jar.texture = load(ACTIVITY_JAR_TEX)
-		jar.position = Vector2(27, 28)
-		jar.size = Vector2(30, 36)
+		jar.position = Vector2(42, 48)
+		jar.size = Vector2(46, 56)
 		jar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		if cost <= 0:
 			jar.modulate = Color(0.72, 0.70, 0.66, 0.55)
 		cost_box.add_child(jar)
-	var cost_value := _label("不花" if cost <= 0 else str(cost), 18,
+	var cost_value := _label("不花" if cost <= 0 else str(cost), 28,
 		Color("8b857c") if cost <= 0 else Color("a35a3a"))
-	cost_value.position = Vector2(0, cost_box.size.y - 34)
-	cost_value.size = Vector2(84, 26)
+	cost_value.position = Vector2(0, cost_box.size.y - 48)
+	cost_value.size = Vector2(130, 38)
 	cost_value.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	cost_box.add_child(cost_value)
 
@@ -599,11 +609,16 @@ func _build_activity_cards(region_code: String) -> void:
 	_activity_board.hide()
 	_scene.add_child(_activity_board)
 	_build_live_board()
-	for index in 2:
+	for index in ACTIVITY_SLOTS:
 		var card := TextureButton.new()
 		card.name = "ActivityCard%d" % index
-		card.position = Vector2(ACTIVITY_CARD_X, ACTIVITY_CARD_TOP_Y if index == 0 else ACTIVITY_CARD_BOTTOM_Y)
-		card.size = ACTIVITY_CARD_SIZE
+		if SHOW_ACTIVITY_BOARD:
+			card.position = Vector2(ACTIVITY_BOARD_CARD_X,
+				ACTIVITY_BOARD_CARD_TOP_Y if index == 0 else ACTIVITY_BOARD_CARD_BOTTOM_Y)
+			card.size = ACTIVITY_CARD_SIZE * 0.82
+		else:
+			card.position = Vector2(ACTIVITY_CARD_X, ACTIVITY_CARD_TOP_Y + ACTIVITY_CARD_STEP * index)
+			card.size = ACTIVITY_CARD_SIZE
 		card.ignore_texture_size = true
 		card.stretch_mode = TextureButton.STRETCH_SCALE
 		card.pivot_offset = card.size * 0.5
