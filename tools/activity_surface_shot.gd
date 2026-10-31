@@ -6,7 +6,12 @@ extends Node
 ## 用法：<godot> --path . --resolution 1600x900 res://tools/activity_surface_shot.tscn -- --no-resume
 
 const OUT_DIR := "res://test_artifacts/activity_cards"
-const E_INTERIOR := "res://assets/场景内部图/松风训练谷.png"
+const INTERIORS := {
+	"B": "res://assets/八大区域地图重制版/B_研发部.png",
+	"C": "res://assets/八大区域地图重制版/C_销售部.png",
+	"H": "res://assets/场景内部图/慢生活园.png",
+	"E": "res://assets/场景内部图/松风训练谷.png",
+}
 
 var _town: Node
 var _done := false
@@ -27,51 +32,60 @@ func _ready() -> void:
 			await get_tree().create_timer(0.8).timeout
 			break
 	var unlocked: Dictionary = _town.get("_month12_unlocked_places")
-	for id in ["m1_lakeside", "m7_lawn", "m7_valley"]:
+	for id in ["m1_lakeside", "m7_lawn", "m7_valley", "m1_tool", "m_grind", "m3_waterway", "m11_boardgame"]:
 		unlocked[id] = true
 	# 先把还在播的剧情屏收掉：它的黑场会把屋里那一叠压在下面（实拍踩过）。
 	var story = _town.get("_story_event_panel")
 	if story != null and is_instance_valid(story):
 		story.call("dismiss")
 		await get_tree().create_timer(0.4).timeout
-	# 先把人放进 E 区的屋里，再走一遍"进门列地方"那段。
-	var zones: Array = _town.get("ZONES")
-	var zone_e: Dictionary = {}
-	for zone in zones:
-		if String(Dictionary(zone).get("code", "")) == "E":
-			zone_e = Dictionary(zone)
-			break
-	_town.set("_active_zone", zone_e)
-	# 真进区时城镇会先把右上角"本月主线"收掉（C–H 都收），探针也照做一遍，
-	# 不然拍出来是探针自己造的重叠，游戏里看不到。
 	var hud = _town.get("_town_ui_v2")
-	if hud != null and is_instance_valid(hud):
-		hud.call("set_activity_scene_mode", true)
-	var preview = _town.get("_interior_preview")
-	preview.call("use_activity_layout", false)
-	preview.call("present", zone_e, E_INTERIOR)
-	await get_tree().create_timer(0.8).timeout
-	_town.call("_show_month12_place_list", "E")
-	await get_tree().create_timer(0.9).timeout
-	var cards = _town.get("_activity_cards")
-	var lit := 0
-	for button in (preview.get("_activity_buttons") as Array):
-		var ctrl := button as Control
-		if ctrl != null and ctrl.visible:
-			lit += 1
-	var drawn: int = (preview.get("_drawn_cards") as Array).size()
-	var panel = _town.get("_activity_panel")
-	print("[surface] 屋里：整卡=", lit, " 现画票根=", drawn,
-		" 右下角面板可见=", (panel != null and is_instance_valid(panel) and bool(panel.get("visible"))),
-		" 整屏列表开着=", bool(cards.call("is_open")),
-		" 室内开着=", bool(preview.call("is_open")))
-	await _shot("摆法_屋里一叠")
+	var zones: Array = _town.get("ZONES")
+	for zone_code in ["B", "C", "E", "H"]:
+		var zone: Dictionary = {}
+		for value in zones:
+			if String(Dictionary(value).get("code", "")) == zone_code:
+				zone = Dictionary(value)
+				break
+		_town.set("_active_zone", zone)
+		# 真进区时城镇会先把右上角"本月主线"收掉，探针照做一遍，
+		# 不然拍出来是探针自己造的重叠，游戏里看不到。
+		if hud != null and is_instance_valid(hud):
+			hud.call("set_activity_scene_mode", true)
+		var preview = _town.get("_interior_preview")
+		if zone_code in ["A", "B", "C", "D"]:
+			preview.call("use_department_layout", true)
+		else:
+			preview.call("use_activity_layout", false)
+		preview.call("present", zone, String(INTERIORS[zone_code]))
+		await get_tree().create_timer(0.8).timeout
+		_town.call("_show_month12_place_list", zone_code)
+		await get_tree().create_timer(0.9).timeout
+		var cards = _town.get("_activity_cards")
+		var lit := 0
+		for button in (preview.get("_activity_buttons") as Array):
+			var ctrl := button as Control
+			if ctrl != null and ctrl.visible:
+				lit += 1
+		var drawn: int = (preview.get("_drawn_cards") as Array).size()
+		var panel = _town.get("_activity_panel")
+		print("[surface] ", zone_code, " 区：整卡=", lit, " 现画票根=", drawn,
+			" 美术底板=", bool((preview.get("_activity_board") as CanvasItem).visible),
+			" 现画底板=", bool((preview.get("_board_live") as CanvasItem).visible),
+			" 右下角面板可见=", (panel != null and is_instance_valid(panel) and bool(panel.get("visible"))),
+			" 整屏列表开着=", bool(cards.call("is_open")))
+		await _shot("摆法_%s区" % zone_code)
+		if bool(cards.call("is_open")):
+			cards.call("close")
+		await get_tree().create_timer(0.3).timeout
 	# 再拍整屏那版：直接叫列表组件开，不改代码里的那个开关。
-	preview.call("set_activities", [], true, 1)
-	cards.call("open", "E 区", _rows_for("E"), "本月还剩 1 格")
+	# 再拍整屏那版：直接叫列表组件开，不改代码里的那个开关。
+	var preview2 = _town.get("_interior_preview")
+	var cards2 = _town.get("_activity_cards")
+	preview2.call("set_activities", [], true, 1)
+	cards2.call("open", "E 区", _rows_for("E"), "本月还剩 1 格")
 	await get_tree().create_timer(0.7).timeout
-	print("[surface] 整屏：列表开着=", bool(cards.call("is_open")))
-	await _shot("摆法_整屏列表")
+	print("[surface] 整屏：列表开着=", bool(cards2.call("is_open")))
 	print("SURFACE_SHOT_DONE")
 	_done = true
 	get_tree().quit(0)

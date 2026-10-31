@@ -105,6 +105,12 @@ var _activity_buttons: Array[TextureButton] = []
 var _activity_board: TextureRect
 ## 没有整卡的那几处，按同一版式现画的票根（每次 set_activities 重画一遍）。
 var _drawn_cards: Array[Control] = []
+## 美术没给底板图的那两个区（市场部 / 研发部），现画一块同样式的板子顶上。
+var _board_live: Panel
+var _board_live_tab: Panel
+var _board_live_title: Label
+var _board_title := ""
+var _board_code := ""
 
 func _ready() -> void:
 	layer = 80
@@ -125,6 +131,8 @@ func present(location: Dictionary, texture_path: String) -> void:
 	_dialog = null
 	_activity_buttons.clear()
 	_activity_board = null
+	_board_title = String(location.get("name", ""))
+	_board_code = String(location.get("code", ""))
 	var backdrop := ColorRect.new()
 	backdrop.color = Color("10151e")
 	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -282,7 +290,17 @@ func has_activity_card(activity_id: String) -> bool:
 	return ACTIVITY_CARDS.has(activity_id)
 
 func set_activities(activities: Array, enabled: bool, remaining: int) -> void:
-	_activity_board.visible = not activities.is_empty() and _activity_board.texture != null
+	# 底板用哪一块：美术那张只在"这一屋子不超过两个位子"时装得下；
+	# 超过两个（E 区就有三处）改用现画的并按张数加高，免得卡挂到板子外面。
+	var count := activities.size()
+	var use_art := _activity_board != null and _activity_board.texture != null and count <= _activity_buttons.size() and _art_board_matches_zone()
+	_activity_board.visible = use_art and count > 0
+	var use_live := not use_art and count > 0
+	_board_live.visible = use_live
+	if use_live:
+		var bottom := ACTIVITY_CARD_TOP_Y + ACTIVITY_CARD_STEP * (count - 1) + ACTIVITY_CARD_SIZE.y
+		_board_live.size = Vector2(ACTIVITY_BOARD_SIZE.x, bottom - ACTIVITY_BOARD_POSITION.y + 20)
+		_board_live_title.text = _board_title
 	for button in _activity_buttons:
 		button.hide()
 	# 上一轮现画的票根先收掉，这轮按这一屋子的去处重画。
@@ -567,6 +585,7 @@ func _build_activity_cards(region_code: String) -> void:
 	_activity_board.z_index = 1100
 	_activity_board.hide()
 	_scene.add_child(_activity_board)
+	_build_live_board()
 	for index in 2:
 		var card := TextureButton.new()
 		card.name = "ActivityCard%d" % index
@@ -583,6 +602,71 @@ func _build_activity_cards(region_code: String) -> void:
 		card.hide()
 		_scene.add_child(card)
 		_activity_buttons.append(card)
+
+
+## 市场部、研发部这两块底板图美术还没给（小场景新UI 只有六个部门）。
+## 先照那六张的样子现画一块顶上：奶油底 + 深褐描边 + 里面一道橙色虚线 + 左上角那块写区名的牌子。
+## 有图的时候这块不出现，图补齐了直接删掉这个函数就行。
+func _build_live_board() -> void:
+	_board_live = Panel.new()
+	_board_live.name = "ActivityBoardLive"
+	_board_live.position = ACTIVITY_BOARD_POSITION
+	_board_live.size = ACTIVITY_BOARD_SIZE
+	_board_live.z_index = 1090
+	_board_live.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_board_live.add_theme_stylebox_override("panel", _board_style(Color("fdf3e3"), Color("6b2f12"), 6, 26))
+	_board_live.hide()
+	_scene.add_child(_board_live)
+
+	var inner := Panel.new()
+	inner.name = "ActivityBoardStitch"
+	# 跟着板子一起长：板子按张数加高时，里面这道缝线要跟着铺满，不能只画半截。
+	inner.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	inner.offset_left = 13.0
+	inner.offset_top = 13.0
+	inner.offset_right = -13.0
+	inner.offset_bottom = -13.0
+	inner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	inner.add_theme_stylebox_override("panel", _board_style(Color(0, 0, 0, 0), Color("ef8f3c"), 2, 18))
+	_board_live.add_child(inner)
+
+	_board_live_tab = Panel.new()
+	_board_live_tab.name = "ActivityBoardTab"
+	_board_live_tab.position = Vector2(30, -14)
+	_board_live_tab.size = Vector2(210, 56)
+	_board_live_tab.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_board_live_tab.add_theme_stylebox_override("panel", _board_style(Color("f7e3c2"), Color("6b2f12"), 4, 26))
+	_board_live.add_child(_board_live_tab)
+	_board_live_title = _label(_board_title, 26, Color("7a3f1d"))
+	_board_live_title.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_board_live_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_board_live_tab.add_child(_board_live_title)
+
+
+
+## 美术那块底板左上角烙的是部门名（销售部 / 人事部 / 财务部 / 运营部 / 行政部 / 生产部）。
+## 这一屋子的名字和它对不上时（E 是松风训练谷、H 是慢生活园），改用现画的那块，
+## 牌子直接写 ZONES 里的名字——等区名口径统一了，美术板子会自动回来，不用再改代码。
+func _art_board_matches_zone() -> bool:
+	if _board_title.is_empty():
+		return true
+	var path := String(ACTIVITY_BOARDS.get(_board_code, ""))
+	if path.is_empty():
+		return false
+	var folders := path.split("/")
+	# res://assets/小场景新UI/销售部/01_背景面板.png -> 倒数第二段就是部门名
+	if folders.size() < 2:
+		return false
+	return String(folders[folders.size() - 2]) == _board_title
+
+func _board_style(background: Color, border: Color, width: int, radius: int) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = background
+	style.border_color = border
+	style.set_border_width_all(width)
+	style.set_corner_radius_all(radius)
+	return style
+
 
 func _set_activity_card_hover(card: TextureButton, hovered: bool) -> void:
 	if card.disabled:

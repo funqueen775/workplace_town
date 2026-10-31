@@ -2854,6 +2854,9 @@ func _exit_zone() -> void:
 	for marker in _location_markers:
 		marker.hide()
 	_apply_town_npc_visibility()
+	# 回镇上把"本月主线"放回来：屋里那块板子占的就是它的位置。
+	if _town_ui_v2 != null:
+		_town_ui_v2.set_activity_scene_mode(false)
 	_hide_dialog()
 
 
@@ -5078,17 +5081,16 @@ func _show_month12_place_list(zone_code: String) -> void:
 	for row_value in rows:
 		if not String(Dictionary(row_value).get("cardArt", "")).is_empty():
 			carded.append(row_value)
-	# 屋里那一叠占的是右上角，和"本月主线"那张卡同一个位子。
-	# 进 C–H 时城镇本来就把主线卡收掉了（TownUiV2.set_activity_scene_mode），
-	# A/B 没收，所以这两区照旧走右下角面板，别让两张卡叠在一起。
-	if MONTH12_CARD_SURFACE == "room" and zone_code not in ["A", "B"] \
-			and _interior_preview != null and _interior_preview.is_open():
+	if MONTH12_CARD_SURFACE == "room" and _interior_preview != null and _interior_preview.is_open():
 		# 屋里右上角那一叠（队友 10-30 录屏那版）：这一屋子能去的地方全在里面，
 		# 有整卡的贴整卡，没整卡的现画同版式票根——右下角那块面板同时收掉，
 		# 不然同一份去处读两遍。
 		# 能不能点由每行自己的 disabled 决定（H=0 时不缓心情的那几条压灰），
 		# 所以 enabled 给真、remaining 给 1，不再拿旧 48 个月的行动点去压整叠。
 		_activity_panel.hide_panel()
+		# 板子占的正是右上角"本月主线"那块地方：进屋收掉它，出屋还原（_exit_zone）。
+		if _town_ui_v2 != null:
+			_town_ui_v2.set_activity_scene_mode(true)
 		_interior_preview.set_activities(rows, true, 1)
 		return
 	if not carded.is_empty():
