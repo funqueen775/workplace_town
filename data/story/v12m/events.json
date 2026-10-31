@@ -74,7 +74,7 @@
         "lines": [
           "第一天，陈工先讲清楚：做过的事要写下真实署名。",
           "散会后，王哥带你熟悉 A 区。",
-          "上午，B 区训练室 → A 区总部。"
+          "上午，B 区训练室 → A 区市场部。"
         ],
         "shots": [
           "place_card_tool_1.png"
@@ -89,7 +89,7 @@
       "required": true,
       "title": "带巡与首次手机消息",
       "locationId": "A",
-      "location": "A 区总部",
+      "location": "A 区市场部",
       "durationMinutes": 20,
       "situation": "weak",
       "autoComplete": true,
@@ -118,7 +118,7 @@
             {
               "type": "say",
               "speaker": "王哥",
-              "text": "好了，工位认过了。走，去 A 区总部。"
+              "text": "好了，工位认过了。走，去 A 区市场部。"
             }
           ]
         },
@@ -127,12 +127,12 @@
           "at": {
             "zoneId": "A"
           },
-          "label": "A 区总部",
+          "label": "A 区市场部",
           "beats": [
             {
               "type": "say",
               "speaker": "王哥",
-              "text": "这栋楼是 A 区总部。跨组开会、找人签字，都来这儿。"
+              "text": "这栋楼是 A 区市场部。跨组开会、找人签字，都来这儿。"
             },
             {
               "type": "say",
@@ -295,7 +295,7 @@
       "required": true,
       "title": "第一次被轻视",
       "locationId": "A",
-      "location": "A 总部 · 跨组周会",
+      "location": "A 市场部 · 跨组周会",
       "durationMinutes": 45,
       "situation": "medium",
       "beats": [
@@ -578,7 +578,7 @@
         {
           "type": "say",
           "speaker": "王哥",
-          "text": "周三上午，A 区评审室，先把两张图带过去。评审完去树影书院二楼核对旧事故单，镇子东南角那栋。回来再补方案。"
+          "text": "周三上午，A 区评审室，先把两张图带过去。评审完去人事部二楼核对旧事故单，镇子东南角那栋。回来再补方案。"
         },
         {
           "type": "say",
@@ -676,7 +676,7 @@
         {
           "type": "say",
           "speaker": "陈工",
-          "text": "两年前那次，单子上就三个字：加监控。后来谁都没退路可走。你要判断哪条更好收拾，先去树影书院二楼把当年的单子翻出来，再回来把结论补进方案。"
+          "text": "两年前那次，单子上就三个字：加监控。后来谁都没退路可走。你要判断哪条更好收拾，先去人事部二楼把当年的单子翻出来，再回来把结论补进方案。"
         },
         {
           "type": "narration",
@@ -699,7 +699,7 @@
         },
         {
           "type": "narration",
-          "text": "笔在你手里。先定一条验证的路子，评审完去树影书院二楼查旧单的回滚记录，回来把退路写进方案。"
+          "text": "笔在你手里。先定一条验证的路子，评审完去人事部二楼查旧单的回滚记录，回来把退路写进方案。"
         }
       ],
       "prompt": "这件事，你打算从哪儿开始？",
@@ -707,7 +707,7 @@
         {
           "id": "A",
           "text": "自己搭两套小方案，各跑一遍再决定",
-          "outcome": "两台终端并排摆在桌上。两条路线各跑出一轮结果，陈工追问了一处差异，你拿记录答上来了。散会后你去树影书院二楼翻旧单，确认当年有没有真正的回滚方案，再把结论补进这周方案。",
+          "outcome": "两台终端并排摆在桌上。两条路线各跑出一轮结果，陈工追问了一处差异，你拿记录答上来了。散会后你去人事部二楼翻旧单，确认当年有没有真正的回滚方案，再把结论补进这周方案。",
           "emphasis": [
             "你拿记录答上来了"
           ],
@@ -736,7 +736,7 @@
         {
           "id": "B",
           "text": "先用开源把流程跑通，边跑边补验证",
-          "outcome": "流程第三天就跑通了，快是真的快。王哥看了回滚清单，说：“这部分还得补。”散会后你去树影书院二楼查了当年的回滚记录，把退路补全。",
+          "outcome": "流程第三天就跑通了，快是真的快。王哥看了回滚清单，说：“这部分还得补。”散会后你去人事部二楼查了当年的回滚记录，把退路补全。",
           "emphasis": [
             "这部分还得补"
           ],
@@ -765,7 +765,7 @@
         {
           "id": "C",
           "text": "先问王哥以前踩过哪些坑，再自己做判断",
-          "outcome": "王哥讲了旧单里那次「加监控」是怎么处理的。你把他的口述和这次验证分开记，散会后去树影书院二楼核对原记录，再把结论补进方案。",
+          "outcome": "王哥讲了旧单里那次「加监控」是怎么处理的。你把他的口述和这次验证分开记，散会后去人事部二楼核对原记录，再把结论补进方案。",
           "emphasis": [
             "把结论补进方案"
           ],
@@ -820,7 +820,7 @@
       "required": true,
       "title": "翻旧事故单",
       "locationId": "D",
-      "location": "D 区 树影书院二楼",
+      "location": "D 区 人事部二楼",
       "durationMinutes": 40,
       "situation": "weak",
       "autoComplete": true,
@@ -832,12 +832,12 @@
       "enterPlace": "m2_library",
       "doorHook": "door_library",
       "visit": {
-        "name": "树影书院二楼 · 旧档案架",
+        "name": "人事部二楼 · 旧档案架",
         "object": "靠窗那摞旧事故单",
         "rowNote": "翻旧事故单",
         "placeLine": "翻一翻上一版翻车那张单。",
         "card": {
-          "title": "树影书院 · 二楼旧档",
+          "title": "人事部 · 二楼旧档",
           "lines": [
             "公司历次事故单都装订在这栋楼二楼，凭工牌进。",
             "翻旧单不是背结论，是找别人踩过的坑。",
@@ -848,12 +848,12 @@
           ],
           "pages": 1
         },
-        "doorHint": "门在书院那边"
+        "doorHint": "门在人事部那边"
       },
       "beats": [
         {
           "type": "narration",
-          "text": "你按陈工给的线索穿过半个镇子，走到东南角那栋树影书院。公司的旧事故单都装订在二楼，凭工牌进。这趟要弄明白一件事：两年前那次故障，到底有没有能照着做的回滚步骤。"
+          "text": "你按陈工给的线索穿过半个镇子，走到东南角那栋人事部。公司的旧事故单都装订在二楼，凭工牌进。这趟要弄明白一件事：两年前那次故障，到底有没有能照着做的回滚步骤。"
         },
         {
           "type": "narration",
@@ -891,7 +891,7 @@
       "setsFlags": [
         "m02_library_rollback_checked"
       ],
-      "walkNote": "去 D 区书院二楼翻旧单"
+      "walkNote": "去 D 区人事部二楼翻旧单"
     },
     {
       "id": "M02_NIGHT_1",
@@ -909,7 +909,7 @@
       "beats": [
         {
           "type": "narration",
-          "text": "第三天夜里。上午在评审室定了路线，下午去书院翻了旧单。"
+          "text": "第三天夜里。上午在评审室定了路线，下午去人事部翻了旧单。"
         },
         {
           "type": "narration",
@@ -1040,7 +1040,7 @@
       "beats": [
         {
           "type": "narration",
-          "text": "第七天早上。这周该验的都验完了。书院翻到的旧记录、你自己跑出来的结果，两份分开记着；方案里补上了能照着做的回滚步骤。"
+          "text": "第七天早上。这周该验的都验完了。人事部翻到的旧记录、你自己跑出来的结果，两份分开记着；方案里补上了能照着做的回滚步骤。"
         },
         {
           "type": "narration",
@@ -1238,7 +1238,7 @@
         },
         {
           "id": "m02_wang_2",
-          "text": "下个月初，禾丰的人会在 C 区水巷的客户展厅谈合同，点名要技术在场。小林会拉你；带上这套拣货问答的选型和风险说明。"
+          "text": "下个月初，禾丰的人会在 C 区销售部的客户展厅谈合同，点名要技术在场。小林会拉你；带上这套拣货问答的选型和风险说明。"
         }
       ],
       "replyOptions": [
@@ -1360,7 +1360,7 @@
         {
           "type": "say",
           "speaker": "小林",
-          "text": "十点，C 区水巷，客户展厅。禾丰要在合同里加一句「保证百分之百不胡说」。"
+          "text": "十点，C 区销售部，客户展厅。禾丰要在合同里加一句「保证百分之百不胡说」。"
         },
         {
           "type": "say",
@@ -1557,7 +1557,7 @@
       "title": "工位上的路演袋",
       "locationId": "B",
       "location": "B 区工位",
-      "departNote": "周五下午两点，会展码头。在那之前，周四下午先彩排一遍。",
+      "departNote": "周五下午两点，运营部。在那之前，周四下午先彩排一遍。",
       "durationMinutes": 15,
       "situation": "weak",
       "autoComplete": true,
@@ -1593,7 +1593,7 @@
         },
         {
           "type": "narration",
-          "text": "袋里一张路演流程单：「周五 14:00 · 会展码头 · 客户现场」。最后一行用马克笔加粗了——主讲，你。",
+          "text": "袋里一张路演流程单：「周五 14:00 · 运营部 · 客户现场」。最后一行用马克笔加粗了——主讲，你。",
           "emphasis": [
             "主讲，你"
           ]
@@ -1626,7 +1626,7 @@
         },
         {
           "type": "narration",
-          "text": "四天：一天彩排，三天改稿，最后一天到会展码头。",
+          "text": "四天：一天彩排，三天改稿，最后一天到运营部。",
           "goalLine": true
         }
       ],
@@ -1847,7 +1847,7 @@
       "required": true,
       "title": "白板室",
       "locationId": "A",
-      "location": "A 区总部白板室",
+      "location": "A 区市场部白板室",
       "walk": true,
       "durationMinutes": 20,
       "situation": "weak",
@@ -1974,7 +1974,7 @@
         },
         {
           "type": "narration",
-          "text": "书院长桌对面那个翻新人培训材料的人，就是她。她抬头看见你，先点了下头。",
+          "text": "人事部长桌对面那个翻新人培训材料的人，就是她。她抬头看见你，先点了下头。",
           "when": {
             "flag": "m09_library_social_asked"
           }
@@ -2401,7 +2401,7 @@
         },
         {
           "type": "narration",
-          "text": "训练谷那一局他赢了你。说好的，输赢不算考核，也没人把它记进任何一份名单。",
+          "text": "财务部那一局他赢了你。说好的，输赢不算考核，也没人把它记进任何一份名单。",
           "when": {
             "flag": "m07_valley_first"
           }
@@ -2623,7 +2623,7 @@
       "required": true,
       "title": "保证不胡说",
       "locationId": "C",
-      "location": "C 区 创意水巷 · 客户展厅",
+      "location": "C 区 销售部 · 客户展厅",
       "durationMinutes": 90,
       "situation": "medium",
       "walk": true,
@@ -2953,7 +2953,7 @@
       "required": true,
       "title": "周四深夜 02:10",
       "locationId": "B",
-      "location": "B 区 · 科技丘",
+      "location": "B 区 · 研发部",
       "durationMinutes": 90,
       "situation": "strong",
       "autoComplete": false,
@@ -3114,7 +3114,7 @@
       "guideBy": "小林",
       "walkNote": "告警叠了四张，都在演示线",
       "allNighter": true,
-      "departNote": "太晚了，回不去了。天亮还得去会展码头。"
+      "departNote": "太晚了，回不去了。天亮还得去运营部。"
     },
     {
       "id": "M06_WALL",
@@ -3429,7 +3429,7 @@
       "required": true,
       "title": "重构路线",
       "locationId": "A",
-      "location": "A 区总部白板室",
+      "location": "A 区市场部白板室",
       "durationMinutes": 45,
       "situation": "medium",
       "autoComplete": false,
@@ -3697,7 +3697,7 @@
         },
         {
           "type": "narration",
-          "text": "公示期里，你也把交接文档交给许棠核对。她约你下旬到树影书院阅览室，带上第七页，把她仍靠经验判断的两步写成能复用的流程。"
+          "text": "公示期里，你也把交接文档交给许棠核对。她约你下旬到人事部阅览室，带上第七页，把她仍靠经验判断的两步写成能复用的流程。"
         }
       ],
       "choices": [
@@ -3852,7 +3852,7 @@
         },
         {
           "type": "narration",
-          "text": "上个月在书院长桌上写的那份记录还留着。翻回去看，试点范围当时是怎么圈的，上面写清楚了。",
+          "text": "上个月在人事部长桌上写的那份记录还留着。翻回去看，试点范围当时是怎么圈的，上面写清楚了。",
           "when": {
             "flag": "m09_longtable"
           }
@@ -4240,7 +4240,7 @@
       "required": true,
       "title": "第二天早上",
       "locationId": "B",
-      "location": "B 区 · 科技丘",
+      "location": "B 区 · 研发部",
       "durationMinutes": 30,
       "situation": "weak",
       "autoComplete": true,
@@ -4285,7 +4285,7 @@
         },
         {
           "type": "narration",
-          "text": "十一点半，你出门。会展码头在镇子最南边，坐车过去还要一段。"
+          "text": "十一点半，你出门。运营部在镇子最南边，坐车过去还要一段。"
         },
         {
           "type": "narration",
@@ -4300,15 +4300,15 @@
         "title": "第五月 · 客户 Demo",
         "lines": [
           "八点四十醒，十一点半出门",
-          "会展码头在镇子最南边",
+          "运营部在镇子最南边",
           "两点上台 · 麦在你手上"
         ],
         "shots": [
           "place_card_expo_1.png"
         ]
       },
-      "walkNote": "出门，去南边的会展码头",
-      "departNote": "去南边的会展码头。到了主厅，先找那块大屏。",
+      "walkNote": "出门，去南边的运营部",
+      "departNote": "去南边的运营部。到了主厅，先找那块大屏。",
       "xunOpen": "跨夜：上旬深夜改到中旬清晨，首拍蒙蒙亮即交代"
     },
     {
@@ -4372,7 +4372,7 @@
         {
           "type": "say",
           "speaker": "王哥",
-          "text": "你自己那一栏今天也得填。工位上一直有人开会，去书院那张长桌写吧。"
+          "text": "你自己那一栏今天也得填。工位上一直有人开会，去人事部那张长桌写吧。"
         },
         {
           "type": "narration",
@@ -4621,7 +4621,7 @@
       "required": true,
       "title": "客户 Demo",
       "locationId": "F",
-      "location": "观澜会展码头",
+      "location": "运营部",
       "durationMinutes": 90,
       "situation": "strong",
       "autoComplete": false,
@@ -4842,16 +4842,16 @@
       "reportUse": "evidence",
       "zoneCut": "F",
       "guideBy": "小林",
-      "walkNote": "去南边的会展码头",
+      "walkNote": "去南边的运营部",
       "enterPlace": "m5_expo",
       "doorHook": "door_expo",
       "visit": {
-        "name": "观澜会展码头",
+        "name": "运营部",
         "object": "主厅那块大屏",
         "rowNote": "两点上台，屏幕不是我们的",
         "placeLine": "客户现场，第二组上台，主讲是你。",
         "card": {
-          "title": "观澜会展码头",
+          "title": "运营部",
           "lines": [
             "客户现场。镇子最南边，出门过码头广场。",
             "周五下午两点，第二组上台。屏幕是展厅的，接口自己带。",
@@ -4978,14 +4978,14 @@
       "required": true,
       "title": "许棠画了两条路线",
       "locationId": "D",
-      "location": "树影书院 · 阅览室",
+      "location": "人事部 · 阅览室",
       "durationMinutes": 45,
       "situation": "medium",
       "autoComplete": false,
       "beats": [
         {
           "type": "narration",
-          "text": "下旬，许棠在群里发来一条消息：书院阅览室，她画了两条路线等你。你带着第七页文档过去的时候，她已经在白板上画开了。"
+          "text": "下旬，许棠在群里发来一条消息：人事部阅览室，她画了两条路线等你。你带着第七页文档过去的时候，她已经在白板上画开了。"
         },
         {
           "type": "narration",
@@ -5969,14 +5969,14 @@
       "required": false,
       "title": "门口那个人",
       "locationId": "C",
-      "location": "C 区水巷外摆",
+      "location": "C 区销售部外摆",
       "durationMinutes": 10,
       "situation": "weak",
       "autoComplete": false,
       "beats": [
         {
           "type": "narration",
-          "text": "散会后你没直接回工位。水巷外摆那排椅子空着，你挑了靠里的一张坐下——王哥要的那三样，一条还没补。抬头时，小林端着咖啡站在门口，目光在几排椅子之间扫。"
+          "text": "散会后你没直接回工位。销售部外摆那排椅子空着，你挑了靠里的一张坐下——王哥要的那三样，一条还没补。抬头时，小林端着咖啡站在门口，目光在几排椅子之间扫。"
         }
       ],
       "choices": [
@@ -6160,7 +6160,7 @@
       "required": false,
       "title": "长桌对面那个人",
       "locationId": "D",
-      "location": "树影书院 · 长桌",
+      "location": "人事部 · 长桌",
       "durationMinutes": 10,
       "situation": "weak",
       "autoComplete": false,
@@ -7135,7 +7135,7 @@
       "required": true,
       "title": "长桌上的交接文档",
       "locationId": "D",
-      "location": "树影书院 · 长桌",
+      "location": "人事部 · 长桌",
       "durationMinutes": 45,
       "situation": "medium",
       "autoComplete": false,
@@ -8153,7 +8153,7 @@
         },
         {
           "type": "narration",
-          "text": "下午，指标复盘会在 A 区会议室。你把书院复现时发现的缺失条件带过去，投影里的增长和转化都在往上走。"
+          "text": "下午，指标复盘会在 A 区会议室。你把人事部复现时发现的缺失条件带过去，投影里的增长和转化都在往上走。"
         },
         {
           "type": "say",
@@ -8348,7 +8348,7 @@
       "required": false,
       "title": "门口那个人",
       "locationId": "C",
-      "location": "C 区水巷外摆",
+      "location": "C 区销售部外摆",
       "durationMinutes": 10,
       "situation": "weak",
       "autoComplete": false,
@@ -8528,7 +8528,7 @@
           "when": {
             "flag": "m03_coffee_social_invited"
           },
-          "text": "散会那天，水巷外摆，你招呼小林坐了过来。"
+          "text": "散会那天，销售部外摆，你招呼小林坐了过来。"
         },
         {
           "when": {

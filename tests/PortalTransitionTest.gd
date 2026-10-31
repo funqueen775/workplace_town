@@ -54,20 +54,29 @@ func _ready() -> void:
 	var preview := INTERIOR_PREVIEW.new()
 	add_child(preview)
 	preview.exit_requested.connect(_on_interior_exit)
-	preview.present(zone_b, "res://assets/场景内部图/云栖科技丘.png")
+	preview.present(zone_b, town.INTERIOR_ASSETS["B"])
 	preview.enable_exploration()
 	var scene := preview.get("_scene") as Control
 	if scene == null or not is_equal_approx(scene.position.x + scene.size.x * scene.scale.x * 0.5, preview.get("_root").size.x * 0.5):
 		_fail("室内场景没有在视口居中")
 		return
-	if not preview.is_door_prompt_active() or preview.get("_door_prompt").text != "出口":
-		_fail("室内门口没有显示出口标识")
+	if not preview.is_door_prompt_active() or preview.get("_door_prompt").text != "返回小镇  →":
+		_fail("室内右侧没有显示返回小镇的出口")
 		return
 	var interior_player := preview.get("_player") as Node2D
-	interior_player.position = Vector2(960, 780)
+	if not (preview.get("_door_prompt") as Button).disabled:
+		_fail("玩家尚未靠近右侧出口时就能点击返回")
+		return
+	preview.set_touch_vector(Vector2(0, 1))
+	preview._process(0.5)
+	if interior_player.position.y != preview.ROAD_Y:
+		_fail("室内角色能离开横向道路")
+		return
+	preview.set_touch_vector(Vector2.ZERO)
+	interior_player.position = Vector2(1760, preview.ROAD_Y)
 	preview._process(0.0)
 	if not _interior_exit_received:
-		_fail("走进室内大门没有自动返回主世界")
+		_fail("走到室内道路右端没有自动返回主世界")
 		return
 	print("PORTAL_TRANSITION_PASS auto_enter=true auto_exit=true exit_outside=true")
 	get_tree().quit(0)

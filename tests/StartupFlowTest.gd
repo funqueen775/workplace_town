@@ -52,28 +52,37 @@ func _ready() -> void:
 	settings.call("close")
 	(home.get_node("StartGame") as TextureButton).pressed.emit()
 	await get_tree().create_timer(0.15).timeout
-	if not _has_text(startup, "认识职场小镇") or not _has_text(startup, "小镇介绍"):
-		_fail("小镇导览首页没有正确显示")
+	if not _has_text(startup, "小林") or not _has_text(startup, "销售部  ·  产品同事") or not _has_text(startup, "问清真正需求"):
+		_fail("开始游戏没有直接进入小林预演题")
+		return
+	startup.call("_choose_intro_answer", 0)
+	await get_tree().process_frame
+	if not _has_text(startup, "好，我把客户叫回来，我们先问明白。"):
+		_fail("小林选择后没有反馈")
 		return
 	startup.call("_go_page", 1)
 	await get_tree().process_frame
-	if not _has_text(startup, "人物名单") or not _has_text(startup, "陈工"):
-		_fail("人物名单页没有正确显示")
+	if not _has_text(startup, "老周") or not _has_text(startup, "人事部  ·  资深同事") or not _has_text(startup, "先整理事实"):
+		_fail("老周预演题没有正确显示")
 		return
-	var chen_avatar := load("res://assets/ui/rework_v1/profile/components/03_人际关系/小赵头像.png") as Texture2D
-	if not _has_texture(startup, chen_avatar):
-		_fail("陈工没有使用奶白西装熊头像")
-		return
-	startup.call("_go_page", 2)
+	startup.call("_choose_intro_answer", 1)
 	await get_tree().process_frame
-	if not _has_text(startup, "39") or not _has_text(startup, "12") or not _has_text_containing(startup, "24 次自由活动窗口"):
-		_fail("旅程页的主线和自由活动数量未与 V1.2 配置一致")
+	if not _has_text(startup, "有了事实，讨论才不会只剩立场。"):
+		_fail("老周选择后没有反馈")
+		return
+	if not _has_text(startup, "老周递来入职登记表：选好自己的形象，就正式上班。") or not _has_text(startup, "去选择形象"):
+		_fail("老周的反馈没有衔接入职登记")
+		return
+	startup.call("_start_avatar_selection")
+	await get_tree().process_frame
+	if not _has_text(startup, "选择你的形象"):
+		_fail("预演后没有进入形象选择")
 		return
 	var screenshot_dir := OS.get_environment("TOWN_UI_SCREENSHOT_DIR")
 	if not screenshot_dir.is_empty() and DisplayServer.get_name() != "headless":
 		await RenderingServer.frame_post_draw
 		get_viewport().get_texture().get_image().save_png(screenshot_dir.path_join("startup_journey.png"))
-	print("STARTUP_FLOW_PASS home_assets=true settings=true intro_pages=3 cast=true")
+	print("STARTUP_FLOW_PASS home_assets=true settings=true intro_scenarios=2 avatar=true")
 	get_tree().quit(0)
 
 func _home_button_ready(home: Control, name: String) -> bool:

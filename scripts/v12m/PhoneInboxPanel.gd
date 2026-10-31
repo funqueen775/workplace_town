@@ -23,7 +23,7 @@ signal conversation_opened(conversation_id: String)
 signal conversation_read(conversation_id: String)
 
 const FONT := preload("res://assets/fonts/NotoSansCJKsc-Regular.otf")
-const BG_TEXTURE := preload("res://assets/场景内部图/熊起东方总部.png")
+const BG_TEXTURE := preload("res://assets/八大区域地图重制版/A_市场部.png")
 const PHONE_FRAME := preload("res://assets/IMG_3984(1).PNG")
 const WANG_SPRITE := preload("res://assets/characters/paper_doll_64/compiled/bear_plaid_glasses_walk_64.png")
 const PAPER_TEXTURE := preload("res://assets/ui/ledger/paper_tex.png")

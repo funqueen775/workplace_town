@@ -31,21 +31,29 @@ def main() -> None:
         assert code == 200 and answer["generatedBy"] == "llm"
         assert answer["memoryRefs"] == []
         assert service.npc_chat(sid, "chen_gong", first) == (200, answer)
+        visitor = request("财务部今天有什么安排？")
+        visitor["regionId"] = "E"
+        assert service.npc_chat(sid, "chen_gong", visitor)[0] == 200
+        visit_event = service.store.get_event(sid, visitor["eventId"])
+        assert json.loads(visit_event["payload_json"])["regionId"] == "E"
         second = request("上次说的预算有变化")
         code, next_answer = service.npc_chat(sid, "chen_gong", second)
         assert code == 200
         assert any(ref["eventId"] == first["eventId"] for ref in next_answer["memoryRefs"])
 
     code, memories = service.npc_memories(sid, "chen_gong", ["social"], 20)
-    assert code == 200 and len(memories["items"]) == 4
+    assert code == 200 and len(memories["items"]) == 6
     assert any(item["kind"] == "npc_reply" for item in memories["items"])
-    assert len(service.store.event_stream(sid)) == 2
+    assert len(service.store.event_stream(sid)) == 3
     state = service.get_session(sid)[1]["state"]
     assert state["scoreSummary"] == initial_state["scoreSummary"]
     assert state["level"] == initial_state["level"]
     assert service.npc_chat(sid, "wang_ge", first)[0] == 409
     assert service.npc_chat(sid, "unknown", request("你好"))[0] == 404
     assert service.npc_chat(sid, "chen_gong", request(" "))[0] == 400
+    invalid_region = request("你好")
+    invalid_region["regionId"] = "Z"
+    assert service.npc_chat(sid, "chen_gong", invalid_region)[0] == 400
     with patch.object(npc_chat, "_local_config", return_value={}), patch.dict(
             "os.environ", {"ARK_API_KEY": "", "NPC_LLM_PROVIDER": "ark"}):
         for npc in npc_chat.NPCS.values():

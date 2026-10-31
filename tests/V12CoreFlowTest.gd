@@ -24,10 +24,13 @@ func _ready() -> void:
 	var first_character: Node2D = first_npc["character"]
 	town.get("_player").position = first_character.position
 	town.call("_update_nearby_npc")
-	var interaction: Button = town.get("_interaction_button")
-	if not interaction.visible or not interaction.text.contains("交流"):
-		_fail("靠近地图NPC后没有显示交流入口")
+	if (town.get("_nearby_npc") as Dictionary).is_empty():
+		_fail("靠近地图NPC后未识别可交流对象")
 		return
+	for button in town.find_children("*", "Button", true, false):
+		if (button as Button).text.contains("交流"):
+			_fail("主题图仍创建右下角交流按钮")
+			return
 	if town.find_child("DormRoom", true, false) != null:
 		_fail("V1.2开局不应创建旧宿舍节点")
 		return

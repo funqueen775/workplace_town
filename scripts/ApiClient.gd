@@ -154,7 +154,7 @@ func current_session_id() -> String:
 ## 契约硬要求：每个事件的 payload.regionId 必须是 A–H 单字母，缺了或错了会被服务端 400 拒收
 ## （server.py post_event）。与其让每个埋点各自兜底 —— FreeTimePanel 有、WorkplaceTown 好几处
 ## 没有，漏一个就静默丢一批事件 —— 统一在传输层补齐：先认 regionId，再从 zone / locationId
-## 这类同义字段推断，都落空才退回总部 "A"。宁可标成总部，也不要发空串让整条事件被隔离。
+## 这类同义字段推断，都落空才退回市场部 "A"。宁可标成市场部，也不要发空串让整条事件被隔离。
 ## 2026-09-18：隔离日志里 112 条事件正是这么丢的（node_enter 传空串、explore_click 缺字段）。
 static func normalize_region_id(payload: Dictionary) -> String:
 	for key in ["regionId", "zone", "locationId", "region", "zoneId"]:
@@ -217,7 +217,7 @@ func request_npc_chat(npc_id: String, message: String, region_id: String) -> voi
 	_pending_chats.append({
 		"npcId": String({"wange":"wang_ge", "chengong":"chen_gong",
 			"xiaolin":"xiao_lin", "laozhou":"lao_zhou"}.get(npc_id, npc_id)),
-		"sourceId": npc_id, "text": transcript, "eventId": event_id,
+		"sourceId": npc_id, "text": transcript, "regionId": region_id, "eventId": event_id,
 		"clientTime": _iso_time(), "createdAtMs": Time.get_ticks_msec(),
 	})
 	if not _session_confirmed:
@@ -247,7 +247,7 @@ func _try_send_chat() -> void:
 	var url := "%s%s/sessions/%s/npcs/%s/chat" % [
 		_base_url, API_PREFIX, _session_id, chat["npcId"]]
 	var body := {"eventId": chat["eventId"], "contentVersion": _content_version,
-		"clientTime": chat["clientTime"], "text": chat["text"]}
+		"clientTime": chat["clientTime"], "text": chat["text"], "regionId": chat["regionId"]}
 	var err := _chat_http.request(url, _auth_headers(PackedStringArray(["Content-Type: application/json"])),
 		HTTPClient.METHOD_POST, JSON.stringify(body))
 	if err != OK:
