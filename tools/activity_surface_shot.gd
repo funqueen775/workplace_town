@@ -42,6 +42,11 @@ func _ready() -> void:
 			zone_e = Dictionary(zone)
 			break
 	_town.set("_active_zone", zone_e)
+	# 真进区时城镇会先把右上角"本月主线"收掉（C–H 都收），探针也照做一遍，
+	# 不然拍出来是探针自己造的重叠，游戏里看不到。
+	var hud = _town.get("_town_ui_v2")
+	if hud != null and is_instance_valid(hud):
+		hud.call("set_activity_scene_mode", true)
 	var preview = _town.get("_interior_preview")
 	preview.call("use_activity_layout", false)
 	preview.call("present", zone_e, E_INTERIOR)
@@ -49,12 +54,16 @@ func _ready() -> void:
 	_town.call("_show_month12_place_list", "E")
 	await get_tree().create_timer(0.9).timeout
 	var cards = _town.get("_activity_cards")
-	var shown := 0
+	var lit := 0
 	for button in (preview.get("_activity_buttons") as Array):
 		var ctrl := button as Control
 		if ctrl != null and ctrl.visible:
-			shown += 1
-	print("[surface] 屋里：亮着的整卡=", shown, " 整屏列表开着=", bool(cards.call("is_open")),
+			lit += 1
+	var drawn: int = (preview.get("_drawn_cards") as Array).size()
+	var panel = _town.get("_activity_panel")
+	print("[surface] 屋里：整卡=", lit, " 现画票根=", drawn,
+		" 右下角面板可见=", (panel != null and is_instance_valid(panel) and bool(panel.get("visible"))),
+		" 整屏列表开着=", bool(cards.call("is_open")),
 		" 室内开着=", bool(preview.call("is_open")))
 	await _shot("摆法_屋里一叠")
 	# 再拍整屏那版：直接叫列表组件开，不改代码里的那个开关。

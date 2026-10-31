@@ -5056,23 +5056,21 @@ func _show_month12_place_list(zone_code: String) -> void:
 		# 首月那一格：口径跟通用月份一致，别再露出旧 48 个月的"剩余行动力"。
 		points_text = "本月还剩 1 格" if slots_left > 0 else "这个月安排完了 · 老地方还能进去坐坐"
 	var carded: Array = []
-	var plain: Array = []
 	for row_value in rows:
-		var row_dict := Dictionary(row_value)
-		if String(row_dict.get("cardArt", "")).is_empty():
-			plain.append(row_dict)
-		else:
-			carded.append(row_dict)
-	if MONTH12_CARD_SURFACE == "room" and not carded.is_empty():
-		# 屋里右上角那一叠（队友 10-30 录屏那版）：整卡贴上去，不另开一屏。
+		if not String(Dictionary(row_value).get("cardArt", "")).is_empty():
+			carded.append(row_value)
+	# 屋里那一叠占的是右上角，和"本月主线"那张卡同一个位子。
+	# 进 C–H 时城镇本来就把主线卡收掉了（TownUiV2.set_activity_scene_mode），
+	# A/B 没收，所以这两区照旧走右下角面板，别让两张卡叠在一起。
+	if MONTH12_CARD_SURFACE == "room" and zone_code not in ["A", "B"] \
+			and _interior_preview != null and _interior_preview.is_open():
+		# 屋里右上角那一叠（队友 10-30 录屏那版）：这一屋子能去的地方全在里面，
+		# 有整卡的贴整卡，没整卡的现画同版式票根——右下角那块面板同时收掉，
+		# 不然同一份去处读两遍。
 		# 能不能点由每行自己的 disabled 决定（H=0 时不缓心情的那几条压灰），
 		# 所以 enabled 给真、remaining 给 1，不再拿旧 48 个月的行动点去压整叠。
-		_interior_preview.set_activities(carded, true, 1)
-		if plain.is_empty():
-			_activity_panel.hide_panel()
-		else:
-			_activity_panel.show_for_region(zone_code, plain, slots_left, slots_total, points_text,
-				_month12_now_line(zone_code))
+		_activity_panel.hide_panel()
+		_interior_preview.set_activities(rows, true, 1)
 		return
 	if not carded.is_empty():
 		_activity_panel.hide_panel()

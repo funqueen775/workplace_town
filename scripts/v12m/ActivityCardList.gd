@@ -202,7 +202,10 @@ func _build_ticket(row: Control, item: Dictionary, thumb: String) -> void:
 	outer.add_child(inner)
 
 	# 区名牌：图上烙的是部门口径，这里按 ZONES 现读，改区名不用重画图。
+	# 区名和活动同名的那条（松风训练谷）不写两遍，牌子省掉。
 	var badge_text := String(item.get("badge", ""))
+	if badge_text == String(item.get("title", "")):
+		badge_text = ""
 	if not badge_text.is_empty():
 		var badge := Panel.new()
 		badge.position = Vector2(28, 16)

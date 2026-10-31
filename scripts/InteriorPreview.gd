@@ -50,6 +50,14 @@ const ACTIVITY_CARDS := {
 	"m9_library": "res://assets/01_带缩略图面板/D_STUDY_独自学习_一起自习_面板.png",
 }
 
+## 屋里右上角那一叠的格子位置（场景坐标，1920×1080 那套动线）。
+## 整卡和现画的票根共用这三个数，两种卡才不会错开半格。
+const ACTIVITY_SLOT_AT := Vector2(1110, 70)
+const ACTIVITY_SLOT_SIZE := Vector2(670, 190)
+const ACTIVITY_SLOT_STEP := 207.0
+## 现画票根上那枚蜂蜜罐（从整卡上切下来的零件，见 tools/v12m_cut_activity_cards.py）。
+const ACTIVITY_JAR_TEX := "res://assets/ui/activity_cards/honey_jar.png"
+
 var _root: Control
 var _scene: Control
 var _title: Label
@@ -81,6 +89,8 @@ var _send_button: Button
 var _touch_vector := Vector2.ZERO
 var _exploration_enabled := false
 var _activity_buttons: Array[TextureButton] = []
+## 没有整卡的那几处，按同一版式现画的票根（每次 set_activities 重画一遍）。
+var _drawn_cards: Array[Control] = []
 
 func _ready() -> void:
 	layer = 80
@@ -259,6 +269,11 @@ func has_activity_card(activity_id: String) -> bool:
 func set_activities(activities: Array, enabled: bool, remaining: int) -> void:
 	for button in _activity_buttons:
 		button.hide()
+	# 上一轮现画的票根先收掉，这轮按这一屋子的去处重画。
+	for drawn in _drawn_cards:
+		if is_instance_valid(drawn):
+			drawn.queue_free()
+	_drawn_cards.clear()
 	var shown := 0
 	for activity in activities:
 		if shown >= _activity_buttons.size():
@@ -270,19 +285,123 @@ func set_activities(activities: Array, enabled: bool, remaining: int) -> void:
 		var card_path := String(dict.get("cardArt", ""))
 		if card_path.is_empty():
 			card_path = String(ACTIVITY_CARDS.get(activity_id, ""))
+		var can_go := enabled and remaining > 0 and not bool(dict.get("disabled", false))
 		if card_path.is_empty():
-			continue
-		var button := _activity_buttons[shown]
-		button.texture_normal = _load_texture(card_path)
-		button.disabled = not enabled or remaining <= 0 or bool(dict.get("disabled", false))
-		button.scale = Vector2.ONE
-		button.z_index = 1200
-		button.modulate = Color.WHITE if not button.disabled else Color(0.72, 0.72, 0.72)
-		button.tooltip_text = String(dict.get("title", "活动")) if not button.disabled \
-			else String(dict.get("note", "自由活动窗口开放后可进入"))
-		button.set_meta("activity", dict.duplicate(true))
-		button.show()
+			# 没有整卡的也留在这一叠里，同版式现画一张：
+			# 之前它掉到右下角那块面板上，屋里一叠 + 右下角一份，同一件事读两遍。
+			_drawn_cards.append(_draw_activity_ticket(shown, dict, can_go))
+		else:
+			var button := _activity_buttons[shown]
+			button.texture_normal = _load_texture(card_path)
+			button.disabled = not can_go
+			button.scale = Vector2.ONE
+			button.z_index = 1200
+			button.modulate = Color.WHITE if can_go else Color(0.72, 0.72, 0.72)
+			button.tooltip_text = String(dict.get("title", "活动")) if can_go \
+				else String(dict.get("note", "自由活动窗口开放后可进入"))
+			button.set_meta("activity", dict.duplicate(true))
+			button.show()
 		shown += 1
+
+
+## 没整卡时现画的那张票根：版式照 assets/01_带缩略图面板 那套横票根，
+## 区名、名字、消耗全部读传进来的数据，不烙死在图上。
+func _draw_activity_ticket(slot: int, dict: Dictionary, can_go: bool) -> Control:
+	var card := Panel.new()
+	card.name = "ActivityTicket%d" % slot
+	card.position = ACTIVITY_SLOT_AT + Vector2(0, ACTIVITY_SLOT_STEP * slot)
+	card.size = ACTIVITY_SLOT_SIZE
+	card.z_index = 1200
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color("fdf6e6")
+	style.border_color = Color("f0a63c")
+	style.set_border_width_all(4)
+	style.set_corner_radius_all(20)
+	card.add_theme_stylebox_override("panel", style)
+	if not can_go:
+		card.modulate = Color(0.72, 0.72, 0.72)
+	_scene.add_child(card)
+
+	# 区名和活动同名的那条（松风训练谷）不重复写两遍：牌子直接省掉，留名字那行。
+	var badge_text := String(dict.get("badge", ""))
+	if badge_text == String(dict.get("title", "")):
+		badge_text = ""
+	if not badge_text.is_empty():
+		var badge := Panel.new()
+		badge.position = Vector2(16, 10)
+		badge.size = Vector2(maxf(96.0, badge_text.length() * 26.0 + 34.0), 38)
+		var badge_style := StyleBoxFlat.new()
+		badge_style.bg_color = Color("4e9a2f")
+		badge_style.border_color = Color("2c5a17")
+		badge_style.set_border_width_all(2)
+		badge_style.set_corner_radius_all(18)
+		badge.add_theme_stylebox_override("panel", badge_style)
+		card.add_child(badge)
+		var badge_label := _label(badge_text, 22, Color("f4ffe8"))
+		badge_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		badge_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		badge.add_child(badge_label)
+
+	var title := _label(String(dict.get("title", "自由活动")), 34, Color("3a2a1d"))
+	# 现画的票根标题别跟着 _label 的自动换行走：套上 clip_text 之后实测整行不显示，
+	# 名字这一行本来就一行装得下。
+	title.autowrap_mode = TextServer.AUTOWRAP_OFF
+	title.position = Vector2(22, 56)
+	title.size = Vector2(430, 48)
+	card.add_child(title)
+	var note := _label(String(dict.get("note", "")), 19, Color("7a5a40"))
+	note.position = Vector2(22, 108)
+	note.size = Vector2(430, 62)
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	note.add_theme_constant_override("line_spacing", 2)
+	card.add_child(note)
+
+	var cost_box := Panel.new()
+	cost_box.position = Vector2(ACTIVITY_SLOT_SIZE.x - 118, 16)
+	cost_box.size = Vector2(102, ACTIVITY_SLOT_SIZE.y - 32)
+	var cost_style := StyleBoxFlat.new()
+	cost_style.bg_color = Color("dcefc6")
+	cost_style.border_color = Color("b0d094")
+	cost_style.set_border_width_all(2)
+	cost_style.set_corner_radius_all(12)
+	cost_box.add_theme_stylebox_override("panel", cost_style)
+	card.add_child(cost_box)
+	var cost_title := _label("消耗", 18, Color("6b4a2a"))
+	cost_title.position = Vector2(0, 6)
+	cost_title.size = Vector2(102, 24)
+	cost_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	cost_box.add_child(cost_title)
+	var cost := int(dict.get("cost", 0))
+	# 蜂蜜罐和整卡用同一枚零件：这栏是全游戏的心情账，图标必须对得上。
+	if ResourceLoader.exists(ACTIVITY_JAR_TEX):
+		var jar := TextureRect.new()
+		jar.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		jar.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		jar.texture = load(ACTIVITY_JAR_TEX)
+		jar.position = Vector2(32, 34)
+		jar.size = Vector2(38, 46)
+		jar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		if cost <= 0:
+			jar.modulate = Color(0.72, 0.70, 0.66, 0.55)
+		cost_box.add_child(jar)
+	var cost_value := _label("不花" if cost <= 0 else str(cost), 24,
+		Color("8b857c") if cost <= 0 else Color("a35a3a"))
+	cost_value.position = Vector2(0, cost_box.size.y - 52)
+	cost_value.size = Vector2(102, 32)
+	cost_value.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	cost_box.add_child(cost_value)
+
+	var hit := Button.new()
+	hit.focus_mode = Control.FOCUS_NONE
+	hit.flat = true
+	hit.position = Vector2.ZERO
+	hit.size = ACTIVITY_SLOT_SIZE
+	hit.disabled = not can_go
+	for state in ["normal", "hover", "pressed", "disabled", "focus"]:
+		hit.add_theme_stylebox_override(state, StyleBoxEmpty.new())
+	hit.pressed.connect(func(): activity_selected.emit(dict.duplicate(true)))
+	card.add_child(hit)
+	return card
 
 func interact_with_npc() -> void:
 	if _talk_button != null and _talk_button.visible:
@@ -445,8 +564,8 @@ func _build_activity_cards() -> void:
 	for index in 3:
 		var card := TextureButton.new()
 		card.name = "ActivityCard%d" % index
-		card.position = Vector2(1110, 70 + index * 207)
-		card.size = Vector2(670, 190)
+		card.position = ACTIVITY_SLOT_AT + Vector2(0, ACTIVITY_SLOT_STEP * index)
+		card.size = ACTIVITY_SLOT_SIZE
 		card.ignore_texture_size = true
 		card.stretch_mode = TextureButton.STRETCH_SCALE
 		card.pivot_offset = card.size * 0.5
