@@ -7,10 +7,14 @@ extends Node
 
 const OUT_DIR := "res://test_artifacts/activity_cards"
 const INTERIORS := {
+	"A": "res://assets/八大区域地图重制版/A_市场部.png",
 	"B": "res://assets/八大区域地图重制版/B_研发部.png",
 	"C": "res://assets/八大区域地图重制版/C_销售部.png",
-	"H": "res://assets/场景内部图/慢生活园.png",
+	"D": "res://assets/八大区域地图重制版/D_人事部.png",
 	"E": "res://assets/场景内部图/松风训练谷.png",
+	"F": "res://assets/场景内部图/观澜展会码头.png",
+	"G": "res://assets/场景内部图/暖邻康护院.png",
+	"H": "res://assets/场景内部图/慢生活园.png",
 }
 
 var _town: Node
@@ -32,8 +36,8 @@ func _ready() -> void:
 			await get_tree().create_timer(0.8).timeout
 			break
 	var unlocked: Dictionary = _town.get("_month12_unlocked_places")
-	for id in ["m1_lakeside", "m7_lawn", "m7_valley", "m1_tool", "m_grind", "m3_waterway", "m11_boardgame"]:
-		unlocked[id] = true
+	for act in (_town.get("_month12_places") as Array):
+		unlocked[String(Dictionary(act).get("id", ""))] = true
 	# 先把还在播的剧情屏收掉：它的黑场会把屋里那一叠压在下面（实拍踩过）。
 	var story = _town.get("_story_event_panel")
 	if story != null and is_instance_valid(story):
@@ -41,7 +45,7 @@ func _ready() -> void:
 		await get_tree().create_timer(0.4).timeout
 	var hud = _town.get("_town_ui_v2")
 	var zones: Array = _town.get("ZONES")
-	for zone_code in ["B", "C", "E", "H"]:
+	for zone_code in ["A", "B", "C", "D", "E", "F", "G", "H"]:
 		var zone: Dictionary = {}
 		for value in zones:
 			if String(Dictionary(value).get("code", "")) == zone_code:

@@ -5065,6 +5065,9 @@ func _show_month12_place_list(zone_code: String) -> void:
 		})
 	if rows.is_empty():
 		_activity_panel.hide_panel()
+		# 一屋子没地方可去也要把上一间的板子和卡收掉，不能串场景。
+		if _interior_preview != null:
+			_interior_preview.set_activities([], true, 1)
 		return
 	var slots_left := _month12_slots_left if _month12_activity_generic \
 		else (0 if _month12_activity_taken else 1)

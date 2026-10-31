@@ -107,8 +107,8 @@ var _activity_board: TextureRect
 var _drawn_cards: Array[Control] = []
 ## 美术没给底板图的那两个区（市场部 / 研发部），现画一块同样式的板子顶上。
 var _board_live: Panel
-var _board_live_tab: Panel
-var _board_live_title: Label
+var _board_tab: Panel
+var _board_tab_title: Label
 var _board_title := ""
 var _board_code := ""
 
@@ -130,6 +130,7 @@ func present(location: Dictionary, texture_path: String) -> void:
 	_talk_button = null
 	_dialog = null
 	_activity_buttons.clear()
+	_drawn_cards.clear()  # 上一屋子的现画票根不能留：换屋时它是跟着旧 _scene 一起排队的，不清会串到下一间
 	_activity_board = null
 	_board_title = String(location.get("name", ""))
 	_board_code = String(location.get("code", ""))
@@ -297,10 +298,10 @@ func set_activities(activities: Array, enabled: bool, remaining: int) -> void:
 	_activity_board.visible = use_art and count > 0
 	var use_live := not use_art and count > 0
 	_board_live.visible = use_live
+	# 不管用哪块板子，那块写区名的牌子都是现画的——美术板子上烙死的部门名被它盖住。
 	if use_live:
 		var bottom := ACTIVITY_CARD_TOP_Y + ACTIVITY_CARD_STEP * (count - 1) + ACTIVITY_CARD_SIZE.y
 		_board_live.size = Vector2(ACTIVITY_BOARD_SIZE.x, bottom - ACTIVITY_BOARD_POSITION.y + 20)
-		_board_live_title.text = _board_title
 	for button in _activity_buttons:
 		button.hide()
 	# 上一轮现画的票根先收掉，这轮按这一屋子的去处重画。
@@ -630,23 +631,28 @@ func _build_live_board() -> void:
 	inner.add_theme_stylebox_override("panel", _board_style(Color(0, 0, 0, 0), Color("ef8f3c"), 2, 18))
 	_board_live.add_child(inner)
 
-	_board_live_tab = Panel.new()
-	_board_live_tab.name = "ActivityBoardTab"
-	_board_live_tab.position = Vector2(30, -14)
-	_board_live_tab.size = Vector2(210, 56)
-	_board_live_tab.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_board_live_tab.add_theme_stylebox_override("panel", _board_style(Color("f7e3c2"), Color("6b2f12"), 4, 26))
-	_board_live.add_child(_board_live_tab)
-	_board_live_title = _label(_board_title, 26, Color("7a3f1d"))
-	_board_live_title.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_board_live_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_board_live_tab.add_child(_board_live_title)
+	# 区名牌子只属于现画这块板子。美术那六块把部门名烙死在标签上，
+	# 名字对不上时整块都不用（见 _art_board_matches_zone），不再盖一块上去遮。
+	_board_tab = Panel.new()
+	_board_tab.name = "ActivityBoardTab"
+	_board_tab.position = Vector2(30, -14)
+	_board_tab.size = Vector2(214, 58)
+	_board_tab.z_index = 1150
+	_board_tab.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_board_tab.add_theme_stylebox_override("panel", _board_style(Color("f7e3c2"), Color("6b2f12"), 4, 26))
+	_board_tab.hide()
+	_board_live.add_child(_board_tab)
+	_board_tab_title = _label(_board_title, 26, Color("7a3f1d"))
+	_board_tab_title.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_board_tab_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_board_tab.add_child(_board_tab_title)
 
 
 
-## 美术那块底板左上角烙的是部门名（销售部 / 人事部 / 财务部 / 运营部 / 行政部 / 生产部）。
-## 这一屋子的名字和它对不上时（E 是松风训练谷、H 是慢生活园），改用现画的那块，
-## 牌子直接写 ZONES 里的名字——等区名口径统一了，美术板子会自动回来，不用再改代码。
+## 美术那六块底板把部门名烙死在标签上了（销售部 / 人事部 / 财务部 / 运营部 / 行政部 / 生产部）。
+## 这一屋子的名字和它对不上时（E 松风训练谷、H 慢生活园）整块都不用，改用现画的：
+## 与其盖一块牌子遮，不如整块换掉——盖上去实测会露出上下两块牌子。
+## 区名口径一旦统一，美术板子会自动回来，不用再改代码。
 func _art_board_matches_zone() -> bool:
 	if _board_title.is_empty():
 		return true
@@ -654,10 +660,11 @@ func _art_board_matches_zone() -> bool:
 	if path.is_empty():
 		return false
 	var folders := path.split("/")
-	# res://assets/小场景新UI/销售部/01_背景面板.png -> 倒数第二段就是部门名
 	if folders.size() < 2:
 		return false
+	# res://assets/小场景新UI/销售部/01_背景面板.png -> 倒数第二段就是部门名
 	return String(folders[folders.size() - 2]) == _board_title
+
 
 func _board_style(background: Color, border: Color, width: int, radius: int) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
