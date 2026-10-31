@@ -59,11 +59,11 @@ func _ready() -> void:
 	await _shot("08_department_d")
 
 	preview.call("suppress_interior_npc", false)
-	preview.call("present", {"id": "b", "code": "B", "name": "研发部"}, "res://assets/八大区域地图重制版/B_研发部.png")
+	preview.call("present", {"id": "a", "code": "A", "name": "市场部"}, "res://assets/八大区域地图重制版/A_市场部.png")
 	preview.call("enable_exploration")
 	preview.call("set_activities", [], true, 2)
 	await _wait(0.8)
-	await _shot("09_department_b")
+	await _shot("10_department_a")
 
 	print("MERGE_FLOW_DONE ", ProjectSettings.globalize_path(SHOT_DIR))
 	_done = true

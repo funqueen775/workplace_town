@@ -38,7 +38,7 @@ const PAW_TEXTURE := preload("res://assets/ui/rework_v1/task_book/22_页面装�
 ## 通讯录里四个常驻同事的立绘：头像统一裁头部那一小块。
 const CONTACT_SPRITES := {
 	"wang_ge": "res://assets/characters/paper_doll_64/compiled/bear_plaid_glasses_walk_64.png",
-	"chen_gong": "res://assets/characters/paper_doll_64/compiled/bear_orange_blazer_walk_64.png",
+	"chen_gong": "res://assets/characters/direct_frames/chen_gong/01.png",
 	"xiao_lin": "res://assets/characters/paper_doll_64/compiled/bear_beige_blazer_walk_64.png",
 	"lao_zhou": "res://assets/characters/paper_doll_64/compiled/bear_green_cardigan_walk_64.png",
 	# 小赵没画过专属立绘：借 avatar_xiaoye 那只熊（蓝夹克），和四位同事的衬衫/西装分得开，

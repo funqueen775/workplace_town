@@ -23,6 +23,7 @@ const DIRECT_FRAME_DIRS := {
 	"bear_plaid_glasses": "gray_bear",
 	"bear_beige_blazer": "beige_bear",
 	"bear_green_cardigan": "green_bear",
+	"chen_gong": "chen_gong",
 }
 
 @export_file("*.json") var catalog_path := DEFAULT_CATALOG_PATH
@@ -99,10 +100,10 @@ func load_catalog(path: String) -> bool:
 
 
 func set_loadout(loadout_id: String) -> bool:
-	if not _loadout_by_id.has(loadout_id):
-		return false
 	if DIRECT_FRAME_DIRS.has(loadout_id):
 		return _set_direct_frames(loadout_id, String(DIRECT_FRAME_DIRS[loadout_id]))
+	if not _loadout_by_id.has(loadout_id):
+		return false
 	var atlas_path := String((_loadout_by_id[loadout_id] as Dictionary)["atlas"])
 	if not atlas_path.begins_with("res://"):
 		atlas_path = "res://" + atlas_path

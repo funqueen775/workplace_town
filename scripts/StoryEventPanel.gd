@@ -847,12 +847,18 @@ func _stop_typewriter() -> void:
 # ---------------------------------------------------------------- 新对白素材
 
 func _portrait_name(name: String) -> String:
-	return name if name in ["小林", "小赵", "王哥", "老周"] else ""
+	if name.is_empty():
+		return ""
+	# 有「自然」立绘的说话人就给他立绘；配角（大领导/记录评委/HRBP…）也算。
+	return name if ResourceLoader.exists(PORTRAIT_PATH % [name, name, "自然"]) else ""
 
 
 func _portrait_texture(name: String, expression: String) -> Texture2D:
 	var path := PORTRAIT_PATH % [name, name, expression]
-	return _load_texture(path)
+	var texture := _load_texture(path)
+	if texture == null and expression != "自然":
+		texture = _load_texture(PORTRAIT_PATH % [name, name, "自然"])
+	return texture
 
 
 func _expression_for(text: String) -> String:
