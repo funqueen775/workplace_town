@@ -242,7 +242,8 @@
       ],
       "abilityTags": {
         "resilience": 1
-      }
+      },
+      "duel": "training_valley"
     },
     {
       "id": "m7_lawn",

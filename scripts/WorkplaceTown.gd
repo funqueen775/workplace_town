@@ -55,6 +55,8 @@ const MONTH12_RUBRICS_PATH := "res://data/story/v12m/rubrics.json"
 ## 十二个月的时间过场：跨旬 / 时段 / 翻月 / 昼夜四档，压在面板之上、提示条之下。
 const TRANSITION_WIPE := preload("res://scripts/v12m/TransitionWipe.gd")
 const MONTH12_HANDBOOK_PATH := "res://data/story/employee_handbook_12m.json"
+const MONTH12_REPORT := preload("res://scripts/v12m/Month12Report.gd")
+const REPORT_PANEL := preload("res://scripts/ReportPanel.gd")
 ## 门槛横幅左边那颗圆徽直接用右下角手机那张贴图：一看就知道说的是手机，
 ## 不用再来解释「息是什么」。
 const GATE_PHONE_CHIP := preload("res://assets/ui/rework_v1/hud/components/16_圆钮统一_phone.png")
@@ -276,6 +278,7 @@ var _jump_panel: CanvasLayer
 ## 面板上那行"这一局走哪条路"的说明文字（选路线时刷新它）。
 var _jump_route_caption: Label
 var _jump_target := 0
+var _report_panel: CanvasLayer
 var _month12_handbook
 ## 手册节点解锁的新页：下一次翻开直接定位到它（剧情点到哪儿，就翻到哪儿）。
 var _handbook_pending_page := ""
@@ -376,6 +379,11 @@ const MONTH12_MEMO_PATH := "user://workplace_town_memos.jsonl"
 var _run_stamp := 0
 ## 四维证据：答辩判定用。每次选完把这条选项的能力锚点收进来，取各维最高那档。
 var _dim_anchors := {"S": [], "O": [], "N": [], "D": []}
+## 四维锚点的流水：每一条记下是哪个月、哪个事件、哪一手、什么行为码。
+## 报告要写"代表性表现 / 反向证据 / 证据覆盖"，只有锚点数字是举不出证的（算法册 §6.1）。
+var _evidence_log: Array = []
+## 自由活动的全年账：每月一本会翻篇，报告要回看整年，所以按月归档。
+var _year_activity_log: Array = []
 ## 判定门槛缓存（rubrics.json 第一次用到时读进来）：红线、转正两态、晋升规则表都在这。
 var _rubrics: Dictionary = {}
 ## 看手机/手册时把走位计时真正停住：关掉后从原处继续，不会被一口气拽走。
@@ -467,6 +475,8 @@ var _achievement_nodes: Array = []
 var _achievement_seen_ids: Array[String] = []
 var _training_first_cleared := false
 var _training_overlay: CanvasLayer
+## 十二个月里正在打的那场对局属于哪条自由活动；打完拿它去结那一格。
+var _month12_duel_activity: Dictionary = {}
 var _activity_panel: AreaActivityPanel
 var _activity_cards
 var _pending_action_activity: Dictionary = {}
@@ -4006,6 +4016,15 @@ func _try_resume_saved_month() -> bool:
 	var flags = saved.get("flags")
 	if flags is Dictionary:
 		_month12_flags = (flags as Dictionary).duplicate(true)
+	# 报告要的是整年那两本账，续玩不接就等于第 12 月交一张空表：
+	# 证据流水和全年活动账一起接回来，四维锚点从流水重算，不另存一份对不上的数。
+	var evidence = saved.get("evidenceLog")
+	if evidence is Array:
+		_evidence_log = (evidence as Array).duplicate(true)
+		_rebuild_dim_anchors()
+	var year_log = saved.get("yearActivityLog")
+	if year_log is Array:
+		_year_activity_log = (year_log as Array).duplicate(true)
 	var places = saved.get("unlockedPlaces")
 	if places is Array:
 		_month12_unlocked_places.clear()
@@ -5161,6 +5180,18 @@ func _on_month12_place_confirmed(activity_id: String) -> void:
 	var activity := _month12_place_by_id(activity_id)
 	if activity.is_empty():
 		return
+	# 带对局的去处（松风训练谷·熊熊有招）先进对局，打完回来再结这一格：
+	# 格子先扣掉、人还没玩，玩家看到的是"点一下就没了"。
+	var duel := String(activity.get("duel", ""))
+	if duel == "training_valley" and _training_overlay == null and _month12_duel_activity.is_empty():
+		_open_month12_duel(activity)
+		return
+	_settle_month12_activity(activity)
+
+
+## 结一笔自由活动：扣格、记心情、记能力、播结果。对局打完也走这里。
+func _settle_month12_activity(activity: Dictionary) -> void:
+	var activity_id := String(activity.get("id", ""))
 	if _month12_activity_generic:
 		if _month12_slots_left <= 0 or _month12_activity_visited(activity_id):
 			# 格子空了、或者这个月已经结算过：只演一句环境话，不扣点、不给好处。
@@ -5196,6 +5227,45 @@ func _on_month12_place_confirmed(activity_id: String) -> void:
 	_exit_zone()
 	_present_month12_place_outcome(activity)
 
+
+## 把熊熊有招挂到十二个月的这一格上：跳过旧 48 个月那段"紧急通道"开场，
+## 因为第 7 月小赵已经在工位上说过为什么要去（"周末打球，我带你认一次路"）；
+## 输了也要能走，这条活动的讲解卡写着"输了没代价"，不能把人锁在重开里。
+func _open_month12_duel(activity: Dictionary) -> void:
+	if _training_overlay != null:
+		return
+	_month12_duel_activity = activity
+	if _month12_place_panel != null:
+		_month12_place_panel.close()
+	_training_overlay = CanvasLayer.new()
+	_training_overlay.layer = 195
+	add_child(_training_overlay)
+	var frame := Control.new()
+	frame.size = Vector2(1280, 720)
+	frame.scale = get_viewport_rect().size / frame.size
+	_training_overlay.add_child(frame)
+	var battle: Control = TRAINING_SCENE.instantiate()
+	battle.set("skip_intro", true)
+	battle.set("allow_leave_on_defeat", true)
+	frame.add_child(battle)
+	battle.training_completed.connect(_on_month12_duel_finished)
+	battle.training_result.connect(_on_training_result)
+	ApiClient.record_event("node_enter", {
+		"regionId": String(activity.get("locationId", "")),
+		"storyId": "training_valley_1",
+		"month": _month12_month,
+	})
+
+
+## 对局收场（赢了或输了都算来过）：关掉覆盖层，回到正常结算那一笔。
+func _on_month12_duel_finished() -> void:
+	var activity := _month12_duel_activity
+	_month12_duel_activity = {}
+	if _training_overlay != null:
+		_training_overlay.queue_free()
+		_training_overlay = null
+	if not activity.is_empty():
+		_settle_month12_activity(activity)
 
 ## 结果演出：一张真实截图 + 两句结果（复用旧版周末场景面板，图没了也不拦流程）。
 func _present_month12_place_outcome(activity: Dictionary) -> void:
@@ -5618,6 +5688,19 @@ func _do_all_nighter(month: int, then: Callable) -> void:
 func _finish_month12() -> void:
 	_month12_phase = "done"
 	_save_month12_progress()
+	# 一年走完了才交报告：这是十二个月流程唯一的出口（旧 48 个月那条入口不动）。
+	_open_month12_report()
+
+
+## 十二个月报告页：内容全部来自这一年落下的账（证据流水、判定旗标、全年活动账），
+## 一句没有记录的话不许出现在上面。
+func _open_month12_report() -> void:
+	if _report_panel == null or not is_instance_valid(_report_panel):
+		_report_panel = REPORT_PANEL.new()
+		_report_panel.name = "Month12ReportPage"
+		add_child(_report_panel)
+	var data: Dictionary = MONTH12_REPORT.new().build(self)
+	_report_panel.open_with(data)
 
 
 func _save_month12_progress(at_month_start := false) -> void:
@@ -5637,6 +5720,8 @@ func _save_month12_progress(at_month_start := false) -> void:
 		"moodMax": _mood_max,
 		"apLeftThisMonth": _month12_ap_left,
 		"monthLedger": _month_ledger,
+		"evidenceLog": _evidence_log,
+		"yearActivityLog": _year_activity_log,
 	}
 	var file := FileAccess.open("user://workplace_town_month12.json", FileAccess.WRITE)
 	if file != null:
@@ -6616,17 +6701,29 @@ func _apply_node_mood(node: Dictionary) -> void:
 
 
 ## 把一条选项的能力锚点记进四维证据（同维取最高，不累加）。
-func _collect_competency(choice: Dictionary) -> void:
+func _collect_competency(choice: Dictionary, event_id := "", choice_id := "") -> void:
 	for entry in (choice.get("competency", []) as Array):
 		if not (entry is Dictionary):
 			continue
-		var dim := String((entry as Dictionary).get("dimension", ""))
+		var item := Dictionary(entry)
+		var dim := String(item.get("dimension", ""))
 		if not _dim_anchors.has(dim):
 			continue
-		var anchor := int((entry as Dictionary).get("anchor", 0))
+		var anchor := int(item.get("anchor", 0))
 		var bucket: Array = _dim_anchors[dim]
 		bucket.append(anchor)
 		_dim_anchors[dim] = bucket
+		# 同一手同一维只记一条：流水是给报告引证的，不是计数用的。
+		_evidence_log.append({
+			"month": _month12_month,
+			"eventId": event_id,
+			"choiceId": choice_id,
+			"dimension": dim,
+			"anchor": anchor,
+			"behavior": String(item.get("behaviorCode", "")),
+			# 报告要引"代表性表现"，用的是玩家当时看见的那句话，不是内部行为码。
+			"choiceText": String(choice.get("text", "")),
+		})
 
 
 ## 判定门槛的唯一出处是 rubrics.json；读不到或缺字段时一律往轻的那边退，
@@ -6655,6 +6752,20 @@ func _rubric_list(cfg: Dictionary, key: String) -> Array:
 
 
 ## 四维各取最高一档 + 每维记录条数。判定读它，界面不显示它。
+## 四维锚点只有流水一个来源：续玩时从证据流水重算，避免存档里两份数各说各话。
+func _rebuild_dim_anchors() -> void:
+	for dim in _dim_anchors.keys():
+		_dim_anchors[dim] = []
+	for value in _evidence_log:
+		var item := Dictionary(value)
+		var dim := String(item.get("dimension", ""))
+		if not _dim_anchors.has(dim):
+			continue
+		var bucket: Array = _dim_anchors[dim]
+		bucket.append(int(item.get("anchor", 0)))
+		_dim_anchors[dim] = bucket
+
+
 func _dim_evidence() -> Dictionary:
 	var score := {}
 	var counts := {}
@@ -7171,7 +7282,7 @@ func _runner_record_choice(choice_id: String) -> void:
 			continue
 		for flag in ((choice as Dictionary).get("flags", []) as Array):
 			_month12_flags[String(flag)] = true
-		_collect_competency(choice as Dictionary)
+		_collect_competency(choice as Dictionary, String(node.get("id", "")), choice_id)
 		# 这一选点亮某能力的第 5 格（熊熊有招）：E19 把话说清后产品来问对接，就是这种时刻。
 		for ability in ((choice as Dictionary).get("abilityPeak", []) as Array):
 			_light_ability_peak(String(ability))
@@ -7342,7 +7453,7 @@ func _on_story_choice_confirmed(event_id: String, choice_id: String, duration_mi
 				var e02_ability_before := ability_display_levels()
 				_record_ability_tags((choice as Dictionary).get("abilityTags"))
 				_announce_choice_aftermath(e02_ability_before, (choice as Dictionary).get("abilityTags"), 0)
-				_collect_competency(choice as Dictionary)
+				_collect_competency(choice as Dictionary, "E02", String(choice_id))
 				for ability in ((choice as Dictionary).get("abilityPeak", []) as Array):
 					_light_ability_peak(String(ability))
 		ApiClient.record_event("m01_e02_choice", {"choiceId": String(choice_id)})
@@ -7742,6 +7853,9 @@ func _begin_month_ledger(month_value: int) -> void:
 		_town_ui_v2.set_energy_visible(show_meter)
 	_ap_total = int(_ap_by_month.get(month_value, 0))
 	_month12_ap_left = _ap_total
+	# 翻月前先把上个月那本活动账归档：报告的"自由活动回顾"要看整年，不是只看这个月。
+	if not _month_ledger.is_empty():
+		_year_activity_log.append({"month": _month12_month - 1, "entries": _month_ledger.duplicate(true)})
 	_month_ledger = []
 	_hint_at_portal = false
 	_fire_hints("month_started")

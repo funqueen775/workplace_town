@@ -3,6 +3,13 @@ extends Control
 signal tutorial_pause_finished
 signal training_completed
 signal training_result(result: Dictionary)
+## 十二个月这条线进来时的两个口子（旧 48 个月那边走完整开场，两个都保持 false）：
+## skip_intro = 开场那段"紧急通道"不再演，因为十二个月里小赵已经在工位上把人带过来了；
+## allow_leave_on_defeat = 输了也能走。这条活动的讲解卡写着"输了没代价"，
+## 不给人退场键就是把他锁在一格里反复重打。
+var skip_intro := false
+var allow_leave_on_defeat := false
+
 
 const BattleModelScript = preload("res://training_valley/scripts/battle_model.gd")
 const DiceButtonScript = preload("res://training_valley/scripts/dice_button.gd")
@@ -106,7 +113,10 @@ func _ready() -> void:
 	model = BattleModelScript.new()
 	_build_interface()
 	_update_units()
-	_start_intro()
+	if skip_intro:
+		_show_partner_select()
+	else:
+		_start_intro()
 
 
 func _build_interface() -> void:
@@ -1092,7 +1102,7 @@ func _finish_defeat() -> void:
 	end_title.text = "训练未通过"
 	end_text.text = "松叔：着急的时候更容易乱。回去重来一遍，先看清骰子，再做决定。\n\n任意一名队友生命归零，搭档队都会失败。"
 	end_button.text = "重新训练"
-	return_button.visible = false
+	return_button.visible = allow_leave_on_defeat
 	end_layer.visible = true
 
 
