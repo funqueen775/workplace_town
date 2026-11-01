@@ -507,6 +507,102 @@
       "abilityTags": {
         "resilience": 1
       }
+    },
+    {
+      "id": "m5_stage",
+      "name": "舞台后台排练",
+      "locationId": "F",
+      "location": "观澜会展码头 · 后台",
+      "scene": "res://assets/八大区域地图重制版/F_运营部.png",
+      "description": "走进后台，为登台做准备。",
+      "apCost": 1,
+      "slots": 1,
+      "mode": "solo",
+      "portal": {
+        "zoneId": "F"
+      },
+      "hCost": 1,
+      "stateDelta": {},
+      "placeLine": "走进后台，为登台做准备。",
+      "object": "道具箱边那把折叠椅",
+      "outcome": "你把开场那两句在幕后默了三遍。灯亮起来的时候，第一句话没打磕。",
+      "againLine": "再去幕后站一会儿，手心没那么潮了。",
+      "card": {
+        "title": "舞台后台排练",
+        "lines": [
+          "展厅的后台，幕布后面那一小块地方。",
+          "上台前把开场那两句在这儿走一遍。",
+          "去道具箱边那把折叠椅坐下。"
+        ],
+        "pages": 1,
+        "shots": [
+          "place_card_stage_1.png"
+        ]
+      },
+      "gatedBy": "month_required",
+      "unlockAfter": "M05_DEMO",
+      "abilityTags": {
+        "expression": 1
+      },
+      "btSignals": [
+        {
+          "trait": "C",
+          "dir": 1,
+          "strength": "M",
+          "context": "硬扛",
+          "code": "act_stage_rehearse",
+          "fact": "上台前会先去后台把流程走一遍"
+        }
+      ],
+      "cardArt": "res://assets/小场景新UI/运营部/02_上方活动卡.png"
+    },
+    {
+      "id": "m5_umbrella",
+      "name": "雨天共伞",
+      "locationId": "F",
+      "location": "观澜会展码头 · 雨棚",
+      "scene": "res://assets/八大区域地图重制版/F_运营部.png",
+      "description": "撑开雨伞，一起走过雨天。",
+      "apCost": 1,
+      "slots": 1,
+      "mode": "solo",
+      "portal": {
+        "zoneId": "F"
+      },
+      "hCost": 1,
+      "stateDelta": {},
+      "placeLine": "撑开雨伞，一起走过雨天。",
+      "object": "雨棚下那把长柄伞",
+      "outcome": "雨里那一段路没人说话。走到出口，两个人各自把袖子拧了一把水。",
+      "againLine": "又下雨了，伞还在雨棚下靠着。",
+      "card": {
+        "title": "雨天共伞",
+        "lines": [
+          "码头这边一下雨就没什么人走。",
+          "撑开伞，一起走过那一段。",
+          "去拿雨棚下那把长柄伞。"
+        ],
+        "pages": 1,
+        "shots": [
+          "place_card_umbrella_1.png"
+        ]
+      },
+      "gatedBy": "month_required",
+      "unlockAfter": "M05_DEMO",
+      "abilityTags": {
+        "collaboration": 1
+      },
+      "btSignals": [
+        {
+          "trait": "A",
+          "dir": 1,
+          "strength": "M",
+          "context": "帮人",
+          "code": "act_share_umbrella",
+          "fact": "下雨天会把伞分给一起走的人"
+        }
+      ],
+      "cardArt": "res://assets/小场景新UI/运营部/03_下方活动卡.png"
     }
   ]
 }

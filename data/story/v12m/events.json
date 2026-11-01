@@ -4847,7 +4847,9 @@
         "m3_waterway",
         "m7_lawn",
         "m9_library",
-        "m_grind"
+        "m_grind",
+        "m5_stage",
+        "m5_umbrella"
       ],
       "allowSkip": true,
       "skipFlag": "m09_activity_skipped",
@@ -6849,7 +6851,9 @@
         "m3_waterway",
         "m7_lawn",
         "m7_valley",
-        "m_grind"
+        "m_grind",
+        "m5_stage",
+        "m5_umbrella"
       ],
       "allowSkip": true,
       "skipFlag": "m07_activity_skipped",
@@ -7170,7 +7174,9 @@
         "m9_library",
         "m11_reproduce",
         "m11_boardgame",
-        "m_grind"
+        "m_grind",
+        "m5_stage",
+        "m5_umbrella"
       ],
       "allowSkip": true,
       "skipFlag": "m11_activity_skipped",
@@ -7834,7 +7840,9 @@
         "m1_tool",
         "m1_rooftop",
         "m1_lakeside",
-        "m3_waterway"
+        "m3_waterway",
+        "m5_stage",
+        "m5_umbrella"
       ],
       "allowSkip": true,
       "skipFlag": "m05_activity_skipped",
