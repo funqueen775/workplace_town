@@ -133,10 +133,10 @@ const INTERIOR_ASSETS := {
 	"B": "res://assets/八大区域地图重制版/B_研发部.png",
 	"C": "res://assets/八大区域地图重制版/C_销售部.png",
 	"D": "res://assets/八大区域地图重制版/D_人事部.png",
-	"E": "res://assets/场景内部图/松风训练谷.png",
-	"F": "res://assets/场景内部图/观澜展会码头.png",
-	"G": "res://assets/场景内部图/暖邻康护院.png",
-	"H": "res://assets/场景内部图/慢生活园.png",
+	"E": "res://assets/八大区域地图重制版/E_财务部.png",
+	"F": "res://assets/八大区域地图重制版/F_运营部.png",
+	"G": "res://assets/八大区域地图重制版/G_行政部.png",
+	"H": "res://assets/八大区域地图重制版/H_生产部.png",
 }
 ## 小镇出生点，位于 H 区入口外的可通行道路，避开自动传送门感应范围。
 const PLAYER_START_POSITION := Vector2(455, 500)
@@ -2792,12 +2792,10 @@ func _update_location_marker_visibility() -> void:
 
 
 func _use_interior_layout(code: String) -> void:
-	# A–D 换成了队友的部门室内（1848×851，右下角固定返回）；
-	# E–H 在剧情里还是训练谷/会展码头/康护院/慢生活园，继续用旧图和旧动线。
-	if code in ["A", "B", "C", "D"]:
-		_interior_preview.use_department_layout(true)
-	else:
-		_interior_preview.use_activity_layout(false)
+	# 八个区的室内统一用玩家给的那批"八大区域地图重制版"（1848×851，右侧固定出口、人站在横路上）。
+	# 以前 E–H 走的是另一批 1448×1086 的"场景内部图"，动线和出口都不一样，
+	# 所以同一款游戏里进 A 区和进 E 区像换了个游戏（2026-11-01 收到口径：小场景只用这批）。
+	_interior_preview.use_department_layout(true)
 
 
 func _enter_nearby_zone() -> void:

@@ -67,10 +67,10 @@ const INTERIOR_BY_ZONE := {
 	"B": "res://assets/八大区域地图重制版/B_研发部.png",
 	"C": "res://assets/八大区域地图重制版/C_销售部.png",
 	"D": "res://assets/八大区域地图重制版/D_人事部.png",
-	"E": "res://assets/场景内部图/松风训练谷.png",
-	"F": "res://assets/场景内部图/观澜展会码头.png",
-	"G": "res://assets/场景内部图/暖邻康护院.png",
-	"H": "res://assets/场景内部图/慢生活园.png",
+	"E": "res://assets/八大区域地图重制版/E_财务部.png",
+	"F": "res://assets/八大区域地图重制版/F_运营部.png",
+	"G": "res://assets/八大区域地图重制版/G_行政部.png",
+	"H": "res://assets/八大区域地图重制版/H_生产部.png",
 }
 
 ## 情境强度只做光影，不显示任何标签或数字（V5.27 红线：测量口径不下发前端）
