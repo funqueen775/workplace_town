@@ -57,11 +57,16 @@ func _ready() -> void:
 		if hud != null and is_instance_valid(hud):
 			hud.call("set_activity_scene_mode", true)
 		var preview = _town.get("_interior_preview")
-		if zone_code in ["A", "B", "C", "D"]:
-			preview.call("use_department_layout", true)
-		else:
-			preview.call("use_activity_layout", false)
+		# 动线交给城镇自己那个函数决定，探针不再自己判断——免得代码改了探针还在跑老一套。
+		_town.call("_use_interior_layout", zone_code)
 		preview.call("present", zone, String(INTERIORS[zone_code]))
+		# 换动线最容易坏的是站位：真开一次探索，看人和出口在不在该在的地方。
+		preview.call("enable_exploration")
+		var man = preview.get("_player")
+		var road := float(preview.get("ROAD_Y"))
+		if man != null and is_instance_valid(man):
+			print("[站位] ", zone_code, " 区 人 y=", (man as Node2D).position.y, " 横路 y=", road,
+				" NPC=", preview.get("_npc") != null)
 		await get_tree().create_timer(0.8).timeout
 		_town.call("_show_month12_place_list", zone_code)
 		await get_tree().create_timer(0.9).timeout
