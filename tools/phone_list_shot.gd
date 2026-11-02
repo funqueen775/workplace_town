@@ -1,41 +1,62 @@
 extends Node
 
-## 手机会话列表样张：看列表行头像（尤其没有专属立绘的小赵）裁得对不对。
+## 收件箱列表实拍：看每位同事那一行的头像取的是哪一帧。
 ## 用法：<godot> --path <proj> --resolution 1920x1080 res://tools/phone_list_shot.tscn
 
-const PANEL := preload("res://scripts/v12m/PhoneInboxPanel.gd")
-const DIR := "res://test_artifacts/v12m_phone"
+const SHOT_DIR := "res://test_artifacts/phone_list"
+
+var _town: Node
 
 
 func _ready() -> void:
-	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(DIR))
-	var panel := PANEL.new()
-	add_child(panel)
-	panel.set("hide_own_hud", true)
-	panel.set("conversations", [
-		{"id": "wang_ge", "name": "王哥", "role": "技术导师",
-			"messages": [{"speaker": "npc", "text": "两张图我看了，先别急着推。"}],
-			"unread": false, "date": "第 2 月 · 下旬 · 夜里", "date_short": "第 2 月",
-			"sort": 222, "reply_options": []},
-		{"id": "xiao_zhao", "name": "小赵", "role": "邻组同事",
-			"messages": [{"speaker": "npc", "text": "客户那边居然签了。你怎么想到当面把话说开的？"}],
-			"unread": true, "date": "第 11 月 · 上旬 · 午后", "date_short": "第 11 月",
-			"sort": 1101, "reply_options": []},
-		{"id": "chen_gong", "name": "陈工", "role": "邻组 Leader",
-			"messages": [{"speaker": "npc", "text": "结论是什么？预算和工期，一句话说完。"}],
-			"unread": false, "date": "第 11 月 · 下旬 · 夜里", "date_short": "第 11 月",
-			"sort": 1122, "reply_options": []},
-		{"id": "lao_zhou", "name": "老周", "role": "老同事",
-			"messages": [{"speaker": "npc", "text": "复盘会上有不同说法。"}],
-			"unread": false, "date": "第 12 月 · 中旬 · 午后", "date_short": "第 12 月",
-			"sort": 1221, "reply_options": []},
-	])
-	await get_tree().create_timer(0.5).timeout
-	# true = 停在会话列表，不自动进那位还没看的会话（这张样张要看的是列表）。
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(SHOT_DIR))
+	_town = load("res://Main.tscn").instantiate()
+	add_child(_town)
+	await _wait(3.6)
+	_town.call("debug_jump_to_month", 1, "A")
+	await _wait(2.6)
+	var start_panel = _town.get("_month12_start_panel")
+	if start_panel != null and is_instance_valid(start_panel) and bool(start_panel.call("is_open")):
+		start_panel.emit_signal("continued")
+	await _wait(1.6)
+	var raw: Variant = JSON.parse_string(FileAccess.get_file_as_string("res://data/story/v12m/events.json"))
+	for value in ((raw as Dictionary).get("nodes", []) if raw is Dictionary else []):
+		if String(Dictionary(value).get("id", "")) == "M01_PHONE_1":
+			_town.call("runner_deliver_phone", Dictionary(value))
+			break
+	await _wait(0.8)
+	# 剧情面板盖在上面就拍不到手机：先收干净
+	for key in ["_story_event_panel", "_month12_start_panel", "_interior_preview"]:
+		var node = _town.get(key)
+		if node != null and node.has_method("close"):
+			node.call("close")
+		if node != null and node.has_method("dismiss"):
+			node.call("dismiss")
+	await _wait(0.4)
+	var panel = _town.call("_ensure_month_phone_panel")
+	panel.set("conversations", _town.call("_build_phone_conversations"))
 	panel.call("open_phone", true)
-	await get_tree().create_timer(1.0).timeout
+	await _wait(0.9)
+	await _shot("01_list")
+	# 进陈工那条会话，看 56 像素的小头像取的是哪一帧
+	var convs: Array = panel.get("conversations")
+	for value in convs:
+		var conv := Dictionary(value)
+		if String(conv.get("id", "")) == "chen_gong":
+			panel.call("_open_conversation", "chen_gong")
+			break
+	await _wait(0.8)
+	await _shot("02_thread")
+	print("LIST_DONE")
+	get_tree().quit(0)
+
+
+func _wait(seconds: float) -> void:
+	await get_tree().create_timer(seconds).timeout
+
+
+func _shot(shot_name: String) -> void:
 	await RenderingServer.frame_post_draw
 	await RenderingServer.frame_post_draw
 	var image := get_viewport().get_texture().get_image()
-	print("phone list -> %s" % image.save_png(ProjectSettings.globalize_path(DIR + "/phone_list.png")))
-	get_tree().quit(0)
+	print("SHOT ", shot_name, " saved=", image.save_png(ProjectSettings.globalize_path(SHOT_DIR + "/" + shot_name + ".png")))
