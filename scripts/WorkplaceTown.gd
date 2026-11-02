@@ -384,6 +384,12 @@ var _dim_anchors := {"S": [], "O": [], "N": [], "D": []}
 var _evidence_log: Array = []
 ## 自由活动的全年账：每月一本会翻篇，报告要回看整年，所以按月归档。
 var _year_activity_log: Array = []
+## 开局入职自评（trait → 1..5，来自 user://workplace_town_profile.json 的 selfRatings）。
+## 空表 = 玩家跳过了登记：报告按"只有行为"走，不许把没答当成答了中档。
+var _self_ratings: Dictionary = {}
+## 大五行为信号（B_t）的流水：主线选项和自由活动都往这本里记，报告按算法册 §3.1 结算。
+## 只记事实（哪个月、哪一屏、哪一手、什么场合、多强），系数和门槛一律留在 rubrics.json。
+var _bt_log: Array = []
 ## 判定门槛缓存（rubrics.json 第一次用到时读进来）：红线、转正两态、晋升规则表都在这。
 var _rubrics: Dictionary = {}
 ## 看手机/手册时把走位计时真正停住：关掉后从原处继续，不会被一口气拽走。
@@ -477,6 +483,8 @@ var _training_first_cleared := false
 var _training_overlay: CanvasLayer
 ## 十二个月里正在打的那场对局属于哪条自由活动；打完拿它去结那一格。
 var _month12_duel_activity: Dictionary = {}
+## 对局页自己的设计尺寸：它整页按这个尺寸画，铺到屏上要按比例缩放。
+const DUEL_DESIGN_SIZE := Vector2(1280, 720)
 var _activity_panel: AreaActivityPanel
 var _activity_cards
 var _pending_action_activity: Dictionary = {}
@@ -523,6 +531,7 @@ var _objective_urgent := false
 
 
 func _ready() -> void:
+	_load_self_ratings()
 	_load_achievement_nodes()
 	_load_map_data()
 	_build_map_backdrop()
@@ -4025,6 +4034,9 @@ func _try_resume_saved_month() -> bool:
 	var year_log = saved.get("yearActivityLog")
 	if year_log is Array:
 		_year_activity_log = (year_log as Array).duplicate(true)
+	var bt_log = saved.get("btLog")
+	if bt_log is Array:
+		_bt_log = (bt_log as Array).duplicate(true)
 	var places = saved.get("unlockedPlaces")
 	if places is Array:
 		_month12_unlocked_places.clear()
@@ -5203,6 +5215,8 @@ func _settle_month12_activity(activity: Dictionary) -> void:
 		_month12_slots_left = maxi(0, _month12_slots_left - maxi(1, int(activity.get("slots", 1))))
 		_month12_flags["visit_%d_%s" % [_month12_month, activity_id]] = true
 		# 同月同活动只结算一次；这里只可能是第一次。
+		# 大五信号也只在第一次到访时记：算法册 §3.3 写着同一活动同月最多贡献一条。
+		_append_bt_signals(activity.get("btSignals"), String(activity.get("id", "")), "", "activity")
 		var reward := String(activity.get("rewardFlag", ""))
 		if not reward.is_empty():
 			_month12_flags[reward] = true
@@ -5238,15 +5252,50 @@ func _open_month12_duel(activity: Dictionary) -> void:
 	if _month12_place_panel != null:
 		_month12_place_panel.close()
 	_training_overlay = CanvasLayer.new()
-	_training_overlay.layer = 195
+	# 压在镇上所有界面之上：HUD、月首卡、设置都在 200/205 层，
+	# 对局以前放 195，打一局会被"本月主线"和心情罐子糊在脸上。
+	_training_overlay.layer = 210
 	add_child(_training_overlay)
+	# 对局页是按 1280×720 画的一整页。窗口比例不是 16:9 时（最大化、带标题栏），
+	# 真正看得见的画布会比 1920×1080 更宽或更高，所以：底色先铺满整块可见区，
+	# 再把那一页等比缩放居中，多出来的一条压成暗底——拉成非 16:9 会把熊画胖。
+	var backdrop := ColorRect.new()
+	backdrop.name = "DuelBackdrop"
+	backdrop.color = Color("#241a16")
+	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_training_overlay.add_child(backdrop)
+	var stage := Control.new()
+	stage.name = "DuelStage"
+	stage.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_training_overlay.add_child(stage)
 	var frame := Control.new()
-	frame.size = Vector2(1280, 720)
-	frame.scale = get_viewport_rect().size / frame.size
-	_training_overlay.add_child(frame)
+	frame.size = DUEL_DESIGN_SIZE
+	stage.add_child(frame)
+	stage.resized.connect(_fit_duel_stage.bind(frame))
+	_fit_duel_stage(frame)
 	var battle: Control = TRAINING_SCENE.instantiate()
 	battle.set("skip_intro", true)
 	battle.set("allow_leave_on_defeat", true)
+	# 搭档是谁、胜利那几句说什么，由活动自己带的那一份说了算：第 7 月是小赵拎布袋
+	# 把人拉过来的，对局里就该是他带队（旧 48 个月那条线不读这个字段，还是王哥）。
+	var duel_text: Dictionary = activity.get("duelText", {}) as Dictionary
+	if not duel_text.is_empty():
+		battle.set("partner_name", String(duel_text.get("partner", "王哥")))
+		var partner_art := String(duel_text.get("partnerArt", ""))
+		if not partner_art.is_empty() and ResourceLoader.exists(partner_art):
+			battle.set("partner_texture", load(partner_art))
+		var select_line := String(duel_text.get("selectLine", ""))
+		if not select_line.is_empty():
+			battle.set("select_line", select_line)
+		var victory_lines: Array = duel_text.get("victoryLines", []) as Array
+		if not victory_lines.is_empty():
+			battle.set("victory_dialogue", victory_lines)
+		var end_title := String(duel_text.get("endTitle", ""))
+		if not end_title.is_empty():
+			battle.set("victory_end_title", end_title)
+		var end_text := String(duel_text.get("endText", ""))
+		if not end_text.is_empty():
+			battle.set("victory_end_text", end_text)
 	frame.add_child(battle)
 	battle.training_completed.connect(_on_month12_duel_finished)
 	battle.training_result.connect(_on_training_result)
@@ -5255,6 +5304,20 @@ func _open_month12_duel(activity: Dictionary) -> void:
 		"storyId": "training_valley_1",
 		"month": _month12_month,
 	})
+
+
+## 对局页跟着真正可见的画布缩放：stage 是满屏那块，它的尺寸就是玩家实际看得见的范围。
+## 窗口拖动、最大化、DPI 变了都会再算一次，不再拿名义上的 1920×1080 硬铺。
+func _fit_duel_stage(frame: Control) -> void:
+	var stage := frame.get_parent() as Control
+	if stage == null:
+		return
+	if stage.size.x <= 0.0 or stage.size.y <= 0.0:
+		return
+	# 两个方向取小的那个比例：等比缩放，不拉伸画面；多出来的一条由暗底补。
+	var ratio := minf(stage.size.x / DUEL_DESIGN_SIZE.x, stage.size.y / DUEL_DESIGN_SIZE.y)
+	frame.scale = Vector2(ratio, ratio)
+	frame.position = (stage.size - DUEL_DESIGN_SIZE * ratio) * 0.5
 
 
 ## 对局收场（赢了或输了都算来过）：关掉覆盖层，回到正常结算那一笔。
@@ -5278,7 +5341,14 @@ func _present_month12_place_outcome(activity: Dictionary) -> void:
 		image = "res://assets/ui/place_cards/%s" % String(shots[0])
 	var second := "本周安排完了，可以结束这个月。"
 	if _month12_activity_generic:
-		second = "还能再去一个地方。" if _month12_slots_left > 0 else "这个月安排完了，可以结束这个月。"
+		if _month12_slots_left > 0:
+			second = "还能再去一个地方。"
+		elif _activity_next_is_close:
+			second = "这个月安排完了，可以结束这个月。"
+		else:
+			# 格子用完不等于这个月过完：第 3/5/7/9/11 月的自由安排后面还有剧情屏，
+			# 按钮上也写着"今天后面还有一段"（_month12_now_line 同一口径）。
+			second = "这个月的地方去完了，今天后面还有一段。"
 	_weekend_scene_panel.present({
 		"title": String(activity.get("name", "自由活动")),
 		"image": image,
@@ -5722,6 +5792,7 @@ func _save_month12_progress(at_month_start := false) -> void:
 		"monthLedger": _month_ledger,
 		"evidenceLog": _evidence_log,
 		"yearActivityLog": _year_activity_log,
+		"btLog": _bt_log,
 	}
 	var file := FileAccess.open("user://workplace_town_month12.json", FileAccess.WRITE)
 	if file != null:
@@ -6723,6 +6794,34 @@ func _collect_competency(choice: Dictionary, event_id := "", choice_id := "") ->
 			"behavior": String(item.get("behaviorCode", "")),
 			# 报告要引"代表性表现"，用的是玩家当时看见的那句话，不是内部行为码。
 			"choiceText": String(choice.get("text", "")),
+		})
+	# 同一手还会掉大五信号（算法册 §3.2）：那是另一本账，不参与四维与判定。
+	_append_bt_signals(choice.get("btSignals"), event_id, choice_id, "main")
+
+
+## 把一组大五信号记进 B_t 流水。来源分主线（权重 1.0）和自由活动（权重 0.5），
+## 场合类型决定"跨了几类情境"那道门槛，code 是这条证据的身份证号。
+func _append_bt_signals(raw, event_id: String, choice_id: String, source: String) -> void:
+	if not (raw is Array):
+		return
+	for value in (raw as Array):
+		if not (value is Dictionary):
+			continue
+		var item := Dictionary(value)
+		var trait_key := String(item.get("trait", ""))
+		if trait_key.is_empty():
+			continue
+		_bt_log.append({
+			"month": _month12_month,
+			"eventId": event_id,
+			"choiceId": choice_id,
+			"trait": trait_key,
+			"dir": int(item.get("dir", 0)),
+			"strength": String(item.get("strength", "M")),
+			"context": String(item.get("context", "")),
+			"code": String(item.get("code", "")),
+			"fact": String(item.get("fact", "")),
+			"source": source,
 		})
 
 
@@ -7862,6 +7961,21 @@ func _begin_month_ledger(month_value: int) -> void:
 	_refresh_mood_hud()
 	# 月首这一刻落一次盘并打上"整月起点"标记：开机续玩就从这个点接。
 	_save_month12_progress(true)
+
+
+## 读开局那份档案里的自评。读不到、没写过、格式不对，一律当"没答"。
+func _load_self_ratings() -> void:
+	_self_ratings = {}
+	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string("user://workplace_town_profile.json"))
+	if not (parsed is Dictionary):
+		return
+	var ratings = (parsed as Dictionary).get("selfRatings", {})
+	if not (ratings is Dictionary):
+		return
+	for key in (ratings as Dictionary).keys():
+		var value := int((ratings as Dictionary)[key])
+		if value >= 1 and value <= 5:
+			_self_ratings[String(key)] = value
 
 
 ## 一处活动对心情做了多少：hCost 是额外消耗，H≤2 时翻倍（行动点不翻）；

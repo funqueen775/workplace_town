@@ -243,7 +243,28 @@
       "abilityTags": {
         "resilience": 1
       },
-      "duel": "training_valley"
+      "duel": "training_valley",
+      "duelText": {
+        "partner": "小赵",
+        "partnerArt": "res://training_valley/assets/characters/xiaozhao_locked.png",
+        "selectLine": "头一回来就跟着我。点我这张卡，咱俩一起上。",
+        "victoryLines": [
+          {
+            "speaker": "松叔",
+            "text": "够了。你俩这一局有来有回，用不着我喊停。"
+          },
+          {
+            "speaker": "松叔",
+            "text": "周末这块场地开给你们。记分牌在那边摆着，名字自己写，我这儿不记成绩。"
+          },
+          {
+            "speaker": "小赵",
+            "text": "水在袋里，自己拿。老周还在边上等着。"
+          }
+        ],
+        "endTitle": "这一局打完了",
+        "endText": "松风训练谷周末的场地给你们开着，想再来自己认路。\n\n记分牌归你们用，输赢不进评估。"
+      }
     },
     {
       "id": "m7_lawn",

@@ -9,6 +9,16 @@ signal training_result(result: Dictionary)
 ## 不给人退场键就是把他锁在一格里反复重打。
 var skip_intro := false
 var allow_leave_on_defeat := false
+## 搭档换成谁、胜利那几句说什么：脚本里的台词一律按「王哥」写（旧 48 个月那条线的默认搭档），
+## 十二个月那条线由调用方把这几个字段设成第 7 月的口径。可见文案统一在 _pn() 一处换名，台词不抄第二份。
+var partner_name := "王哥"
+var partner_texture: Texture2D = null
+var victory_dialogue: Array = []
+var victory_end_title := "第一关完成"
+var victory_end_text := "紧急通道已经开放。\n\n松风训练谷也正式成为你与不同搭档进行磨合训练的地点。"
+## 选搭档页底下那句自我介绍：调用方可以整句换掉（小赵的口吻和王哥不是一回事），
+## 不给就用原来那句。
+var select_line := ""
 
 
 const BattleModelScript = preload("res://training_valley/scripts/battle_model.gd")
@@ -110,6 +120,8 @@ var battle_fx: BattleFx
 
 
 func _ready() -> void:
+	if partner_texture == null:
+		partner_texture = TEX_WANG
 	model = BattleModelScript.new()
 	_build_interface()
 	_update_units()
@@ -138,6 +150,7 @@ func _build_interface() -> void:
 	_build_end_layer()
 	_build_transition_layer()
 	battle_fx = BattleFxScript.new()
+	battle_fx.partner_name = partner_name
 	add_child(battle_fx)
 
 
@@ -159,40 +172,48 @@ func _build_backgrounds() -> void:
 
 
 func _build_header() -> void:
-	var title := _label("松风训练谷", 24, CREAM)
+	var title := _label("松风训练谷", 26, CREAM)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.position = Vector2(28, 20)
 	title.size = Vector2(250, 48)
 	title.add_theme_stylebox_override("normal", _style(Color("#68432dee"), 14, Color("#d4a661"), 3))
 	battle_layer.add_child(title)
 
-	round_label = _label("训练准备", 19, CREAM)
+	round_label = _label("训练准备", 21, CREAM)
 	round_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	round_label.position = Vector2(1030, 20)
 	round_label.size = Vector2(218, 44)
 	round_label.add_theme_stylebox_override("normal", _style(Color("#68432dee"), 14, Color("#d4a661"), 3))
 	battle_layer.add_child(round_label)
 
-	phase_label = _label("2 对 1", 15, CREAM)
+	phase_label = _label("2 对 1", 17, CREAM)
 	phase_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	phase_label.position = Vector2(790, 71)
-	phase_label.size = Vector2(450, 30)
+	# 这块原来只有一行奶油色字压在背景图上（右上角是浅色的闸机），基本读不出来。
+	# 给它和"第 1 轮"同一款底牌，宽度收到刚好贴住"第 1 轮"下面，不再横跨半屏。
+	phase_label.position = Vector2(926, 69)
+	phase_label.size = Vector2(322, 32)
+	var phase_style := _style(Color("#68432dcc"), 10, Color("#d4a661"), 2)
+	# 上下留白收掉：默认那 8 格会把这块小牌撑到压住下面的教学卡。
+	phase_style.content_margin_top = 2
+	phase_style.content_margin_bottom = 2
+	phase_label.add_theme_stylebox_override("normal", phase_style)
 	battle_layer.add_child(phase_label)
 
 	var log_panel := PanelContainer.new()
 	log_panel.position = Vector2(1000, 145)
-	log_panel.size = Vector2(262, 250)
-	log_panel.add_theme_stylebox_override("panel", _style(Color("#fff0cfee"), 18, Color("#7a4c30"), 4))
+	log_panel.size = Vector2(270, 268)
+	log_panel.add_theme_stylebox_override("panel", _card_style(Color("#fff0cfee"), 16, Color("#7a4c30"), 3, 6))
 	battle_layer.add_child(log_panel)
 	var log_box := VBoxContainer.new()
 	log_box.add_theme_constant_override("separation", 8)
 	log_panel.add_child(log_box)
-	var log_title := _label("行动记录", 18, INK)
+	var log_title := _label("行动记录", 18, Color("#8a6a52"))
 	log_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	log_box.add_child(log_title)
-	log_label = _label("剧情结束后开始训练。", 15, Color("#604b40"))
+	log_label = _label("剧情结束后开始训练。", 17, Color("#5c493f"))
 	log_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	log_label.custom_minimum_size = Vector2(250, 195)
+	log_label.add_theme_constant_override("line_spacing", 4)
+	log_label.custom_minimum_size = Vector2(246, 176)
 	log_box.add_child(log_label)
 
 
@@ -204,7 +225,7 @@ func _build_units() -> void:
 	song_hp_bar = song.bar
 	song_hp_label = song.hp_label
 
-	var wang := _unit_panel("王哥", TEX_WANG, Vector2(18, 478), Vector2(220, 230), Color("#fff1cf"))
+	var wang := _unit_panel(partner_name, partner_texture, Vector2(18, 478), Vector2(220, 230), Color("#fff1cf"))
 	battle_layer.add_child(wang.panel)
 	wang_unit_panel = wang.panel
 	wang_portrait = wang.portrait
@@ -240,7 +261,7 @@ func _unit_panel(unit_name: String, texture: Texture2D, pos: Vector2, panel_size
 	var hp_box := VBoxContainer.new()
 	hp_box.add_theme_constant_override("separation", 2)
 	hp_plate.add_child(hp_box)
-	var name_label := _label(unit_name, 16, INK)
+	var name_label := _label(unit_name, 18, INK)
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hp_box.add_child(name_label)
 	var hp_row := HBoxContainer.new()
@@ -253,19 +274,19 @@ func _unit_panel(unit_name: String, texture: Texture2D, pos: Vector2, panel_size
 	bar.add_theme_stylebox_override("background", _style(Color("#5a443d55"), 8))
 	bar.add_theme_stylebox_override("fill", _style(Color("#dd685b"), 8))
 	hp_row.add_child(bar)
-	var hp_label := _label("%d / %d" % [BattleModel.PLAYER_MAX_HP, BattleModel.PLAYER_MAX_HP], 13, INK)
+	var hp_label := _label("%d / %d" % [BattleModel.PLAYER_MAX_HP, BattleModel.PLAYER_MAX_HP], 15, INK)
 	hp_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hp_label.custom_minimum_size = Vector2(58, 20)
+	hp_label.custom_minimum_size = Vector2(66, 22)
 	hp_row.add_child(hp_label)
 	return {"panel": panel, "portrait": portrait, "bar": bar, "hp_label": hp_label}
 
 
 func _build_dice_and_cards() -> void:
-	song_dice_hint = _label("松叔的三枚骰子", 15, INK)
+	song_dice_hint = _label("松叔的三枚骰子", 17, INK)
 	song_dice_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	song_dice_hint.position = Vector2(490, 213)
 	song_dice_hint.size = Vector2(300, 28)
-	song_dice_hint.add_theme_stylebox_override("normal", _style(Color("#d9edf2ee"), 10, Color("#416f85"), 2))
+	song_dice_hint.add_theme_stylebox_override("normal", _hint_plate(Color("#416f85")))
 	song_dice_hint.visible = false
 	battle_layer.add_child(song_dice_hint)
 
@@ -277,11 +298,11 @@ func _build_dice_and_cards() -> void:
 	song_dice_row.visible = false
 	battle_layer.add_child(song_dice_row)
 
-	wang_dice_hint = _label("王哥的三枚骰子", 15, INK)
+	wang_dice_hint = _label("王哥的三枚骰子", 17, INK)
 	wang_dice_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	wang_dice_hint.position = Vector2(242, 264)
 	wang_dice_hint.size = Vector2(280, 28)
-	wang_dice_hint.add_theme_stylebox_override("normal", _style(Color("#f6dcaadd"), 10, Color("#815536"), 2))
+	wang_dice_hint.add_theme_stylebox_override("normal", _hint_plate(Color("#815536")))
 	battle_layer.add_child(wang_dice_hint)
 
 	wang_dice_row = HBoxContainer.new()
@@ -291,11 +312,11 @@ func _build_dice_and_cards() -> void:
 	wang_dice_row.add_theme_constant_override("separation", 10)
 	battle_layer.add_child(wang_dice_row)
 
-	pool_hint = _label("选择你的骰子 · 自己3枚＋王哥留下2枚", 15, INK)
+	pool_hint = _label("选择你的骰子 · 自己3枚＋王哥留下2枚", 17, INK)
 	pool_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	pool_hint.position = Vector2(407, 355)
 	pool_hint.size = Vector2(500, 30)
-	pool_hint.add_theme_stylebox_override("normal", _style(Color("#f6dcaadd"), 10, Color("#815536"), 2))
+	pool_hint.add_theme_stylebox_override("normal", _hint_plate(Color("#b07a1f")))
 	battle_layer.add_child(pool_hint)
 
 	pool_row = HBoxContainer.new()
@@ -361,25 +382,26 @@ func _build_dialogue_layer() -> void:
 	var panel := PanelContainer.new()
 	panel.position = Vector2(66, 505)
 	panel.size = Vector2(1148, 184)
-	panel.add_theme_stylebox_override("panel", _style(Color("#fff0cef7"), 22, Color("#70452e"), 5))
+	panel.add_theme_stylebox_override("panel", _card_style(Color("#fff0cef7"), 20, Color("#70452e"), 5, 10))
 	dialogue_layer.add_child(panel)
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 5)
+	box.add_theme_constant_override("separation", 8)
 	panel.add_child(box)
-	dialogue_name = _label("旁白", 22, Color("#315b49"))
-	dialogue_name.add_theme_color_override("font_outline_color", Color("#fff8e8"))
-	dialogue_name.add_theme_constant_override("outline_size", 4)
+	# 说话人原来是 4 格白描边，像糊在字上的一圈雾；改成深绿实色 + 一条浅色下划线。
+	dialogue_name = _label("旁白", 23, Color("#2f5a44"))
+	dialogue_name.add_theme_stylebox_override("normal", _name_rule())
 	box.add_child(dialogue_name)
-	dialogue_text = _label("", 19, INK)
+	dialogue_text = _label("", 21, INK)
 	dialogue_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	dialogue_text.custom_minimum_size = Vector2(1010, 76)
+	dialogue_text.add_theme_constant_override("line_spacing", 5)
+	dialogue_text.custom_minimum_size = Vector2(1010, 80)
 	box.add_child(dialogue_text)
 	dialogue_next = Button.new()
 	dialogue_next.text = "继续"
-	dialogue_next.custom_minimum_size = Vector2(156, 38)
+	dialogue_next.custom_minimum_size = Vector2(164, 44)
 	dialogue_next.size_flags_horizontal = Control.SIZE_SHRINK_END
 	dialogue_next.add_theme_font_override("font", CHINESE_FONT)
-	dialogue_next.add_theme_font_size_override("font_size", 17)
+	dialogue_next.add_theme_font_size_override("font_size", 19)
 	dialogue_next.add_theme_color_override("font_color", CREAM)
 	dialogue_next.add_theme_stylebox_override("normal", _style(Color("#5f7f61"), 13, Color("#38563e"), 2))
 	dialogue_next.add_theme_stylebox_override("hover", _style(Color("#749773"), 13, Color("#38563e"), 3))
@@ -398,7 +420,7 @@ func _build_selection_layer() -> void:
 	select_layer.add_child(shade)
 
 	var wang_shadow := TextureRect.new()
-	wang_shadow.texture = TEX_WANG
+	wang_shadow.texture = partner_texture
 	wang_shadow.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	wang_shadow.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	wang_shadow.position = Vector2(30, 99)
@@ -406,18 +428,18 @@ func _build_selection_layer() -> void:
 	wang_shadow.modulate = Color("#18140f55")
 	select_layer.add_child(wang_shadow)
 	var wang_speaker := TextureRect.new()
-	wang_speaker.texture = TEX_WANG
+	wang_speaker.texture = partner_texture
 	wang_speaker.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	wang_speaker.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	wang_speaker.position = Vector2(18, 84)
 	wang_speaker.size = Vector2(350, 445)
 	select_layer.add_child(wang_speaker)
 
-	var title := _label("选择本次训练的搭档", 27, INK)
+	var title := _label("选择本次训练的搭档", 29, INK)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.position = Vector2(405, 40)
 	title.size = Vector2(820, 50)
-	title.add_theme_stylebox_override("normal", _style(Color("#fff0ceee"), 16, Color("#70452e"), 4))
+	title.add_theme_stylebox_override("normal", _card_style(Color("#fff0ceee"), 16, Color("#70452e"), 4, 6))
 	select_layer.add_child(title)
 	var row := HBoxContainer.new()
 	row.position = Vector2(395, 104)
@@ -425,25 +447,27 @@ func _build_selection_layer() -> void:
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_theme_constant_override("separation", 10)
 	select_layer.add_child(row)
-	wang_partner_card = _partner_card("王哥", "可靠兜底", TEX_WANG, false)
+	wang_partner_card = _partner_card(partner_name, "可靠兜底", partner_texture, false)
 	row.add_child(wang_partner_card)
-	row.add_child(_partner_card("小赵", "尚未解锁", TEX_XIAOZHAO, true))
-	row.add_child(_partner_card("小林", "尚未解锁", TEX_XIAOLIN, true))
-	row.add_child(_partner_card("老周", "尚未解锁", TEX_LAOZHOU, true))
+	for entry in _other_partners():
+		row.add_child(_partner_card(String(entry[0]), "尚未解锁", entry[1] as Texture2D, true))
 
 	var dialogue := PanelContainer.new()
 	dialogue.position = Vector2(66, 532)
 	dialogue.size = Vector2(1148, 152)
-	dialogue.add_theme_stylebox_override("panel", _style(Color("#fff0cef7"), 22, Color("#70452e"), 5))
+	dialogue.add_theme_stylebox_override("panel", _card_style(Color("#fff0cef7"), 20, Color("#70452e"), 5, 10))
 	select_layer.add_child(dialogue)
 	var dialogue_box := VBoxContainer.new()
-	dialogue_box.add_theme_constant_override("separation", 4)
+	dialogue_box.add_theme_constant_override("separation", 8)
 	dialogue.add_child(dialogue_box)
-	var speaker_name := _label("王哥", 22, Color("#315b49"))
+	var speaker_name := _label("王哥", 23, Color("#2f5a44"))
+	speaker_name.add_theme_stylebox_override("normal", _name_rule())
 	dialogue_box.add_child(speaker_name)
-	var words := _label("第一次进训练谷，先让我做你的搭档吧。选中我的角色卡，我们一起上场。", 19, INK)
+	var words := _label(
+		select_line if not select_line.is_empty() else "第一次进训练谷，先让我做你的搭档吧。选中我的角色卡，我们一起上场。",
+		19, INK)
 	words.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	words.custom_minimum_size = Vector2(1020, 64)
+	words.custom_minimum_size = Vector2(1020, 68)
 	dialogue_box.add_child(words)
 
 
@@ -461,14 +485,16 @@ func _partner_card(char_name: String, subtitle: String, texture: Texture2D, lock
 	portrait.custom_minimum_size = Vector2(178, 247)
 	portrait.modulate = Color("#777777") if locked else Color.WHITE
 	box.add_child(portrait)
-	var name_label := _label(char_name, 23, INK)
+	var name_label := _label(char_name, 25, INK)
+	# 牌上写的是"那个人是谁"，不走换名那条：不换的话王哥那张牌也会被叫成小赵。
+	name_label.text = char_name
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(name_label)
-	var role_label := _label(subtitle, 14, Color("#6f5a50"))
+	var role_label := _label(subtitle, 16, Color("#6f5a50"))
 	role_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(role_label)
 	var button := Button.new()
-	button.text = "未解锁" if locked else "选择王哥"
+	button.text = "未解锁" if locked else _pn("选择王哥")
 	button.custom_minimum_size = Vector2(176, 42)
 	button.add_theme_font_override("font", CHINESE_FONT)
 	button.add_theme_font_size_override("font_size", 17)
@@ -485,24 +511,29 @@ func _partner_card(char_name: String, subtitle: String, texture: Texture2D, lock
 
 func _build_tutorial_panel() -> void:
 	tutorial_panel = PanelContainer.new()
-	tutorial_panel.position = Vector2(310, 104)
-	tutorial_panel.size = Vector2(660, 154)
+	# 卡原来贴在 y=104、宽 660：卡底离下面"搭档的三枚骰子"那行标题只剩 3 个像素，
+	# 两块圆角边框看着像被切了一半；字放大一档后更挤。所以加宽到 760（长句仍然两行）、
+	# 往上抬到 82。上面那块是松叔的血牌，本来就被这张卡盖住，抬上去不多遮新的东西。
+	tutorial_panel.position = Vector2(280, 82)
+	tutorial_panel.size = Vector2(700, 162)
 	tutorial_panel.visible = false
 	tutorial_panel.z_index = 45
-	tutorial_panel.add_theme_stylebox_override("panel", _style(Color("#fff9eefa"), 22, Color("#e5a83b"), 4))
+	tutorial_panel.add_theme_stylebox_override("panel", _card_style(Color("#fff9eefa"), 20, Color("#e5a83b"), 4))
 	add_child(tutorial_panel)
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 5)
+	# 标题、正文、按钮原来只隔 5 格，三行挤成一坨；拉开一点，行距也给上。
+	box.add_theme_constant_override("separation", 8)
 	tutorial_panel.add_child(box)
-	tutorial_title = _label("新手引导", 22, Color("#9b651d"))
+	tutorial_title = _label("新手引导", 25, Color("#8a5415"))
 	box.add_child(tutorial_title)
-	tutorial_text = _label("", 17, INK)
+	tutorial_text = _label("", 18, INK)
 	tutorial_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	tutorial_text.custom_minimum_size = Vector2(600, 57)
+	tutorial_text.add_theme_constant_override("line_spacing", 4)
+	tutorial_text.custom_minimum_size = Vector2(648, 52)
 	box.add_child(tutorial_text)
 	tutorial_next = Button.new()
 	tutorial_next.text = "知道了"
-	tutorial_next.custom_minimum_size = Vector2(140, 34)
+	tutorial_next.custom_minimum_size = Vector2(160, 38)
 	tutorial_next.size_flags_horizontal = Control.SIZE_SHRINK_END
 	_style_action_button(tutorial_next, Color("#5f8b65"))
 	tutorial_next.pressed.connect(_on_tutorial_next)
@@ -520,7 +551,7 @@ func _build_heal_panel() -> void:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 9)
 	heal_panel.add_child(box)
-	var title := _label("回复牌给谁使用？", 21, INK)
+	var title := _label("回复牌给谁使用？", 23, INK)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title)
 	var self_button := Button.new()
@@ -529,7 +560,7 @@ func _build_heal_panel() -> void:
 	self_button.pressed.connect(_apply_heal.bind("player"))
 	box.add_child(self_button)
 	var wang_button := Button.new()
-	wang_button.text = "回复王哥 +5"
+	wang_button.text = _pn("回复王哥 +5")
 	_style_action_button(wang_button, Color("#c48745"))
 	wang_button.pressed.connect(_apply_heal.bind("wang"))
 	box.add_child(wang_button)
@@ -594,38 +625,46 @@ func _build_end_layer() -> void:
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	end_layer.add_child(shade)
 	var panel := PanelContainer.new()
-	panel.position = Vector2(350, 170)
-	panel.size = Vector2(580, 380)
-	panel.add_theme_stylebox_override("panel", _style(Color("#fff7e8"), 30, GOLD, 5))
+	panel.position = Vector2(320, 158)
+	panel.size = Vector2(640, 404)
+	panel.add_theme_stylebox_override("panel", _card_style(Color("#fff7e8"), 26, GOLD, 5, 14))
 	end_layer.add_child(panel)
 	var box := VBoxContainer.new()
 	box.alignment = BoxContainer.ALIGNMENT_CENTER
-	box.add_theme_constant_override("separation", 22)
+	box.add_theme_constant_override("separation", 16)
 	panel.add_child(box)
-	end_title = _label("训练完成", 38, INK)
+	end_title = _label("训练完成", 36, Color("#7a4c1c"))
 	end_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(end_title)
-	end_text = _label("", 19, Color("#5c493f"))
+	end_text = _label("", 22, Color("#5c493f"))
 	end_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	end_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	end_text.custom_minimum_size = Vector2(500, 150)
+	end_text.add_theme_constant_override("line_spacing", 6)
+	end_text.custom_minimum_size = Vector2(556, 150)
 	box.add_child(end_text)
+	# 两颗按钮原来各占一行、同色同形，看不出该点哪个；并排 + 一主一次。
+	var actions := HBoxContainer.new()
+	actions.alignment = BoxContainer.ALIGNMENT_CENTER
+	actions.add_theme_constant_override("separation", 18)
+	actions.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	box.add_child(actions)
 	end_button = Button.new()
 	end_button.text = "再训练一次"
-	end_button.custom_minimum_size = Vector2(240, 52)
+	end_button.custom_minimum_size = Vector2(252, 56)
 	end_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	end_button.add_theme_font_size_override("font_size", 20)
-	_style_action_button(end_button, Color("#5f8b65"))
+	end_button.add_theme_font_size_override("font_size", 22)
+	# 次一级：重新训练是可选动作，用暖棕，把绿色留给"返回小镇"。
+	_style_action_button(end_button, Color("#b98a52"))
 	end_button.pressed.connect(_restart_battle)
-	box.add_child(end_button)
+	actions.add_child(end_button)
 	return_button = Button.new()
 	return_button.text = "返回小镇"
-	return_button.custom_minimum_size = Vector2(240, 52)
+	return_button.custom_minimum_size = Vector2(252, 56)
 	return_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	return_button.add_theme_font_size_override("font_size", 20)
+	return_button.add_theme_font_size_override("font_size", 22)
 	_style_action_button(return_button, Color("#5f8b65"))
 	return_button.pressed.connect(func(): training_completed.emit())
-	box.add_child(return_button)
+	actions.add_child(return_button)
 	return_button.visible = false
 
 
@@ -664,7 +703,7 @@ func _show_partner_select() -> void:
 	table_background.visible = false
 	select_layer.visible = true
 	await get_tree().process_frame
-	battle_fx.focus(wang_partner_card, "王哥正在教你选搭档 · 点击「选择王哥」", 12)
+	battle_fx.focus(wang_partner_card, _pn("王哥正在教你选搭档 · 点击「选择王哥」"), 12)
 
 
 func _select_wang() -> void:
@@ -733,10 +772,16 @@ func _start_round() -> void:
 	_clear_row(wang_dice_row)
 	_clear_row(pool_row)
 	_clear_row(song_dice_row)
+	# 先摆上"还没投"的骰子位：教学卡写着"先投三枚骰子"，底下却是一块空的发光框，
+	# 玩家第一反应是骰子没刷出来。摆的是压暗的骰子背（爪印），点不动；
+	# 真到投的那一步，roll_dice 会自己清空重建，不会和这些占位叠在一起。
+	_fill_die_slots(wang_dice_row, 3)
+	_fill_die_slots(pool_row, 5)
+	_fill_die_slots(song_dice_row, 3)
 	var snapshot := model.begin_round()
 	pending_wang_skill = bool(snapshot["wang_skill_triggered"])
 	round_label.text = "第 %d 轮" % model.round_index
-	phase_label.text = "王哥先选择并攻击"
+	phase_label.text = _pn("王哥先选择并攻击")
 	_update_units()
 	_update_cards()
 	if first_round_tutorial:
@@ -759,7 +804,7 @@ func _animate_wang_roll_and_attack() -> void:
 	await battle_fx.highlight_choice(
 		wang_dice_row,
 		model.wang_choice_index,
-		"王哥选中了这枚 · 它将变成攻击骰",
+		_pn("王哥选中了这枚 · 它将变成攻击骰"),
 		false
 	)
 	_resolve_wang_attack()
@@ -770,7 +815,7 @@ func _resolve_wang_attack() -> void:
 	input_locked = true
 	var result := model.resolve_wang_attack()
 	await battle_fx.combat_resolution(
-		"王哥",
+		_pn("王哥"),
 		int(result["attack"]),
 		"松叔",
 		int(result["defense"]),
@@ -892,7 +937,7 @@ func _render_wang_dice() -> void:
 		var selected := i == model.wang_choice_index
 		var die := _die_button(model.wang_rolls[i], selected, false)
 		die.disabled = true
-		die.tooltip_text = "王哥保留" if selected else "稍后交给玩家"
+		die.tooltip_text = _pn("王哥保留") if selected else "稍后交给玩家"
 		wang_dice_row.add_child(die)
 
 
@@ -904,7 +949,7 @@ func _render_player_pool() -> void:
 		var selected := i == model.selected_pool_index
 		var die := _die_button(int(die_data["value"]), selected, hidden)
 		die.disabled = input_locked
-		die.tooltip_text = "未知骰：可以选择，选中后揭晓" if hidden else ("你的骰子" if die_data["source"] == "player" else "王哥留下的骰子")
+		die.tooltip_text = "未知骰：可以选择，选中后揭晓" if hidden else ("你的骰子" if die_data["source"] == "player" else _pn("王哥留下的骰子"))
 		die.pressed.connect(_on_pool_die_pressed.bind(i))
 		pool_row.add_child(die)
 
@@ -956,7 +1001,7 @@ func _on_heal_pressed() -> void:
 	if input_locked or not model.can_use_card("heal"):
 		return
 	heal_panel.visible = true
-	battle_fx.focus(heal_panel, "选择回复自己或王哥", 10)
+	battle_fx.focus(heal_panel, _pn("选择回复自己或王哥"), 10)
 
 
 func _cancel_heal() -> void:
@@ -968,7 +1013,7 @@ func _apply_heal(target: String) -> void:
 	battle_fx.clear_focus()
 	var result := model.use_heal(target)
 	if bool(result.get("used", false)):
-		var who := "自己" if target == "player" else "王哥"
+		var who := "自己" if target == "player" else _pn("王哥")
 		_add_log("你把「回复」用于%s，恢复%d点生命。" % [who, result["amount"]])
 		var target_portrait := player_portrait if target == "player" else wang_portrait
 		_show_float_text(
@@ -1037,7 +1082,7 @@ func _song_turn() -> void:
 	song_dice_hint.visible = true
 	song_dice_row.visible = true
 	var result := model.resolve_song_attack()
-	var who := "你" if result["target"] == "player" else "王哥"
+	var who := "你" if result["target"] == "player" else _pn("王哥")
 	var portrait := player_portrait if result["target"] == "player" else wang_portrait
 	var emphasize_song_roll := not song_roll_introduced
 	await battle_fx.roll_dice(song_dice_row, result["rolls"], [], emphasize_song_roll)
@@ -1088,11 +1133,14 @@ func _finish_victory() -> void:
 	training_result.emit(_result_payload("victory"))
 	_hide_battle_controls()
 	round_label.text = "训练通过"
-	_show_dialogue_sequence([
-		{"speaker": "松叔", "text": "行，反应、判断和配合都过关了。紧急通道打开，你们赶紧去码头。"},
-		{"speaker": "松叔", "text": "以后想和其他搭档磨合，也可以来松风训练谷。这里不只管通行，也负责训练。"},
-		{"speaker": "王哥", "text": "走吧，别让刚赢下来的时间又浪费了。"},
-	], _show_victory_end)
+	# 十二个月那条线整段换掉：这一局是周末在谷口打球，不是旧那条线赶路交材料。
+	if victory_dialogue.is_empty():
+		victory_dialogue = [
+			{"speaker": "松叔", "text": "行，反应、判断和配合都过关了。紧急通道打开，你们赶紧去码头。"},
+			{"speaker": "松叔", "text": "以后想和其他搭档磨合，也可以来松风训练谷。这里不只管通行，也负责训练。"},
+			{"speaker": "王哥", "text": "走吧，别让刚赢下来的时间又浪费了。"},
+		]
+	_show_dialogue_sequence(victory_dialogue, _show_victory_end)
 
 
 func _finish_defeat() -> void:
@@ -1118,8 +1166,8 @@ func _result_payload(outcome: String) -> Dictionary:
 
 func _show_victory_end() -> void:
 	dialogue_layer.visible = false
-	end_title.text = "第一关完成"
-	end_text.text = "紧急通道已经开放。\n\n松风训练谷也正式成为你与不同搭档进行磨合训练的地点。"
+	end_title.text = victory_end_title
+	end_text.text = victory_end_text
 	end_button.text = "再训练一次"
 	return_button.visible = true
 	end_layer.visible = true
@@ -1134,7 +1182,10 @@ func _restart_battle() -> void:
 func _show_dialogue_sequence(lines: Array, completed: Callable) -> void:
 	dialogue_lines.clear()
 	for line in lines:
-		dialogue_lines.append(line)
+		var entry: Dictionary = Dictionary(line).duplicate()
+		entry["speaker"] = _pn(String(entry.get("speaker", "")))
+		entry["text"] = _pn(String(entry.get("text", "")))
+		dialogue_lines.append(entry)
 	dialogue_index = 0
 	dialogue_complete = completed
 	dialogue_layer.visible = true
@@ -1154,19 +1205,20 @@ func _set_dialogue_portrait(speaker: String) -> void:
 	var texture: Texture2D
 	var portrait_position := Vector2(58, 72)
 	var portrait_size := Vector2(390, 470)
-	match speaker:
-		"王哥":
-			texture = TEX_WANG
-		"松叔":
-			texture = TEX_SONG
-			portrait_position = Vector2(850, 38)
-			portrait_size = Vector2(370, 485)
-		"玩家":
-			texture = TEX_PLAYER
-		_:
-			dialogue_portrait.visible = false
-			dialogue_portrait_shadow.visible = false
-			return
+	# 头像认的是「当前带队的人」，不是写死的王哥：十二个月那条线换成小赵，
+	# 旧那条线 partner_name 就是王哥，走的还是原来那张立绘。
+	if speaker == partner_name:
+		texture = partner_texture
+	elif speaker == "松叔":
+		texture = TEX_SONG
+		portrait_position = Vector2(850, 38)
+		portrait_size = Vector2(370, 485)
+	elif speaker == "玩家":
+		texture = TEX_PLAYER
+	else:
+		dialogue_portrait.visible = false
+		dialogue_portrait_shadow.visible = false
+		return
 	dialogue_portrait.texture = texture
 	dialogue_portrait.position = portrait_position
 	dialogue_portrait.size = portrait_size
@@ -1196,9 +1248,9 @@ func _show_tutorial(
 	_focus_text: String = ""
 ) -> void:
 	input_locked = true
-	tutorial_title.text = title
-	tutorial_text.text = text_value
-	tutorial_next.text = button_text
+	tutorial_title.text = _pn(title)
+	tutorial_text.text = _pn(text_value)
+	tutorial_next.text = _pn(button_text)
 	tutorial_callback = callback
 	tutorial_panel.visible = true
 	if is_instance_valid(focus_control):
@@ -1252,7 +1304,7 @@ func _play_cutin(kind: String) -> void:
 	if kind == "wang":
 		cutin_title.text = "由我兜底"
 		cutin_title.position = Vector2(115, 282)
-		cutin_character.texture = TEX_WANG
+		cutin_character.texture = partner_texture
 		cutin_character.position = Vector2(815, 120)
 		cutin_band.rotation = -0.11
 		cutin_band.add_theme_stylebox_override("panel", _style(Color("#f7bd45ee"), 18, Color("#fff4b8"), 8))
@@ -1325,7 +1377,7 @@ func _update_cards() -> void:
 
 
 func _add_log(text_value: String) -> void:
-	battle_logs.push_front(text_value)
+	battle_logs.push_front(_pn(text_value))
 	if battle_logs.size() > 6:
 		battle_logs.resize(6)
 	log_label.text = "\n".join(battle_logs)
@@ -1336,7 +1388,7 @@ func _show_locked_toast(char_name: String) -> void:
 
 
 func _show_toast(message: String) -> void:
-	toast_label.text = message
+	toast_label.text = _pn(message)
 	toast_label.visible = true
 	toast_label.modulate.a = 1.0
 	var tween := create_tween()
@@ -1399,7 +1451,7 @@ func _card_button(text_value: String, color: Color) -> Button:
 
 func _style_action_button(button: Button, color: Color) -> void:
 	button.add_theme_font_override("font", CHINESE_FONT)
-	button.add_theme_font_size_override("font_size", 17)
+	button.add_theme_font_size_override("font_size", 18)
 	button.add_theme_color_override("font_color", CREAM)
 	button.add_theme_color_override("font_hover_color", Color.WHITE)
 	button.add_theme_color_override("font_pressed_color", Color.WHITE)
@@ -1408,9 +1460,31 @@ func _style_action_button(button: Button, color: Color) -> void:
 	button.add_theme_stylebox_override("pressed", _style(color.darkened(0.1), 12, Color("#fff0bf"), 3))
 
 
+## 台词里写死的「王哥」只在显示这一刻换成当前搭档：旧那条线 partner_name 就是「王哥」，原样返回。
+func _pn(text_value: String) -> String:
+	if partner_name == "王哥":
+		return text_value
+	return text_value.replace("王哥", partner_name)
+
+
+## 还没到能搭手的份上那几位：把带队的那位挑出去，同一个人不出现两张牌。
+func _other_partners() -> Array:
+	var roster: Array = [
+		["王哥", TEX_WANG],
+		["小赵", TEX_XIAOZHAO],
+		["小林", TEX_XIAOLIN],
+		["老周", TEX_LAOZHOU],
+	]
+	var others: Array = []
+	for entry in roster:
+		if String(entry[0]) != partner_name:
+			others.append(entry)
+	return others
+
+
 func _label(text_value: String, font_size: int, color: Color) -> Label:
 	var label := Label.new()
-	label.text = text_value
+	label.text = _pn(text_value)
 	label.add_theme_font_override("font", CHINESE_FONT)
 	label.add_theme_font_size_override("font_size", font_size)
 	label.add_theme_color_override("font_color", color)
@@ -1437,7 +1511,47 @@ func _style(bg: Color, radius: int, border: Color = Color.TRANSPARENT, border_wi
 	return style
 
 
+## 大张文字卡用的样式：在 _style 基础上加一层软投影。对局里所有卡原来都是平的，
+## 米色卡压在浅色桌图上，边界糊成一片。
+func _card_style(bg: Color, radius: int, border: Color, border_width: int, shadow: int = 8) -> StyleBoxFlat:
+	var style := _style(bg, radius, border, border_width)
+	style.shadow_color = Color("#3a24152e")
+	style.shadow_size = shadow
+	style.shadow_offset = Vector2(0, 4)
+	return style
+
+
+## 骰子上面那行小标题：三块统一成同一款米牌，只换一条边色认人。
+func _hint_plate(edge: Color) -> StyleBoxFlat:
+	var style := _style(Color("#f6dcae"), 10, edge, 2)
+	style.content_margin_top = 3
+	style.content_margin_bottom = 3
+	return style
+
+
+## 说话人名字下面那一条浅色横线：代替原来的白描边，把"谁在说"和正文分开。
+func _name_rule() -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	# 只画一条下划线：StyleBoxFlat 的底默认是白色，不写透明就会变成一整条灰白带糊在卡上。
+	style.bg_color = Color.TRANSPARENT
+	style.border_width_bottom = 2
+	style.border_color = Color("#c9a06a88")
+	style.content_margin_bottom = 2
+	return style
+
+
 func _clear_row(row: Container) -> void:
 	for child in row.get_children():
 		row.remove_child(child)
 		child.queue_free()
+
+
+## 往一行里摆 count 个"还没投"的骰子位：骰子背 + 压暗 + 禁用。
+## 只占位不参与判定，投的时候 roll_dice / transfer_dice 会先清掉重建。
+func _fill_die_slots(row: HBoxContainer, count: int) -> void:
+	for slot in count:
+		var die: Button = DiceButtonScript.new()
+		die.configure(1, false, true)
+		die.disabled = true
+		die.modulate = Color(1.0, 1.0, 1.0, 0.4)
+		row.add_child(die)
