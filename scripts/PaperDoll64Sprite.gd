@@ -168,10 +168,17 @@ func get_preset_loadout_ids() -> Array[String]:
 	return result
 
 
+## 手绘整帧里没有"侧身站着"那一张的人：他们的左右行第一张就是迈步（陈工 05/13）。
+## 停下来时转回正面，别让一个站着不动的人看起来一直在走。
+const IDLE_FACE_FRONT := ["chen_gong"]
+
+
 func set_motion(direction: Vector2, distance_delta: float) -> void:
 	if direction.length_squared() <= 0.000001:
 		_frame_sequence_index = 0
 		_distance_progress = 0.0
+		if _direct_frame_mode and IDLE_FACE_FRONT.has(_current_loadout_id):
+			_direction_row = 0
 		_sync_frame()
 		return
 

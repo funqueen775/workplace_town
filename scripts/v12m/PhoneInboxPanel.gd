@@ -92,11 +92,17 @@ var _tutorial_later_button: Button
 ## 只做讲解卡（供 12 个月首月解锁手机时用）：自己的 HUD 按钮与预览抽屉都不出现。
 var tutorial_only := false
 ## 抽屉内容：城镇侧喂进来；不喂就是原来那张预览的样子。
-## 没立绘的人（陈工）把 contact_avatar 设成 null，头像退成通用框 + 姓氏。
+## 没立绘的人把 contact_avatar 设成 null，头像退成通用框 + 姓氏。
 var contact_name := "王哥"
 var contact_role := "技术导师"
 var contact_avatar: Texture2D = WANG_SPRITE
-var contact_avatar_region := Rect2(22, 6, 36, 32)
+## 头像从贴图里裁哪一块。纸娃娃那几张是 64 画布，裁 (22,6,36,32)；
+## 陈工用的是手绘整帧（512 画布），同一块裁出来是左上角的空白，所以单独给一块头肩。
+const DEFAULT_HEAD_REGION := Rect2(22, 6, 36, 32)
+const CONTACT_HEAD_REGIONS := {
+	"chen_gong": Rect2(120, 26, 280, 224),
+}
+var contact_avatar_region := DEFAULT_HEAD_REGION
 ## 这一屏的时间分隔：城镇侧按剧情给（"第 3 月 · 周三上午"）；不喂就不画时间，
 ## 不拿"今天 14:20"这种编出来的读数冒充（2026-10-30）。
 var thread_date := ""
@@ -227,6 +233,7 @@ func set_contact(contact_id: String, display_name: String, role: String) -> void
 	contact_name = display_name
 	contact_role = role
 	contact_avatar = _sprite_for(contact_id)
+	contact_avatar_region = CONTACT_HEAD_REGIONS.get(contact_id, DEFAULT_HEAD_REGION)
 	if _phone != null and _phone.visible:
 		_fill_thread()
 		_apply_view()
@@ -755,6 +762,7 @@ func _open_conversation(conversation_id: String) -> void:
 	contact_name = String(conv.get("name", ""))
 	contact_role = String(conv.get("role", ""))
 	contact_avatar = _sprite_for(conversation_id)
+	contact_avatar_region = CONTACT_HEAD_REGIONS.get(conversation_id, DEFAULT_HEAD_REGION)
 	thread_messages = (conv.get("messages", []) as Array).duplicate(true)
 	reply_options = (conv.get("reply_options", []) as Array).duplicate(true)
 	# 空会话的人没有时间戳，就别顶上一个别人的时间。
@@ -937,7 +945,9 @@ func _row_avatar(contact_id: String, display_name: String) -> Control:
 	if sprite != null:
 		var head := AtlasTexture.new()
 		head.atlas = sprite
-		head.region = contact_avatar_region
+		# 每一行按"这个人"自己的裁切区取：陈工是 512 手绘帧，别人是 64 纸娃娃，
+		# 共用同一个裁切区会把别人的头裁成一条竖线。
+		head.region = CONTACT_HEAD_REGIONS.get(contact_id, DEFAULT_HEAD_REGION)
 		box.add_child(_texture(head, Rect2(0, 0, 48, 48), TextureRect.STRETCH_KEEP_ASPECT_COVERED))
 		return box
 	box.add_child(_texture(AVATAR_FRAME, Rect2(0, 0, 48, 48), TextureRect.STRETCH_SCALE))
@@ -1004,6 +1014,8 @@ func _fill_thread() -> void:
 	# 但它现在和回复项排在同一张网格里、一样宽——以前它单占一行整宽，
 	# 跟上面那颗短短回复凑成"一长一短"，很难看。
 	# 空会话没东西可回，这颗也收起来——右上角的 × 一直都在。
+	# 有待回的选项时它是"先不回"；已经回过了（没有选项了），它只是把手机收起来的出口。
+	var decline_text := decline_label if count > 0 else "收起手机"
 	var show_decline := not decline_label.is_empty() and (count > 0 or not thread_messages.is_empty())
 	var total := count + (1 if show_decline else 0)
 	# 回复项不超过两颗时两列并排；三颗以上还是整行一颗（文案长，挤半宽会折行）。
@@ -1050,7 +1062,7 @@ func _fill_thread() -> void:
 		slot += 1
 
 	if show_decline:
-		var decline := _ui_button(decline_label, Vector2(button_w, _button_height), UI_PAPER, _small_font)
+		var decline := _ui_button(decline_text, Vector2(button_w, _button_height), UI_PAPER, _small_font)
 		decline.name = "DeclineReplyButton"
 		decline.position = _reply_slot_position(slot, cols, button_w, gap)
 		decline.pressed.connect(close_phone)
@@ -1216,8 +1228,10 @@ func _on_reply_pressed(id: String, text: String) -> void:
 		conv["date"] = thread_date
 		thread_messages = list.duplicate(true)
 	mark_step(2)
-	for button in _reply_buttons:
-		button.disabled = true
+	# 回完就没有"要回的东西"了：把选项清掉重排，整条回复栏收成一颗"收起手机"。
+	# 以前只是把按钮置灰留在原地，玩家看得见一颗点不动的回复，像界面坏了。
+	reply_options = []
+	_fill_thread()
 	show_toast("已回复")
 	reply_sent.emit(id, text)
 	await _scroll_to_latest()
