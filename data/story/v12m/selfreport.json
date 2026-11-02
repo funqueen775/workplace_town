@@ -1,0 +1,49 @@
+{
+  "flowVersion": "12m_v1",
+  "source": "题项原文取自 IPIP Big-Five Factor Markers（Goldberg，公版；ipip.ori.org 的 New_IPIP-50-item-scale.htm）。每维只留 1 题，共 5 题。",
+  "note": "自评只当先验：报告里的数是 自评 + K ×（行为 − 自评），K = n/(n+5)。每维 1 题不足以单独出结论，也不印任何分数；玩家只看到五句大白话。",
+  "scale": [
+    "很不符合",
+    "不太符合",
+    "一般",
+    "比较符合",
+    "非常符合"
+  ],
+  "items": [
+    {
+      "id": "sr_e_comfort",
+      "trait": "E",
+      "dir": 1,
+      "ipip": "Feel comfortable around people",
+      "text": "和人待在一起，我挺自在"
+    },
+    {
+      "id": "sr_a_interested",
+      "trait": "A",
+      "dir": 1,
+      "ipip": "Am interested in people",
+      "text": "别人那边的事，我挺上心"
+    },
+    {
+      "id": "sr_c_prepared",
+      "trait": "C",
+      "dir": 1,
+      "ipip": "Am always prepared",
+      "text": "我一般是提前准备好的"
+    },
+    {
+      "id": "sr_n_relaxed",
+      "trait": "N",
+      "dir": 1,
+      "ipip": "Am relaxed most of the time",
+      "text": "大多数时候我挺稳的"
+    },
+    {
+      "id": "sr_o_quick",
+      "trait": "O",
+      "dir": 1,
+      "ipip": "Am quick to understand things",
+      "text": "东西我上手快"
+    }
+  ]
+}

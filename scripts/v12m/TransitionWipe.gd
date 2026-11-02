@@ -617,6 +617,8 @@ func _roll_months(cell: Label, target_text: String) -> void:
 		tween.tween_callback(func(): cell.text = frame_text)
 		tween.tween_interval(_slow(0.06))
 	tween.tween_callback(func(): cell.text = target_text)
+	# 月份格字数会变（第一月 → 第十二月），字落定后请 HUD 重排一次。
+	tween.tween_callback(_relayout_date_row.bind(cell))
 
 
 ## 旬从「下旬」倒回「上旬」：从右边滑回来，暗示重新计时。
@@ -631,6 +633,20 @@ func _roll_in_from_right(cell: Label, text: String) -> void:
 	tween.set_parallel(true)
 	tween.tween_property(cell, "position", home, _slow(0.24)).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	tween.tween_property(cell, "modulate:a", 1.0, _slow(0.16))
+	# 滑回来落的是"开拍前"那个坐标；HUD 按字数重排之后，这一格得跟到最后那个坐标，
+	# 否则它会停在旧位上，把后面的分隔点压在下面（2026-11-02 第十二月实拍）。
+	tween.set_parallel(false)
+	tween.tween_callback(_relayout_date_row.bind(cell))
+
+
+func _relayout_date_row(cell: Label) -> void:
+	if cell == null or not is_instance_valid(cell):
+		return
+	var owner := cell.get_parent()
+	while owner != null and not owner.has_method("relayout_date_cells"):
+		owner = owner.get_parent()
+	if owner != null:
+		owner.call("relayout_date_cells")
 
 
 func _fade_swap_cell(cell: Label, text: String) -> void:
@@ -638,7 +654,7 @@ func _fade_swap_cell(cell: Label, text: String) -> void:
 		return
 	var tween := create_tween()
 	tween.tween_property(cell, "modulate:a", 0.0, _slow(0.14))
-	tween.tween_callback(func(): cell.text = text)
+	tween.tween_callback(_set_cell_text.bind(cell, text))
 	tween.tween_property(cell, "modulate:a", 1.0, _slow(0.3))
 
 
@@ -662,6 +678,9 @@ func _set_cell_text(cell: Label, text: String) -> void:
 	if cell == null or text.is_empty():
 		return
 	cell.text = text
+	# 日期牌是"字多长占多宽"的（第十一月比第一月宽一格），字一改就请 HUD 重排一次。
+	# 翻月的字是在 tween 回调里落的，外面提前排会排在旧字上（2026-11-02 实拍）。
+	_relayout_date_row(cell)
 
 
 func _emit_band(band_text: String) -> void:

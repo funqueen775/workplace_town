@@ -112,7 +112,50 @@
       "d": 1.0,
       "s": 1.0
     },
-    "provisional": true
+    "provisional": true,
+    "qualityWeights": {
+      "S": 0.9,
+      "M": 0.6,
+      "W": 0.3
+    },
+    "sourceWeights": {
+      "main": 1.0,
+      "activity": 0.5
+    },
+    "confidence": {
+      "mid": {
+        "minEvents": 4,
+        "minContextTypes": 3
+      },
+      "high": {
+        "minEvents": 6,
+        "minContextTypes": 4
+      }
+    },
+    "estimator": {
+      "shrinkageN": 5,
+      "minGroupN": 3,
+      "bands": {
+        "weak": 0.15,
+        "strong": 0.45
+      },
+      "contextGroups": {
+        "watched": [
+          "当众",
+          "被追问",
+          "结伴",
+          "帮人"
+        ],
+        "alone": [
+          "独处",
+          "硬扛"
+        ]
+      }
+    },
+    "selfReport": {
+      "conflictThreshold": 0.35,
+      "path": "res://data/story/v12m/selfreport.json"
+    }
   },
   "moral": {
     "minCount": 3,

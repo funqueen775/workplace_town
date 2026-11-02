@@ -41,7 +41,7 @@ static func apply(town: Node, target_month: int, path_letter := "A") -> Dictiona
 	var points: Dictionary = town.get("_ability_points")
 	var report := {
 		"month": target_month, "path": path_letter,
-		"flags": 0, "places": 0, "points": {}, "peaks": [], "anchors": 0, "missing": []
+		"flags": 0, "places": 0, "points": {}, "peaks": [], "anchors": 0, "signals": 0, "missing": []
 	}
 	var written := _all_written_flags(nodes)
 
@@ -76,6 +76,8 @@ static func apply(town: Node, target_month: int, path_letter := "A") -> Dictiona
 				var hook := String(activity.get("unlockHook", ""))
 				if not hook.is_empty():
 					_mark(flags, "hook_" + hook, report)
+				# 活动也是大五信号的正式来源（权重 0.5），跳月要一并补上
+				_merge_signals(town, activity.get("btSignals"), month, activity_id, "", "activity", report)
 
 		for beat in (node.get("beats", []) as Array):
 			var b := Dictionary(beat)
@@ -92,6 +94,11 @@ static func apply(town: Node, target_month: int, path_letter := "A") -> Dictiona
 			_light_peak(flags, String(ability), report)
 		_merge_tags(points, picked.get("abilityTags"), report)
 		_merge_anchors(town, picked, report)
+		# 报告读的是两本流水（证据 + 大五信号），跳月只补锚点会交出一张空表
+		_merge_signals(town, picked.get("btSignals"), month, String(node.get("id", "")),
+			String(picked.get("id", "")), "main", report)
+		_merge_evidence(town, picked, month, String(node.get("id", "")),
+			String(picked.get("id", "")), report)
 
 	# 第 1 月「手册读没读」是一对互斥旗标，看片默认给"读了"那一版（有铅笔字的那句）。
 	if target_month > 2:
@@ -143,6 +150,54 @@ static func _merge_tags(points: Dictionary, raw, report: Dictionary) -> void:
 		var name := String(key)
 		points[name] = int(points.get(name, 0)) + int((raw as Dictionary)[key])
 		(report["points"] as Dictionary)[name] = int(points[name])
+
+
+## 大五信号流水：跳月看片补的是同一本账，字段跟 _append_bt_signals 对得上。
+static func _merge_signals(town: Node, raw, month: int, event_id: String, choice_id: String, kind: String, report: Dictionary) -> void:
+	if not (raw is Array):
+		return
+	var log: Array = town.get("_bt_log")
+	for value in (raw as Array):
+		if not (value is Dictionary):
+			continue
+		var sig := Dictionary(value)
+		var trait_key := String(sig.get("trait", ""))
+		if trait_key.is_empty():
+			continue
+		log.append({
+			"month": month,
+			"eventId": event_id,
+			"choiceId": choice_id,
+			"trait": trait_key,
+			"dir": int(sig.get("dir", 0)),
+			"strength": String(sig.get("strength", "M")),
+			"context": String(sig.get("context", "")),
+			"code": String(sig.get("code", "")),
+			"fact": String(sig.get("fact", "")),
+			"source": kind,
+		})
+		report["signals"] = int(report.get("signals", 0)) + 1
+
+
+## 四维证据流水：报告那一页要举得出"哪一屏、哪一手、当时怎么说"，只补锚点举不出证。
+static func _merge_evidence(town: Node, picked: Dictionary, month: int, event_id: String, choice_id: String, report: Dictionary) -> void:
+	var log: Array = town.get("_evidence_log")
+	for entry in (picked.get("competency", []) as Array):
+		if not (entry is Dictionary):
+			continue
+		var item := Dictionary(entry)
+		var dim := String(item.get("dimension", ""))
+		if dim.is_empty():
+			continue
+		log.append({
+			"month": month,
+			"eventId": event_id,
+			"choiceId": choice_id,
+			"dimension": dim,
+			"anchor": int(item.get("anchor", 0)),
+			"behavior": String(item.get("behaviorCode", "")),
+			"choiceText": String(picked.get("text", "")),
+		})
 
 
 ## 四维锚点也要补上：转正判定读的就是这一堆（各维取最高那档）。

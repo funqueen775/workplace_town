@@ -6085,10 +6085,10 @@ func debug_jump_to_month(month_value: int, path_letter := "A") -> void:
 	if month_value > 7 and bool(_month12_flags.get("probation_ended", false)):
 		print("跳月收回第七月：%s 路线在第六月末判为未转正/违纪解除，第八月起不开放" % path_letter)
 		month_value = 7
-	print("跳月 %d（%s 路线）补了：旗标 %d 个 / 老地方 %d 处 / 能力点 %s / 点亮到顶 %s / 四维锚点 %d 条 / 转正结论 %s" % [
+	print("跳月 %d（%s 路线）补了：旗标 %d 个 / 老地方 %d 处 / 能力点 %s / 点亮到顶 %s / 四维锚点 %d 条 / 大五信号 %d 条 / 转正结论 %s" % [
 		month_value, path_letter, int(seed["flags"]), int(seed["places"]),
 		JSON.stringify(seed["points"]), JSON.stringify(seed["peaks"]),
-		int(seed["anchors"]), String(seed.get("probation", "本月不判"))])
+		int(seed["anchors"]), int(seed.get("signals", 0)), String(seed.get("probation", "本月不判"))])
 	for entry in (seed["missing"] as Array):
 		print("  补不出来：%s" % String(entry))
 	_month12_month = month_value

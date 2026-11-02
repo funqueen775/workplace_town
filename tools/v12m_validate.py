@@ -30,6 +30,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "data/story/v12m"
 FIXTURES = ROOT / "contracts/fixtures/v12m"
 PLACE_SHOTS = ROOT / "assets/ui/place_cards"
+PORTRAITS = ROOT / "assets/角色立绘"
 
 NODE_TYPES = {"main_story", "phone_batch", "handbook", "activity", "month_close", "checkpoint", "report"}
 ANCHORS = {"shell_toast", "objective", "activity_card", "phone_edge"}
@@ -54,6 +55,17 @@ DIMENSIONS = {"S", "O", "N", "D"}
 ## 能力五格的五个名字（开发文档 4.19）：标签和第 5 格点亮都只认这五个。
 ABILITIES = {"technical", "collaboration", "expression", "integrity", "resilience"}
 FORBIDDEN_IN_RESPONSE = {"stateDelta", "competency", "anchor", "coef", "threshold", "rubric", "scores"}
+## 大五行为信号 B_t（算法册 §3.1–3.3）：五维齐全——情绪稳定（N）按 §3.2 第二张表标定，方向记的是「稳」。
+## 场合类型是"≥2 类情境"那道门槛的计数单位；2026-11-01 为 §3.2 那 18 个主线事件补了
+## 「当众」「被追问」两类（原来四类只够描述下班后的自由活动）。
+BT_TRAITS = {"E", "C", "A", "O", "N"}
+BT_STRENGTHS = {"S", "M", "W"}
+BT_CONTEXTS = {"独处", "结伴", "硬扛", "帮人", "当众", "被追问"}
+## 算法册 §3.2 那张表点名的 18 个事件，换成 v12m 的节点号：这些节点的每个选项都得有信号。
+BT_TABLE_EVENTS = {
+    "E02", "E04", "E03", "E10", "M03_WRAP", "E05", "E07", "M05_NIGHT", "M05_DEMO",
+    "E19", "E25", "E27", "E31", "E40", "E32", "E23", "E28", "E41",
+}
 PUNCTUATION = set("，。、；：？！“”‘’（）《》〈〉…—－·,.；:?!\"'()[]{}<>/\\|-_+*=&%$#@~^ \t\n\r")
 
 
@@ -130,6 +142,41 @@ def trigger_head(trigger: str) -> str:
     return trigger.split(":", 1)[0]
 
 
+def check_bt_signals(owner: str, signals: Any, errors: list[str], seen_codes: set[str]) -> None:
+    """校验一组大五信号（算法册 §3.2）。主线选项和自由活动共用这一份口径。"""
+    if not isinstance(signals, list):
+        errors.append(f"{owner} 的 btSignals 必须是数组")
+        return
+    local: list[str] = []
+    for sig in signals:
+        if not isinstance(sig, dict):
+            errors.append(f"{owner} 的 btSignals 里有一项不是对象")
+            continue
+        trait = str(sig.get("trait", ""))
+        strength = str(sig.get("strength", ""))
+        context = str(sig.get("context", ""))
+        code = str(sig.get("code", ""))
+        if trait not in BT_TRAITS:
+            errors.append(f"{owner} 的 btSignals 维度非法：{trait}（只允许 E/C/A/O/N）")
+        if strength not in BT_STRENGTHS:
+            errors.append(f"{owner} 的 btSignals 强弱非法：{strength}（只允许 S/M/W）")
+        if context not in BT_CONTEXTS:
+            errors.append(f"{owner} 的 btSignals 情境非法：{context}（只允许 {'、'.join(sorted(BT_CONTEXTS))}）")
+        if int(sig.get("dir", 0)) not in (-1, 1):
+            errors.append(f"{owner} 的 btSignals 方向必须是 -1 或 1")
+        if not code:
+            errors.append(f"{owner} 的 btSignals 缺 code")
+        elif code in local:
+            errors.append(f"{owner} 的 btSignals 里 code 重复：{code}")
+        elif code in seen_codes:
+            errors.append(f"{owner} 的 btSignals 里 code 和别处撞了：{code}")
+        else:
+            local.append(code)
+            seen_codes.add(code)
+        if not str(sig.get("fact", "")).strip():
+            errors.append(f"{owner} 的 btSignals 缺 fact：报告要拿它说话")
+
+
 def walk_flags(condition: Any, sink: list[str], loose: list[str] | None = None) -> None:
     """把 when 条件里引用的旗标名收进 sink。
     loose 单收"反向条件"（notFlag / noneOf）：它们只证明这个旗标有人读，
@@ -177,6 +224,8 @@ def main() -> int:
 
     errors: list[str] = []
     warnings: list[str] = []
+    ## 大五信号的 code 全局唯一：报告靠它判"同不同源"，撞了就分不清是不是同一条证据。
+    bt_codes: set[str] = set()
 
     manifest = strict_load(DATA / "manifest.json", errors)
     events = strict_load(DATA / "events.json", errors)
@@ -283,6 +332,19 @@ def main() -> int:
                 known = {entry.get("name") for entry in node.get("cast", []) or []} | set(cast_names.values())
                 if speaker not in known:
                     warnings.append(f"{node_id} 的台词说话人「{speaker}」不在演员表里，需要群演占位图")
+                # 台词可以显式写表情（客户端优先读它，猜的只当兜底）。
+                # 写了就必须真有那张脸，否则玩家看到的是"语气对了脸没换"。2026-11-02。
+                expr = str(beat.get("expression", "")).strip()
+                if expr:
+                    owner = str(beat.get("name", "")).strip() or speaker
+                    if not (PORTRAITS / owner / f"{owner}_自然.png").exists():
+                        warnings.append(
+                            f"{node_id} 的台词给「{owner}」点了表情「{expr}」，但他连自然脸都没有，这格会被忽略"
+                        )
+                    elif not (PORTRAITS / owner / f"{owner}_{expr}.png").exists():
+                        errors.append(
+                            f"{node_id} 的台词给「{owner}」点了没有的脸：立绘目录里没有 {owner}_{expr}.png"
+                        )
             if beat.get("type") not in {"narration", "say", "phone_cinematic", "card", "choice"}:
                 errors.append(f"{node_id} 用了不在 beat 白名单里的类型：{beat.get('type')}")
         landmarks = {str(item) for item in manifest.get("landmarks", []) or []}
@@ -338,6 +400,26 @@ def main() -> int:
                 errors.append(f"{node_id} 选项 {choice.get('id')} 的 apCost 必须是 0 或 1，当前 {choice.get('apCost')}")
             if not choice.get("text") or not choice.get("outcome"):
                 errors.append(f"{node_id} 选项 {choice.get('id')} 缺 text 或 outcome")
+            # 第 44 条：选项的两段式（剧情册「选项」列 + 「玩家看到的台词/行动」列）。
+            # 写了 detail 就必须是非空字符串，且 text 里不许再夹冒号解释——拆一半最容易读成两句。
+            if "detail" in choice:
+                detail_value = choice.get("detail")
+                if not isinstance(detail_value, str) or not detail_value.strip():
+                    errors.append(f"{node_id} 选项 {choice.get('id')} 的 detail 是空的：不写就别留这个字段")
+                elif "：" in str(choice.get("text", "")):
+                    errors.append(
+                        f"{node_id} 选项 {choice.get('id')} 同时有 detail 又在 text 里留了冒号解释"
+                    )
+            # 第 41 条：主线选项的大五信号（算法册 §3.2）。每个选项都必须带 btSignals——
+            # §3.2 点名的 18 个事件必须有信号，其余那一屏不产人格证据也要显式写成空数组，
+            # 空数组是"标定过、决定不产"，不是漏标。
+            owner = f"{node_id} 选项 {choice.get('id')}"
+            if "btSignals" not in choice:
+                errors.append(f"{owner} 缺 btSignals：不产大五证据就写空数组")
+            else:
+                check_bt_signals(owner, choice.get("btSignals"), errors, bt_codes)
+                if node_id in BT_TABLE_EVENTS and not choice.get("btSignals"):
+                    errors.append(f"{owner} 的 btSignals 是空的：§3.2 给这一屏标过大五信号")
             if str(choice.get("reportUse")) == "evidence":
                 if not isinstance(choice.get("stateDelta"), dict):
                     errors.append(f"{node_id} 选项 {choice.get('id')} 是计分选项但没有 stateDelta")
@@ -451,35 +533,7 @@ def main() -> int:
         if "btSignals" not in activity:
             warnings.append(f"活动 {activity.get('id')} 没写 btSignals：不产信号就写空数组")
         else:
-            signals = activity.get("btSignals")
-            if not isinstance(signals, list):
-                errors.append(f"活动 {activity.get('id')} 的 btSignals 必须是数组")
-            else:
-                codes = []
-                for sig in signals:
-                    if not isinstance(sig, dict):
-                        errors.append(f"活动 {activity.get('id')} 的 btSignals 里有一项不是对象")
-                        continue
-                    trait = str(sig.get("trait", ""))
-                    strength = str(sig.get("strength", ""))
-                    context = str(sig.get("context", ""))
-                    code = str(sig.get("code", ""))
-                    if trait not in {"E", "C", "A", "O"}:
-                        errors.append(f"活动 {activity.get('id')} 的 btSignals 维度非法：{trait}（只允许 E/C/A/O）")
-                    if strength not in {"S", "M", "W"}:
-                        errors.append(f"活动 {activity.get('id')} 的 btSignals 强弱非法：{strength}（只允许 S/M/W）")
-                    if context not in {"独处", "结伴", "硬扛", "帮人"}:
-                        errors.append(f"活动 {activity.get('id')} 的 btSignals 情境非法：{context}")
-                    if int(sig.get("dir", 0)) not in (-1, 1):
-                        errors.append(f"活动 {activity.get('id')} 的 btSignals 方向必须是 -1 或 1")
-                    if not code:
-                        errors.append(f"活动 {activity.get('id')} 的 btSignals 缺 code")
-                    elif code in codes:
-                        errors.append(f"活动 {activity.get('id')} 的 btSignals 里 code 重复：{code}")
-                    else:
-                        codes.append(code)
-                    if not str(sig.get("fact", "")).strip():
-                        errors.append(f"活动 {activity.get('id')} 的 btSignals 缺 fact：报告要拿它说话")
+            check_bt_signals(f"活动 {activity.get('id')}", activity.get("btSignals"), errors, bt_codes)
         # 第 40 条：活动只许动心情（2026-10-31）。四维 S/O/N/D 是转正判定的输入，
         # 不能由"下班去玩"决定；要给成长就走能力五格（abilityTags），那本账不进判定。
         act_delta = activity.get("stateDelta") or {}
@@ -942,6 +996,32 @@ def main() -> int:
     templates_path = DATA / "report_templates.json"
     if not templates_path.exists():
         warnings.append("report_templates.json 还没建，规则 9 的校验到 P0 后半段才会真正生效")
+    # 第 42 条：入职自评题库（IPIP 公版题项）。五维各一题、方向合法、原文可追溯。
+    selfreport = strict_load(DATA / "selfreport.json", errors)
+    if isinstance(selfreport, dict):
+        scale = selfreport.get("scale") or []
+        if len(scale) != 5:
+            errors.append(f"selfreport.scale 必须是五点量表，当前 {len(scale)} 项")
+        seen_ids: set[str] = set()
+        seen_traits: set[str] = set()
+        for item in selfreport.get("items") or []:
+            iid = str(item.get("id", ""))
+            trait = str(item.get("trait", ""))
+            if not iid or iid in seen_ids:
+                errors.append(f"selfreport 题项 id 为空或重复：{iid}")
+            seen_ids.add(iid)
+            if trait not in BT_TRAITS:
+                errors.append(f"selfreport 题项 {iid} 的 trait 非法：{trait}（只允许 E/C/A/O/N）")
+            seen_traits.add(trait)
+            if int(item.get("dir", 0)) not in (-1, 1):
+                errors.append(f"selfreport 题项 {iid} 的 dir 必须是 -1 或 1")
+            if not str(item.get("text", "")).strip():
+                errors.append(f"selfreport 题项 {iid} 缺中文题干")
+            if not str(item.get("ipip", "")).strip():
+                errors.append(f"selfreport 题项 {iid} 缺 ipip 原文——题项要能追溯到公版出处，不许自己编")
+        lacking = sorted(BT_TRAITS - seen_traits)
+        if lacking:
+            errors.append(f"selfreport 少了这几维的题：{lacking}")
 
     print(f"v12m_validate：范围 {sorted(scope)}，节点 {len([n for n in nodes if int(n.get('month', 0)) in scope])} 个，提示 {len([h for h in (hints or {}).get('hints', []) if int(h.get('month', 0)) in scope])} 条")
     for line in warnings:

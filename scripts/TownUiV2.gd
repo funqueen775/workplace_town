@@ -452,6 +452,45 @@ func _build_date_cells(banner: Control) -> void:
 	_date_separators.append(_date_cell("·", 32, Vector2(284, 34), Vector2(22, 48), banner))
 	for cell in [_date_month_cell, _date_xun_cell, _date_band_cell] + _date_separators:
 		cell.visible = false
+	relayout_date_cells()
+
+
+## 日期牌五格（月份 / · / 旬 / · / 昼夜）按"这段实际占多宽"排，整条在纸牌里居中。
+## 旧写法是五个固定坐标：第十一、十二月的月份格是四个字，第一个分隔点会被挤到"月"字上
+## （2026-11-02 实拍发现）。占宽必须读 Label 的最小尺寸而不是量出来的字宽——
+## 36px 的字 Godot 按整格给宽（"第十二月"字宽 131、格子 144），拿字宽推进会把后面的格子叠上去
+## （同一版按逐列像素量出来的，见开发册 §15.19 F9）。
+## 翻月的过场（TransitionWipe.play_month）是直接往这几格里塞字的，所以字一落就再排一次。
+func relayout_date_cells() -> void:
+	if _date_month_cell == null or _date_separators.size() < 2:
+		return
+	var order: Array = [
+		_date_month_cell, _date_separators[0], _date_xun_cell,
+		_date_separators[1], _date_band_cell,
+	]
+	var plate := _date_month_cell.get_parent() as Control
+	var plate_width := 520.0 if plate == null else plate.size.x
+	var widths: Array = []
+	var total := 0.0
+	for cell in order:
+		var label := cell as Label
+		var width := maxf(label.get_combined_minimum_size().x, 1.0)
+		widths.append(width)
+		total += width
+	var slots := float(order.size() - 1)
+	var room := plate_width - 48.0
+	var gap := 16.0
+	# 万一某段文字变长把整条撑满，先收间距，不动字号
+	if total + gap * slots > room:
+		gap = maxf(6.0, (room - total) / slots)
+	var x := maxf(24.0, (plate_width - (total + gap * slots)) / 2.0)
+	for index in order.size():
+		var label := order[index] as Label
+		label.position = Vector2(x, label.position.y)
+		# 建的时候给的宽度比字宽（上旬 100 / 实际 72），居中的字会往右溢出，
+		# 后一格就贴到字上了。把格子收到刚好是字宽，间距才是真的间距。
+		label.size = Vector2(float(widths[index]), label.size.y)
+		x += float(widths[index]) + gap
 
 
 func _date_cell(text: String, font_size: int, at: Vector2, size_value: Vector2, parent: Control) -> Label:
@@ -477,6 +516,7 @@ func set_date(month: int, xun: String, band: String) -> void:
 		cell.modulate.a = 1.0
 		cell.rotation_degrees = 0.0
 		cell.scale = Vector2.ONE
+	relayout_date_cells()
 
 
 func date_month_cell() -> Label:

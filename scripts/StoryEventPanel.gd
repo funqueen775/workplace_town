@@ -461,8 +461,11 @@ func _show_say(beat: Dictionary) -> void:
 	_typewriter_rich = body
 	_start_typewriter(text)
 	if not portrait_name.is_empty():
-		var expression := String(beat.get("expression", ""))
-		if expression not in ["开心", "认真", "无奈", "疑惑", "自然"]:
+		# 台词里写了 expression 就以它为准（作者看得见语境，机器看不见）；
+		# 没写才退回关键词猜测。写了但那张图不存在，_portrait_texture 会退回自然脸，
+		# 数据层由校验器当场拦（点了没有的脸）。2026-11-02。
+		var expression := String(beat.get("expression", "")).strip_edges()
+		if expression.is_empty():
 			expression = _expression_for(text)
 		_add_speaker_portrait(portrait_name, expression)
 	_add_asset_name_plate(bubble, profile, speaker_id)
@@ -559,11 +562,25 @@ func _show_choices(prompt: String) -> void:
 		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_ui_layer.add_child(row)
 		var label := _label(text, 27, Color("56301e"), true)
-		label.position = Vector2(68.0, 20.0)
-		label.size = Vector2(bubble_w - 136.0, row_height - 40.0)
+		var detail := String(choice.get("detail", "")).strip_edges()
+		if detail.is_empty():
+			label.position = Vector2(68.0, 20.0)
+			label.size = Vector2(bubble_w - 136.0, row_height - 40.0)
+		else:
+			# 剧情册里「选项」和「玩家看到的台词 / 行动」本来就是两列：
+			# 选项那一行只留一句动作，台词/行动小一号挂在下面，选之前照样看得见代价。
+			label.position = Vector2(68.0, 16.0)
+			label.size = Vector2(bubble_w - 136.0, 40.0)
 		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		label.add_theme_constant_override("line_spacing", 4)
 		row.add_child(label)
+		if not detail.is_empty():
+			var detail_label := _label(detail, 21, Color("8a6a52"), true)
+			detail_label.position = Vector2(68.0, 58.0)
+			detail_label.size = Vector2(bubble_w - 136.0, row_height - 68.0)
+			detail_label.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+			detail_label.add_theme_constant_override("line_spacing", 2)
+			row.add_child(detail_label)
 		var button := Button.new()
 		button.name = "Hit_%s" % choice_id
 		button.flat = true

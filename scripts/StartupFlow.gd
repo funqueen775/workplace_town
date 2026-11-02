@@ -84,6 +84,8 @@ const LOOP_STEPS := [
 ]
 var _mode := "title"
 var _page := 0
+## 开局入职自评（trait → 1..5）：由入职预演屏后面的登记表五题填。
+var _self_ratings := {}
 var _fonts: Dictionary = {}
 var _intro_started_ms := 0
 var _report_panel: CanvasLayer
@@ -534,7 +536,12 @@ func _start_scenarios() -> void:
 
 func _scenario_screen() -> void:
 	var scenarios = load("res://scripts/StartupScenarios.gd").new()
-	scenarios.finished.connect(_start_avatar_selection)
+	# 预演屏后面就是登记表五题：finished 时把答案接过来，进小镇那刻写进档案。
+	scenarios.finished.connect(func() -> void:
+		var given = scenarios.get("ratings")
+		if given is Dictionary:
+			_self_ratings = (given as Dictionary).duplicate(true)
+		_start_avatar_selection())
 	scenarios.back_requested.connect(func() -> void:
 		_mode = "intro"
 		_page = PAGES.size() - 1
@@ -558,7 +565,17 @@ func _quit_game() -> void:
 func _enter_town() -> void:
 	WorldClock.reset_story()
 	var file := FileAccess.open(PROFILE_PATH, FileAccess.WRITE)
-	if file != null: file.store_string(JSON.stringify({"sessionId":"local-" + str(Time.get_unix_time_from_system()), "avatarId":PlayerProfile.get_selected_avatar_id(), "contentVersion":"v1.2", "currentNodeId":"E01", "unlockedRegionIds":["A", "B", "C", "D", "E", "F", "G", "H"]}))
+	if file != null:
+		var profile := {
+			"sessionId": "local-" + str(Time.get_unix_time_from_system()),
+			"avatarId": PlayerProfile.get_selected_avatar_id(),
+			"contentVersion": "v1.2",
+			"currentNodeId": "E01",
+			"unlockedRegionIds": ["A", "B", "C", "D", "E", "F", "G", "H"],
+			# 入职自评（trait → 1..5）。空表 = 玩家跳过了登记，报告那边不许当成"答过"。
+			"selfRatings": _self_ratings.duplicate(true),
+		}
+		file.store_string(JSON.stringify(profile))
 	get_tree().change_scene_to_file("res://Main.tscn")
 
 
@@ -636,6 +653,8 @@ func _avatar_screen() -> void:
 	confirm.size = Vector2(450, 68)
 	confirm.pressed.connect(_enter_town)
 	frame.add_child(confirm)
+
+
 
 
 func _layout_startup_frame(frame: Panel) -> void:
