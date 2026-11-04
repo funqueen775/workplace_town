@@ -154,7 +154,7 @@ func current_session_id() -> String:
 ## 契约硬要求：每个事件的 payload.regionId 必须是 A–H 单字母，缺了或错了会被服务端 400 拒收
 ## （server.py post_event）。与其让每个埋点各自兜底 —— FreeTimePanel 有、WorkplaceTown 好几处
 ## 没有，漏一个就静默丢一批事件 —— 统一在传输层补齐：先认 regionId，再从 zone / locationId
-## 这类同义字段推断，都落空才退回总部 "A"。宁可标成总部，也不要发空串让整条事件被隔离。
+## 这类同义字段推断，都落空才退回市场部 "A"。宁可标成市场部，也不要发空串让整条事件被隔离。
 ## 2026-09-18：隔离日志里 112 条事件正是这么丢的（node_enter 传空串、explore_click 缺字段）。
 static func normalize_region_id(payload: Dictionary) -> String:
 	for key in ["regionId", "zone", "locationId", "region", "zoneId"]:

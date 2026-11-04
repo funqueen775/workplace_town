@@ -5,7 +5,7 @@
     "actionPointsPerWindow": 3,
     "actionPointCarryover": false,
     "allowedCosts": [
-      "area_activity",
+      "area_activity"
     ],
     "nextStoryUnlock": "action_points_zero",
     "oldWeekendScheduleEnabled": false,
@@ -114,7 +114,7 @@
       {
         "id": "C_LAKE",
         "title": "湖边散步或深谈",
-        "image": "res://assets/weekend_scenes/lakeside_day.png",
+        "image": "res://assets/活动场景/C_销售部_湖边散步.png",
         "lines": [
           "你沿着湖边慢慢走了一圈。风把工作里的噪声吹远了一点。",
           "如果有人同行，你们把最近没说出口的话聊了几句。"
@@ -123,7 +123,7 @@
       {
         "id": "C_COFFEE",
         "title": "小馆咖啡聊天",
-        "image": "res://assets/weekend_scenes/canteen.png",
+        "image": "res://assets/活动场景/C_销售部_咖啡交流.png",
         "lines": [
           "咖啡端上来以后，话题从工作绕到了各自真正担心的事。",
           "离开时，问题没有全部解决，但你更清楚该先做什么。"
@@ -134,7 +134,7 @@
       {
         "id": "D_STUDY",
         "title": "独自学习或一起自习",
-        "image": "res://assets/weekend_scenes/library.png",
+        "image": "res://assets/活动场景/D_人事部_一起自习.png",
         "lines": [
           "你在书院找了个安静的位置，把一直拖着没看的资料翻开。",
           "一个小时后，原本模糊的问题终于有了可以验证的方向。"
@@ -143,7 +143,7 @@
       {
         "id": "D_ROOFTOP",
         "title": "书院露台吹风",
-        "image": "res://assets/weekend_scenes/rooftop.png",
+        "image": "res://assets/活动场景/D_人事部_书院露台吹风.png",
         "lines": [
           "你站在露台边，让风从肩膀上吹过去。",
           "短暂离开屏幕以后，脑子里那根绷紧的线松了一点。"
@@ -154,7 +154,7 @@
       {
         "id": "E_SPORT",
         "title": "草坪运动",
-        "image": "res://assets/weekend_scenes/sports_field.png",
+        "image": "res://assets/活动场景/E_财务部_草坪运动.png",
         "lines": [
           "你在草坪上跑到呼吸变得清晰，身体终于比脑子更忙。",
           "停下来时，积了几天的疲惫也散开了一些。"
@@ -163,7 +163,7 @@
       {
         "id": "E_ESCAPE",
         "title": "团队密室",
-        "image": "res://assets/weekend_scenes/escape_room.png",
+        "image": "res://assets/活动场景/E_财务部_团队密室.png",
         "lines": [
           "倒计时亮起以后，每个人都开始寻找自己能补上的那一块。",
           "门打开时，你们已经比进来前更懂得怎样一起解决问题。"
@@ -174,7 +174,7 @@
       {
         "id": "F_STAGE",
         "title": "舞台后台排练",
-        "image": "res://assets/weekend_scenes/stage_backstage.png",
+        "image": "res://assets/活动场景/F_运营部_舞台后台排练.png",
         "lines": [
           "后台比台前更忙。你帮着顺流程、对灯光，也听见每个人上场前的紧张。",
           "节目还没有开始，团队已经完成了一次没有写进排期的协作。"
@@ -183,7 +183,7 @@
       {
         "id": "F_RAIN",
         "title": "雨天共伞",
-        "image": "res://assets/weekend_scenes/lakeside_night.png",
+        "image": "res://assets/活动场景/F_运营部_雨天同行.png",
         "lines": [
           "码头突然落雨，你和身边的人共用一把伞往回走。",
           "雨声盖住了平时的客套，你们聊了一段更真实的话。"
@@ -194,7 +194,7 @@
       {
         "id": "G_NIGHT",
         "title": "夜间值守或资料整理",
-        "image": "res://assets/weekend_scenes/night_desk.png",
+        "image": "res://assets/活动场景/G_行政部_夜间值守与资料整理.png",
         "lines": [
           "夜里安静下来，你把散落的记录重新整理成别人也能接手的样子。",
           "最后一份文件归档时，这段工作终于不再只存在你的脑子里。"
@@ -203,7 +203,7 @@
       {
         "id": "G_KTV",
         "title": "文娱室合唱或KTV",
-        "image": "res://assets/weekend_scenes/canteen.png",
+        "image": "res://assets/活动场景/C_销售部_咖啡交流.png",
         "lines": [
           "熟悉的歌响起来以后，大家暂时不再谈项目和排期。",
           "有人跑调，有人笑得很大声。你记住了他们工作之外的样子。"
@@ -214,7 +214,7 @@
       {
         "id": "H_BBQ",
         "title": "夜间烧烤或篝火",
-        "image": "res://assets/weekend_scenes/bbq_lawn.png",
+        "image": "res://assets/活动场景/H_生产部_夜间烧烤与桌游_烧烤草坪.png",
         "lines": [
           "火光把每个人的影子拉得很长，手里的食物慢慢烤熟。",
           "没有会议议程，话题反而走到了平时最难开口的地方。"
@@ -223,7 +223,7 @@
       {
         "id": "H_BOARD",
         "title": "桌游馆",
-        "image": "res://assets/weekend_scenes/board_game_v02_play.png",
+        "image": "res://assets/活动场景/H_生产部_夜间烧烤与桌游_桌游馆.png",
         "lines": [
           "牌局开始以后，每个人的习惯都藏不住了。",
           "输赢很快过去，你却记住了谁会冒险、谁总在替别人收场。"

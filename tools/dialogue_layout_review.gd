@@ -25,7 +25,7 @@ func _ready() -> void:
 	add_child(activity)
 	activity.present({
 		"title": "篝火烧烤",
-		"image": "res://assets/weekend_scenes/bbq_lawn.png",
+		"image": "res://assets/活动场景/H_生产部_夜间烧烤与桌游_烧烤草坪.png",
 		"lines": ["火光把每个人的影子拉得很长，手里的食物慢慢烤熟。"],
 	})
 	activity._advance()

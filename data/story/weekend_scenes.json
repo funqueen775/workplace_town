@@ -4,7 +4,7 @@
   "scenes": {
     "S1_library_study": {
       "title": "人事部 · 图书馆",
-      "image": "res://assets/weekend_scenes/library.png",
+      "image": "res://assets/活动场景/D_人事部_一起自习.png",
       "lines": [
         { "text": "图书馆的靠窗位还空着。你把文献摊开，笔尖落在纸上的那一刻，整层楼都安静了下来。" },
         { "text": "一个下午只啃下来一小节。慢，但每一步都踩得实——这种踏实感，比什么都让人安心。" }
@@ -12,7 +12,7 @@
     },
     "S2_lakeside_walk": {
       "title": "心湖 · 北岸",
-      "image": "res://assets/weekend_scenes/lakeside_day.png",
+      "image": "res://assets/活动场景/C_销售部_湖边散步.png",
       "lines": [
         { "text": "你沿着湖边慢慢走，风把水面吹出细纹，也把脑子里的杂音一点点吹散。" },
         { "text": "走到第三圈的时候，那个卡了很久的思路忽然自己通了。原来休息不是浪费时间。" }
@@ -20,7 +20,7 @@
     },
     "S3_rooftop_breeze": {
       "title": "市场部 · 天台",
-      "image": "res://assets/weekend_scenes/rooftop.png",
+      "image": "res://assets/活动场景/D_人事部_书院露台吹风.png",
       "lines": [
         { "text": "天台的风比楼下的野。你靠着栏杆什么也不干，看云把楼群的影子慢慢推过球场。" },
         { "text": "在楼上待了一小会儿，肩膀松了。下面那些催人的事，好像也没那么急了。" }
@@ -28,7 +28,7 @@
     },
     "S4_weekend_overtime": {
       "title": "研发部 · 深夜工位",
-      "image": "res://assets/weekend_scenes/night_desk.png",
+      "image": "res://assets/活动场景/G_行政部_夜间值守与资料整理.png",
       "lines": [
         { "text": "周末的工位只剩你一个人。屏幕的光照着键盘，你把攒下的活一件一件清掉。" },
         { "text": "安静是真安静，孤独也是真孤独。收工的时候你分不清，这份充实里该不该掺一点心酸。" }
@@ -36,7 +36,7 @@
     },
     "D1_coffee_chat": {
       "title": "销售部 · 小馆",
-      "image": "res://assets/weekend_scenes/canteen.png",
+      "image": "res://assets/活动场景/C_销售部_咖啡交流.png",
       "lines": [
         { "text": "你约{who}在巷口那家小馆碰头。菜单翻了两遍，最后还是点了最常点的那两样。" },
         { "text": "聊的都是些不着边际的事——老家、球赛、当年想去没去的城市。饭吃完了，人也松下来了。" }
@@ -44,23 +44,23 @@
     },
     "D2_lakeside_deep_talk": {
       "title": "心湖 · 木栈道",
-      "image": "res://assets/weekend_scenes/lakeside_night.png",
+      "image": "res://assets/活动场景/F_运营部_雨天同行.png",
       "lines": [
         { "text": "入夜的湖边人很少。你和{who}并排走，聊起了各自入职前的事。" },
         { "text": "有些话白天说不出口，晚上沿着水走就容易了。这圈走完，你们好像不只是同事了。" }
       ]
     },
     "D3_lawn_sports": {
-      "title": "财务部 · 运动场",
-      "image": "res://assets/weekend_scenes/sports_field.png",
+      "title": "松风训练谷 · 运动场",
+      "image": "res://assets/活动场景/E_财务部_草坪运动.png",
       "lines": [
         { "text": "球场上正缺人。你和{who}一队，跑起来之后谁还记得今天是休息日。" },
         { "text": "出了一身汗，输了几个球，笑了一下午。身体累的时候，心里最轻。" }
       ]
     },
     "D4_camp_bbq": {
-      "title": "财务部 · 夜间烧烤草坪",
-      "image": "res://assets/weekend_scenes/bbq_lawn.png",
+      "title": "松风训练谷 · 夜间烧烤草坪",
+      "image": "res://assets/活动场景/H_生产部_夜间烧烤与桌游_烧烤草坪.png",
       "lines": [
         { "text": "炭火升起来的时候天刚擦黑。你们围在烤架边，谁翻串、谁刷酱，分工明确。" },
         { "text": "火光把每个人的脸都照得暖烘烘的。肉有点焦，笑得很真。" }
@@ -68,53 +68,53 @@
     },
     "D5_study_together": {
       "title": "人事部 · 自习同桌",
-      "image": "res://assets/weekend_scenes/library.png",
+      "image": "res://assets/活动场景/D_人事部_一起自习.png",
       "lines": [
         { "text": "你和{who}在图书馆拼了同桌。他刷题，你看文献，桌上只有翻页声。" },
         { "text": "有人陪着学，效率高得不像话。休息时对一眼，都知道对方在较什么劲。" }
       ]
     },
     "G1_trust_escape_room": {
-      "title": "财务部 · 密室",
-      "image": "res://assets/weekend_scenes/escape_room.png",
+      "title": "松风训练谷 · 密室",
+      "image": "res://assets/活动场景/E_财务部_团队密室.png",
       "lines": [
         { "text": "密室的门在身后锁上的那一刻，你们才开始真正动脑子。线索藏在灯罩里、抽屉夹层，还有一句谁都没在意的台词里。" },
         { "text": "倒计时归零前一分钟推开门，外面是天亮的样子。一起解过谜的交情，和酒桌上的不一样。" }
       ]
     },
     "G2_campfire": {
-      "title": "财务部 · 篝火夜",
-      "image": "res://assets/weekend_scenes/bbq_lawn.png",
+      "title": "松风训练谷 · 篝火夜",
+      "image": "res://assets/活动场景/H_生产部_夜间烧烤与桌游_烧烤草坪.png",
       "lines": [
-        { "text": "篝火在训练谷的空地上烧起来，火星往夜空里飘。有人弹琴跑了调，笑声比琴声响。" },
+        { "text": "篝火在松风训练谷的空地上烧起来，火星往夜空里飘。有人弹琴跑了调，笑声比琴声响。" },
         { "text": "火堆边坐久了，人和人的距离也被烤得暖暖的。这一晚不谈工作，只谈以后。" }
       ]
     },
     "G3_board_game": {
-      "title": "生产部 · 桌游馆",
-      "image": "res://assets/weekend_scenes/board_game.png",
+      "title": "慢生活园 · 桌游馆",
+      "image": "res://assets/活动场景/H_生产部_夜间烧烤与桌游_桌游馆.png",
       "lines": [
         {
           "text": "推门进来的时候正好有一桌空位。{who}冲你扬了扬手里的牌盒：「就差你一个，三人开局。」",
-          "image": "res://assets/weekend_scenes/board_game_v01_enter.png"
+          "image": "res://assets/活动场景/H_生产部_夜间烧烤与桌游_桌游馆.png"
         },
         {
           "text": "灯往桌面拢着，骰子在地上滚了两圈才停下。你攥着一把烂牌，忽然明白这一局的输赢不太由你决定。",
-          "image": "res://assets/weekend_scenes/board_game_v02_play.png"
+          "image": "res://assets/活动场景/H_生产部_夜间烧烤与桌游_桌游馆.png"
         },
         {
           "text": "三局两胜，输多赢少。但有人偷藏牌的小动作被你看穿、又被你轻轻放过——大家笑得比赢牌还大声。",
-          "image": "res://assets/weekend_scenes/board_game_v02_play.png"
+          "image": "res://assets/活动场景/H_生产部_夜间烧烤与桌游_桌游馆.png"
         },
         {
           "text": "走出桌游馆的时候天色已经斜了。牌桌上那点热闹还黏在身上，像揣了一口袋晒过太阳的棉花。",
-          "image": "res://assets/weekend_scenes/board_game.png"
+          "image": "res://assets/活动场景/H_生产部_夜间烧烤与桌游_桌游馆.png"
         }
       ]
     },
     "G4_annual_show_rehearsal": {
       "title": "市场部 · 年会舞台",
-      "image": "res://assets/weekend_scenes/stage_backstage.png",
+      "image": "res://assets/活动场景/F_运营部_舞台后台排练.png",
       "lines": [
         { "text": "年会节目在台上过第一遍。你在侧幕看着同事们在灯下反复走位——原来大家下班后都藏了一手。" },
         { "text": "轮到自己上场，灯光打下来的瞬间还是紧张了。但台下有掌声，值了。" }
@@ -122,7 +122,7 @@
     },
     "W1_reproduce_paper": {
       "title": "深夜工位 · 复现论文",
-      "image": "res://assets/weekend_scenes/night_desk.png",
+      "image": "res://assets/活动场景/G_行政部_夜间值守与资料整理.png",
       "lines": [
         { "text": "你把那篇论文摊在屏幕左边，一行一行往工程里搬。复现是笨功夫，但骗不了人。" },
         { "text": "跑出和原文对得上的结果时，窗外天都黑透了。这种笨功夫带来的底气，比什么奖励都硬。" }
@@ -130,7 +130,7 @@
     },
     "W2_own_project": {
       "title": "深夜工位 · 自己的项目",
-      "image": "res://assets/weekend_scenes/night_desk.png",
+      "image": "res://assets/活动场景/G_行政部_夜间值守与资料整理.png",
       "lines": [
         { "text": "周末的工位属于你自己的小项目。没有排期、没有评审，纯纯粹粹地造点什么。" },
         { "text": "写到忘记时间才想起来吃饭。这种心流的感觉，你差点忘了自己也会有。" }
@@ -138,7 +138,7 @@
     },
     "W3_tech_blog": {
       "title": "深夜工位 · 写博客",
-      "image": "res://assets/weekend_scenes/night_desk.png",
+      "image": "res://assets/活动场景/G_行政部_夜间值守与资料整理.png",
       "lines": [
         { "text": "你把最近踩的坑整理成一篇博客，删删改改大半天。写清楚一件事，比做出来还难。" },
         { "text": "点下发布的那一刻，像把一封写给陌生同行的信投进邮筒。说不定哪天，就帮到了谁。" }
@@ -146,7 +146,7 @@
     },
     "W4_team_tool": {
       "title": "深夜工位 · 小工具",
-      "image": "res://assets/weekend_scenes/night_desk.png",
+      "image": "res://assets/活动场景/G_行政部_夜间值守与资料整理.png",
       "lines": [
         { "text": "你给团队写的小工具在周末悄悄成型。输入、处理、导出，一条链自己跑通了。" },
         { "text": "想象周一大家用它省下的时间，键盘都敲得更起劲。替别人省力气这件事，会上瘾。" }
@@ -154,7 +154,7 @@
     },
     "W5_postmortem_notes": {
       "title": "深夜工位 · 复盘笔记",
-      "image": "res://assets/weekend_scenes/night_desk.png",
+      "image": "res://assets/活动场景/G_行政部_夜间值守与资料整理.png",
       "lines": [
         { "text": "你把这段时间的复盘一条条写进笔记：哪里赌对了，哪里侥幸了，哪里纯属运气。" },
         { "text": "写完发现，最大的收获不是结论，是终于敢诚实地把自己看一遍。" }

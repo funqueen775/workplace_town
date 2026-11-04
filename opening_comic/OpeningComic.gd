@@ -7,7 +7,7 @@ class_name OpeningComic
 
 signal comic_finished
 
-@export_range(0.3, 5.0, 0.05) var seconds_per_panel: float = 1.45
+@export_range(0.3, 5.0, 0.05) var seconds_per_panel: float = 2.5
 @export_range(0.0, 5.0, 0.05) var page_pause: float = 1.75
 @export_range(0.0, 5.0, 0.05) var ending_pause: float = 0.85
 @export var auto_start: bool = true
@@ -58,8 +58,10 @@ const PAGE_2 := [
 	{
 		"image": "assets/p2_01.webp",
 		"rect": Rect2(0.004, 0.004, 0.320, 0.324),
-		"caption": "这班上得不对劲？\n来换一种熊生。\n不会也没关系，小熊都是慢慢长大的。",
-		"caption_rect": Rect2(0.31, 0.13, 0.57, 0.67),
+		# 白色手机屏是 -15.5° 的斜矩形，字幕必须贴着它转、缩到屏内；
+		# 原来 0.31..0.88 宽 + -7° 是从手机屏一路铺到桌面，字全飘在机器外面。
+		"caption": "这班上得不对劲？\n来换一种熊生。\n不会也没关系，\n小熊慢慢长大。",
+		"caption_rect": Rect2(0.350, 0.266, 0.318, 0.352),
 		"caption_kind": "phone",
 	},
 	{
@@ -93,11 +95,15 @@ var _page_holder: Control
 var _panels: Array[Control] = []
 var _timer: Timer
 var _skip_button: Button
+var _pause_button: Button
+var _replay_button: Button
 var _continue_hint: Label
 var _page_index := 0
 var _panel_index := -1
 var _phase := "idle"
 var _running := false
+var _paused := false
+var _paused_left := 0.0
 
 
 func _ready() -> void:
@@ -123,14 +129,18 @@ func _build_interface() -> void:
 	_page_holder.gui_input.connect(_on_page_gui_input)
 	add_child(_page_holder)
 
-	_skip_button = Button.new()
-	_skip_button.text = "跳过"
-	_skip_button.custom_minimum_size = Vector2(94, 42)
-	_skip_button.size = _skip_button.custom_minimum_size
-	_skip_button.add_theme_font_size_override("font_size", 18)
-	_skip_button.add_theme_font_override("font", CJK_FONT)
+	_skip_button = _top_button("跳过")
 	_skip_button.pressed.connect(skip)
 	add_child(_skip_button)
+
+	_pause_button = _top_button("暂停")
+	_pause_button.pressed.connect(_toggle_pause)
+	add_child(_pause_button)
+
+	_replay_button = _top_button("再看一遍")
+	_replay_button.visible = false
+	_replay_button.pressed.connect(replay)
+	add_child(_replay_button)
 
 	_timer = Timer.new()
 	_timer.one_shot = true
@@ -167,6 +177,8 @@ func _layout_page() -> void:
 	_page_holder.size = target
 
 	_skip_button.position = Vector2(size.x - _skip_button.size.x - 18.0, 12.0)
+	_pause_button.position = Vector2(_skip_button.position.x - _pause_button.size.x - 10.0, 12.0)
+	_replay_button.position = _skip_button.position
 
 	for panel in _panels:
 		var normalized_rect: Rect2 = panel.get_meta("normalized_rect")
@@ -176,7 +188,11 @@ func _layout_page() -> void:
 		var caption := panel.get_node_or_null("Caption") as Label
 		if caption:
 			var ratio: float = caption.get_meta("font_ratio", 0.085)
-			caption.add_theme_font_size_override("font_size", int(clampf(panel.size.y * ratio, 13.0, 30.0)))
+			var min_font: float = caption.get_meta("min_font", 13.0)
+			caption.add_theme_font_size_override("font_size", int(clampf(panel.size.y * ratio, min_font, 30.0)))
+			# 手机字幕是斜的，Control.rotation 默认绕左上角转，会整体甩出屏幕；
+			# 绕中心转，anchor 定的框才是视觉上的框。
+			caption.pivot_offset = caption.size * 0.5
 
 
 func _show_page(index: int) -> void:
@@ -239,8 +255,11 @@ func _make_caption(entry: Dictionary) -> Label:
 	var kind: String = entry.get("caption_kind", "box")
 	match kind:
 		"phone":
-			caption.rotation = deg_to_rad(-7.0)
-			caption.set_meta("font_ratio", 0.072)
+			caption.rotation = deg_to_rad(-15.5)
+			# 手机里的字也要像其它独白框一样有白底，顺便把屏里的熊图标/横条盖住。
+			caption.add_theme_stylebox_override("normal", _phone_caption_style())
+			caption.set_meta("font_ratio", 0.05)
+			caption.set_meta("min_font", 11.0)
 		"sfx":
 			caption.add_theme_font_size_override("font_size", 30)
 			caption.set_meta("font_ratio", 0.12)
@@ -251,6 +270,20 @@ func _make_caption(entry: Dictionary) -> Label:
 			caption.add_theme_stylebox_override("normal", _caption_style(7.0))
 			caption.set_meta("font_ratio", 0.078)
 	return caption
+
+
+func _phone_caption_style() -> StyleBoxFlat:
+	# 手机屏很窄，内容边距比普通独白框小，四行才塞得下。
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color("fff9ea")
+	style.border_color = Color("58321f")
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(8)
+	style.content_margin_left = 4
+	style.content_margin_right = 4
+	style.content_margin_top = 4
+	style.content_margin_bottom = 4
+	return style
 
 
 func _panel_style() -> StyleBoxFlat:
@@ -277,11 +310,17 @@ func _caption_style(radius: float) -> StyleBoxFlat:
 func play() -> void:
 	_timer.stop()
 	_running = true
+	_paused = false
+	_paused_left = 0.0
 	_phase = "revealing"
 	_continue_hint.hide()
 	_skip_button.show()
 	_skip_button.disabled = false
 	_skip_button.text = "跳过"
+	_pause_button.show()
+	_pause_button.text = "暂停"
+	_pause_button.disabled = false
+	_replay_button.hide()
 	_show_page(0)
 	_timer.start(0.35)
 
@@ -358,6 +397,8 @@ func _unhandled_key_input(event: InputEvent) -> void:
 
 
 func _accelerate() -> void:
+	if _paused:
+		return
 	_timer.stop()
 	match _phase:
 		"revealing":
@@ -374,10 +415,45 @@ func _finish() -> void:
 	if not _running:
 		return
 	_running = false
+	_paused = false
 	_phase = "finished"
 	_timer.stop()
 	_skip_button.hide()
+	_pause_button.hide()
+	_replay_button.show()
 	_continue_hint.show()
+
+
+func _toggle_pause() -> void:
+	if not _running:
+		return
+	_paused = not _paused
+	if _paused:
+		_paused_left = _timer.time_left
+		_timer.stop()
+		_pause_button.text = "继续"
+	else:
+		_pause_button.text = "暂停"
+		_timer.start(maxf(_paused_left, 0.05))
+
+
+func replay() -> void:
+	if _running:
+		return
+	var api := get_node_or_null("/root/ApiClient")
+	if api != null:
+		api.record_event("opening_replay", {"fromPage": _page_index + 1})
+	play()
+
+
+func _top_button(text_value: String) -> Button:
+	var button := Button.new()
+	button.text = text_value
+	button.custom_minimum_size = Vector2(94, 42)
+	button.size = button.custom_minimum_size
+	button.add_theme_font_size_override("font_size", 18)
+	button.add_theme_font_override("font", CJK_FONT)
+	return button
 
 
 func _continue_to_login() -> void:

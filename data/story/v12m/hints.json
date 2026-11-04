@@ -1,0 +1,384 @@
+{
+  "flowVersion": "12m_v1",
+  "hints": [
+    {
+      "id": "m01_walk",
+      "month": 1,
+      "anchor": "shell_toast",
+      "trigger": "node_started:E01_TOUR",
+      "title": "跟着王哥走",
+      "sub": "WASD 或左下角摇杆",
+      "dismissOn": "first_move",
+      "replace": "m01_line",
+      "persist": true,
+      "once": true,
+      "legacy": true
+    },
+    {
+      "id": "m01_line",
+      "month": 1,
+      "anchor": "shell_toast",
+      "trigger": "node_started:E01_TOUR",
+      "title": "跟着黄线走",
+      "sub": "黄线尽头就是下一段话",
+      "dismissOn": "node_completed:E01_TOUR",
+      "persist": true,
+      "once": true,
+      "legacy": true
+    },
+    {
+      "id": "m01_handbook",
+      "month": 1,
+      "anchor": "shell_toast",
+      "trigger": "node_completed:E01_TOUR",
+      "title": "手册可以随时看",
+      "sub": "不看也能继续",
+      "dismissOn": "node_started:E02",
+      "persist": true,
+      "once": true,
+      "legacy": true
+    },
+    {
+      "id": "m01_ap",
+      "month": 1,
+      "anchor": "objective",
+      "trigger": "node_completed:E02",
+      "title": "这周剩 1 点",
+      "sub": "去亮着的地方看看",
+      "until": "month_closed",
+      "persist": true,
+      "once": true,
+      "legacy": true
+    },
+    {
+      "id": "m01_ap_gone",
+      "month": 1,
+      "anchor": "shell_toast",
+      "trigger": "activity_done",
+      "title": "这周安排完了",
+      "sub": "可以结束这个月",
+      "autoDismissMs": 2500,
+      "persist": false,
+      "once": false,
+      "legacy": true
+    },
+    {
+      "id": "m01_ap_skipped",
+      "month": 1,
+      "anchor": "shell_toast",
+      "trigger": "activity_skipped",
+      "title": "这周不安排也行",
+      "sub": "可以结束这个月",
+      "autoDismissMs": 2500,
+      "persist": false,
+      "once": false,
+      "legacy": true
+    },
+    {
+      "id": "m01_unlock",
+      "month": 1,
+      "anchor": "shell_toast",
+      "trigger": "place_unlocked",
+      "title": "有地方能去了",
+      "sub": "门口现在是灰的，忙完就亮",
+      "dismissOn": "node_completed:M01_ACTIVITY",
+      "persist": true,
+      "once": true,
+      "legacy": true
+    },
+    {
+      "id": "m01_ap_site",
+      "month": 1,
+      "anchor": "shell_toast",
+      "trigger": "portal_reached",
+      "title": "到了，按 E 进去",
+      "sub": "里面才是要做的事",
+      "dismissOn": "node_completed:M01_ACTIVITY",
+      "persist": true,
+      "once": false,
+      "legacy": true
+    },
+    {
+      "id": "m02_library",
+      "month": 2,
+      "anchor": "shell_toast",
+      "trigger": "hook:door_library",
+      "title": "图书馆二楼",
+      "sub": "旧事故单在那儿，自己去翻",
+      "dismissOn": "month_closed",
+      "persist": true,
+      "once": true,
+      "legacy": true
+    },
+    {
+      "id": "m03_month",
+      "month": 3,
+      "anchor": "shell_toast",
+      "trigger": "node_started:M03_OPEN",
+      "title": "周三十点，销售部",
+      "sub": "跟着黄线走，别让客户等",
+      "autoDismissMs": 3000,
+      "once": true
+    },
+    {
+      "id": "m03_handbook",
+      "month": 3,
+      "anchor": "shell_toast",
+      "trigger": "node_started:M03_HANDBOOK",
+      "title": "手册第二章开了",
+      "sub": "会前翻一眼 2.3，会上要用",
+      "autoDismissMs": 3000,
+      "once": true
+    },
+    {
+      "id": "m03_waterway",
+      "month": 3,
+      "anchor": "shell_toast",
+      "trigger": "hook:unlock_waterway",
+      "title": "销售部门口亮了",
+      "sub": "巷子开着，午后归你",
+      "autoDismissMs": 3000,
+      "once": true
+    },
+    {
+      "id": "m03_afternoon",
+      "month": 3,
+      "anchor": "shell_toast",
+      "trigger": "node_started:M03_ACTIVITY",
+      "title": "午后，时间归你",
+      "sub": "两格走完，傍晚回工位",
+      "autoDismissMs": 3000,
+      "once": true
+    },
+    {
+      "id": "m03_end",
+      "month": 3,
+      "anchor": "shell_toast",
+      "trigger": "node_completed:E12",
+      "title": "这个月安排完了",
+      "sub": "可以结束这个月",
+      "autoDismissMs": 2600,
+      "once": true
+    },
+    {
+      "id": "m04_month",
+      "month": 4,
+      "anchor": "shell_toast",
+      "trigger": "node_started:M04_OPEN",
+      "title": "这月没有自己的时间",
+      "sub": "两条压在同两周",
+      "autoDismissMs": 3000,
+      "once": true
+    },
+    {
+      "id": "m05_month",
+      "month": 5,
+      "anchor": "shell_toast",
+      "trigger": "node_started:M05_OPEN",
+      "title": "周五 14:00 · 运营部展厅",
+      "sub": "主讲是你；周四下午先彩排一遍",
+      "autoDismissMs": 3000,
+      "once": true
+    },
+    {
+      "id": "m05_prep",
+      "month": 5,
+      "anchor": "shell_toast",
+      "trigger": "node_started:M05_PREP",
+      "title": "周四下午彩排",
+      "sub": "王哥当客户，先把那十分钟讲顺",
+      "autoDismissMs": 3000,
+      "once": true
+    },
+    {
+      "id": "m05_night",
+      "month": 5,
+      "anchor": "shell_toast",
+      "trigger": "node_started:M05_NIGHT",
+      "title": "审批四小时，客户四分钟",
+      "sub": "走不走紧急通道都行，差别在事后那张单",
+      "autoDismissMs": 3000,
+      "once": true
+    },
+    {
+      "id": "m05_dawn",
+      "month": 5,
+      "anchor": "shell_toast",
+      "trigger": "node_started:M05_DAWN",
+      "title": "周五 · 运营部展厅",
+      "sub": "往镇子南边走，两点上台",
+      "autoDismissMs": 3000,
+      "once": true
+    },
+    {
+      "id": "m05_demo",
+      "month": 5,
+      "anchor": "shell_toast",
+      "trigger": "node_started:M05_DEMO",
+      "title": "台上是你",
+      "sub": "客户问的那句，得当场答",
+      "autoDismissMs": 3000,
+      "once": true
+    },
+    {
+      "id": "m05_free",
+      "month": 5,
+      "anchor": "shell_toast",
+      "trigger": "node_started:M05_FREE",
+      "title": "这个月两格",
+      "sub": "四处挑两个，不想去就直接结束本月",
+      "autoDismissMs": 3000,
+      "once": true
+    },
+    {
+      "id": "m06_month",
+      "month": 6,
+      "anchor": "shell_toast",
+      "trigger": "node_started:M06_OPEN",
+      "title": "这个月做转正答辩",
+      "sub": "通知贴上了隔板，先把三张便签挑出来",
+      "autoDismissMs": 3000,
+      "once": true
+    },
+    {
+      "id": "m06_wall",
+      "month": 6,
+      "anchor": "shell_toast",
+      "trigger": "node_started:M06_WALL",
+      "title": "从攒下的便签里挑三张",
+      "sub": "挑最说得出前因后果的三张，别挑最漂亮的",
+      "autoDismissMs": 3000,
+      "once": true
+    },
+    {
+      "id": "m06_wait",
+      "month": 6,
+      "anchor": "shell_toast",
+      "trigger": "node_started:M06_CORRIDOR",
+      "title": "等在外面就行",
+      "sub": "结果今天不在这条走廊里出",
+      "autoDismissMs": 3000,
+      "once": true
+    },
+    {
+      "id": "m07_month",
+      "month": 7,
+      "anchor": "shell_toast",
+      "trigger": "node_started:M07_RESULT",
+      "title": "先看这个月的结论",
+      "sub": "过与不过，后面照样有活要接",
+      "autoDismissMs": 3000,
+      "once": true
+    },
+    {
+      "id": "m07_free",
+      "month": 7,
+      "anchor": "shell_toast",
+      "trigger": "node_started:M07_FREE",
+      "title": "这个月三格",
+      "sub": "财务部的团队活动和已开放的区域，按行动力安排",
+      "autoDismissMs": 3000,
+      "once": true
+    },
+    {
+      "id": "m08_month",
+      "month": 8,
+      "anchor": "shell_toast",
+      "trigger": "node_started:M08_OPEN",
+      "title": "这个月在白板前定路线",
+      "sub": "两条都能跑，只有一条撑得过一年",
+      "autoDismissMs": 3000,
+      "once": true
+    },
+    {
+      "id": "m08_rule",
+      "month": 8,
+      "anchor": "shell_toast",
+      "trigger": "node_started:E25",
+      "title": "想清楚做不到时怎么办",
+      "sub": "会上问的不是能不能做，是出了事谁认",
+      "autoDismissMs": 3000,
+      "once": true
+    },
+    {
+      "id": "m09_month",
+      "month": 9,
+      "anchor": "shell_toast",
+      "trigger": "node_started:M09_NAME",
+      "title": "这月盯署名",
+      "sub": "名单上少的那一行，得你自己补",
+      "autoDismissMs": 3000,
+      "once": true
+    },
+    {
+      "id": "m09_free",
+      "month": 9,
+      "anchor": "shell_toast",
+      "trigger": "node_started:M09_FREE",
+      "title": "这个月三格",
+      "sub": "长桌那边有人一直在等，走完还有一段",
+      "autoDismissMs": 3000,
+      "once": true
+    },
+    {
+      "id": "m10_month",
+      "month": 10,
+      "anchor": "shell_toast",
+      "trigger": "node_started:M10_OPEN",
+      "title": "旁边多了一张椅子",
+      "sub": "教人比自己写慢，但这一格只能这么长",
+      "autoDismissMs": 3000,
+      "once": true
+    },
+    {
+      "id": "m10_board",
+      "month": 10,
+      "anchor": "shell_toast",
+      "trigger": "node_started:E31",
+      "title": "公告栏上会有你的名字",
+      "sub": "看完别在走廊里笑",
+      "autoDismissMs": 3000,
+      "once": true
+    },
+    {
+      "id": "m11_month",
+      "month": 11,
+      "anchor": "shell_toast",
+      "trigger": "node_started:M11_OPEN",
+      "title": "这月开始争名额",
+      "sub": "材料先自己过一遍，数字对不上当场就废",
+      "autoDismissMs": 3000,
+      "once": true
+    },
+    {
+      "id": "m11_free",
+      "month": 11,
+      "anchor": "shell_toast",
+      "trigger": "node_started:M11_FREE",
+      "title": "这个月三格",
+      "sub": "生产部桌游、人事部复现或已开放活动，按行动力安排",
+      "autoDismissMs": 3000,
+      "once": true
+    },
+    {
+      "id": "m12_month",
+      "month": 12,
+      "anchor": "shell_toast",
+      "trigger": "node_started:M12_OPEN",
+      "title": "答辩在明天",
+      "sub": "今晚只做一件事：把要讲的过一遍",
+      "autoDismissMs": 3000,
+      "once": true
+    },
+    {
+      "id": "m12_door",
+      "month": 12,
+      "anchor": "shell_toast",
+      "trigger": "node_started:M12_DOOR",
+      "title": "门外等的这段时间",
+      "sub": "没人会出来告诉你里面问到哪了",
+      "autoDismissMs": 3000,
+      "once": true
+    }
+  ]
+}

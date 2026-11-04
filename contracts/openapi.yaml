@@ -355,6 +355,14 @@ components:
             - training_result         # 训练谷对局摘要；胜负和骰运不进入职业测评
             - weekend_close          # 自由周末收束：月份/收束快照 → 周末完成度（不测评）
             - encounter_choice       # 在场一幕应答：活动/选项/NPC/标签 → 性格回声（不测评，只记性格标签）
+            # ---- 十二个月主线补充（2026-10-30：客户端一直在发，契约漏登记。服务端当前不校验名字，
+            #      所以此前没报错；补上是为了契约与实现一致，将来按契约校验时不会静默丢数据。）
+            - m01_e02_choice         # 第 1 月 E02 三选一
+            - m02_choice             # 第 2 月 E04 选型
+            - m01_phone_reply        # 第 1 月回王哥那条消息
+            - m01_place_unlocked     # 第 1 月地点解锁（三扇门）
+            - ability_peak           # 能力第 5 格被剧情点亮
+            - intro_skip             # 跳过开场
         contentVersion: { type: string, example: v1 }
         clientTime: { type: string, format: date-time }
         durationSeconds: { type: integer, minimum: 0 }

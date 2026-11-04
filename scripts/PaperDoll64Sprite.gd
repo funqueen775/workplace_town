@@ -23,6 +23,7 @@ const DIRECT_FRAME_DIRS := {
 	"bear_plaid_glasses": "gray_bear",
 	"bear_beige_blazer": "beige_bear",
 	"bear_green_cardigan": "green_bear",
+	"chen_gong": "chen_gong",
 }
 
 @export_file("*.json") var catalog_path := DEFAULT_CATALOG_PATH
@@ -99,10 +100,10 @@ func load_catalog(path: String) -> bool:
 
 
 func set_loadout(loadout_id: String) -> bool:
-	if not _loadout_by_id.has(loadout_id):
-		return false
 	if DIRECT_FRAME_DIRS.has(loadout_id):
 		return _set_direct_frames(loadout_id, String(DIRECT_FRAME_DIRS[loadout_id]))
+	if not _loadout_by_id.has(loadout_id):
+		return false
 	var atlas_path := String((_loadout_by_id[loadout_id] as Dictionary)["atlas"])
 	if not atlas_path.begins_with("res://"):
 		atlas_path = "res://" + atlas_path
@@ -167,10 +168,17 @@ func get_preset_loadout_ids() -> Array[String]:
 	return result
 
 
+## 手绘整帧里没有"侧身站着"那一张的人：他们的左右行第一张就是迈步（陈工 05/13）。
+## 停下来时转回正面，别让一个站着不动的人看起来一直在走。
+const IDLE_FACE_FRONT := ["chen_gong"]
+
+
 func set_motion(direction: Vector2, distance_delta: float) -> void:
 	if direction.length_squared() <= 0.000001:
 		_frame_sequence_index = 0
 		_distance_progress = 0.0
+		if _direct_frame_mode and IDLE_FACE_FRONT.has(_current_loadout_id):
+			_direction_row = 0
 		_sync_frame()
 		return
 

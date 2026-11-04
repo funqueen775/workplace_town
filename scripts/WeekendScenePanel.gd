@@ -68,11 +68,14 @@ func _apply_image(path: String) -> void:
 	if not (tex is Texture2D):
 		# 兜底：新图还没被编辑器导入时直接读盘，
 		# headless 探针与本机文件锁环境下也能出图；导入完成后走压缩纹理。
-		var img := Image.load_from_file(path)
+		var file_path := ProjectSettings.globalize_path(path) if path.begins_with("res://") else path
+		var img := Image.load_from_file(file_path)
 		if img != null:
 			tex = ImageTexture.create_from_image(img)
 	if tex is Texture2D:
 		_image_rect.texture = tex
+	else:
+		push_warning("活动背景加载失败：%s" % path)
 
 
 func is_open() -> bool:
@@ -155,7 +158,7 @@ func _build_ui() -> void:
 	add_child(_root)
 
 	var bg := ColorRect.new()
-	bg.color = Color(0.02, 0.02, 0.02)
+	bg.color = Color("302820")
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_root.add_child(bg)
@@ -163,7 +166,7 @@ func _build_ui() -> void:
 	_image_rect = TextureRect.new()
 	_image_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_image_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	_image_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_image_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	_image_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_root.add_child(_image_rect)
 

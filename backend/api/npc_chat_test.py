@@ -60,6 +60,14 @@ def main() -> None:
             fallback, source = npc_chat.reply(npc, "你好", [])
             assert fallback == npc["fallbackReply"] and source == "template"
     with patch.object(npc_chat, "_local_config", return_value={
+            "provider": "deepseek", "apiKey": "replace-with-your-own-key"}), patch.dict(
+            "os.environ", {"NPC_LLM_PROVIDER": "deepseek"}, clear=True), patch.object(
+            npc_chat, "urlopen") as transport:
+        fallback, source = npc_chat.reply(npc_chat.NPCS["chen_gong"], "你好", [])
+        assert fallback == npc_chat.NPCS["chen_gong"]["fallbackReply"]
+        assert source == "template"
+        transport.assert_not_called()
+    with patch.object(npc_chat, "_local_config", return_value={
             "provider": "deepseek", "apiKey": "local-test-token"}), patch.dict(
             "os.environ", {"NPC_LLM_PROVIDER": "deepseek"}, clear=True):
         fake_response = BytesIO(b'{"choices":[{"message":{"content":"local reply"}}]}')
