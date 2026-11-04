@@ -31,38 +31,58 @@ func _ready() -> void:
 	get_tree().quit()
 
 
-## 从事件目录取真实的便签文案造 8 张：4 个事件 × 2 个选项。
+## 便签一律取十二个月那份事件表里的真数据（data/story/v12m/events.json）：
+## 事件名、月份、选项文案、结果、便签原文、金/灰，全都不是手写的。
+## 以前这里读的是旧 48 个月目录（WorldClock.MAIN_EVENTS），实拍里于是冒出
+## 「第 42 月 · 吹哨两难」这种十二个月里根本不存在的条目 —— 预览给人看的
+## 必须是玩家真会见到的东西。
 func _sample() -> Array:
+	var raw: Variant = JSON.parse_string(FileAccess.get_file_as_string("res://data/story/v12m/events.json"))
+	var nodes: Array = (raw as Dictionary).get("nodes", []) if raw is Dictionary else []
 	var records: Array = []
 	var minute := 0
-	for value in WorldClock.MAIN_EVENTS:
-		var event := Dictionary(value)
-		var notes: Dictionary = event.get("memoryNote", {})
-		var outcomes: Dictionary = event.get("outcome", {})
-		var choices: Dictionary = {}
-		for item in event.get("choices", []) as Array:
+	var last_tone := ""
+	for value in nodes:
+		var node := Dictionary(value)
+		var notes: Dictionary = node.get("memoryNote", {})
+		if notes.is_empty():
+			continue
+		var month := int(node.get("month", 0))
+		if month < 1 or month > 12:
+			continue
+		# 一墙要有金有灰才看得出两种纸：这一条优先挑跟上一张不同色的选项。
+		var pick_id := ""
+		for key in notes.keys():
+			var candidate := String(Dictionary(notes[key]).get("tone", "gold"))
+			if pick_id.is_empty() or (candidate != last_tone and String(Dictionary(notes[pick_id]).get("tone", "gold")) == last_tone):
+				pick_id = String(key)
+		if pick_id.is_empty():
+			continue
+		var note := Dictionary(notes[pick_id])
+		var choice_text := ""
+		var outcome := ""
+		for item in node.get("choices", []) as Array:
 			var choice := Dictionary(item)
-			choices[String(choice.get("id", ""))] = String(choice.get("text", ""))
-		var taken := 0
-		for choice_id in notes.keys():
-			if taken >= 2:
+			if String(choice.get("id", "")) == pick_id:
+				choice_text = String(choice.get("text", ""))
+				outcome = String(choice.get("outcome", ""))
 				break
-			var note := Dictionary(notes[choice_id])
-			minute += 60 * 24 * 3
-			records.append({
-				"eventId": String(event.get("id", "")),
-				"eventTitle": String(event.get("title", "")),
-				"actTitle": String(event.get("actTitle", "")),
-				"month": int(event.get("month", 1)),
-				"day": int(event.get("day", 1)),
-				"choiceId": String(choice_id),
-				"choiceText": String(choices.get(choice_id, "")),
-				"text": String(note.get("text", "")),
-				"tone": String(note.get("tone", "gold")),
-				"outcome": String(outcomes.get(choice_id, "")),
-				"worldMinute": minute,
-			})
-			taken += 1
+		minute += 60 * 24 * 4
+		records.append({
+			"eventId": String(node.get("id", "")),
+			"eventTitle": String(node.get("title", "")),
+			"month": month,
+			"phase": String(node.get("phase", "")),
+			"choiceId": pick_id,
+			"choiceText": choice_text,
+			"text": String(note.get("text", "")),
+			"tone": String(note.get("tone", "gold")),
+			"outcome": outcome,
+			"worldMinute": minute,
+		})
+		last_tone = String(note.get("tone", "gold"))
+		if records.size() >= 9:
+			break
 	return records
 
 

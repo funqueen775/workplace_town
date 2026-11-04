@@ -11,6 +11,11 @@ const INK := Color("63301d")
 
 var current_month := 1
 var target_month := 2
+var dialog_title := "确认跳月"
+var warning_text := ""
+var detail_text := ""
+var continue_text := "继续完成任务"
+var confirm_text := "确认跳过"
 
 
 func _ready() -> void:
@@ -44,29 +49,34 @@ func _ready() -> void:
 	panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	overlay.add_child(panel)
 
-	var title := _label("确认跳月", 36)
+	var title := _label(dialog_title, 36)
 	title.position = Vector2(102, 45)
 	title.size = Vector2(690, 55)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	panel.add_child(title)
 
-	var warning := _label("你确定吗？还没有完成本月任务，会影响你最后的晋升，以及测评报告。", 24)
+	var warning_value := warning_text if not warning_text.is_empty() else "你确定吗？还没有完成本月任务，会影响你最后的晋升，以及测评报告。"
+	var warning := _label(warning_value, 24)
 	warning.name = "WarningText"
 	warning.position = Vector2(115, 112)
 	warning.size = Vector2(670, 68)
 	warning.autowrap_mode = TextServer.AUTOWRAP_ARBITRARY
 	panel.add_child(warning)
 
-	var detail := _label("将从第 %d 月跳到第 %d 月；期间未完成的主线和自由活动会被跳过，不能补做。" % [current_month, target_month], 21)
+	var detail_value := detail_text if not detail_text.is_empty() else "将从第 %d 月跳到第 %d 月；期间未完成的主线和自由活动会被跳过，不能补做。" % [current_month, target_month]
+	var detail := _label(detail_value, 21)
+	detail.name = "DetailText"
 	detail.position = Vector2(115, 182)
 	detail.size = Vector2(670, 59)
 	detail.autowrap_mode = TextServer.AUTOWRAP_ARBITRARY
 	panel.add_child(detail)
 
-	var continue_button := _button("继续完成任务", CONTINUE_ART, Vector2(137, 265))
+	var continue_button := _button(continue_text, CONTINUE_ART, Vector2(137, 265))
+	continue_button.name = "ContinueButton"
 	continue_button.pressed.connect(queue_free)
 	panel.add_child(continue_button)
-	var skip_button := _button("确认跳过", SKIP_ART, Vector2(508, 265))
+	var skip_button := _button(confirm_text, SKIP_ART, Vector2(508, 265))
+	skip_button.name = "ConfirmButton"
 	skip_button.pressed.connect(func(): confirmed.emit(); queue_free())
 	panel.add_child(skip_button)
 

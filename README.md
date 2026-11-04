@@ -1,132 +1,92 @@
-# 职场小镇
+# 熊心壮职 · 职场小镇
 
-这是一个以剧情选择和自由活动完成职业测评的 2D 像素风小镇原型。当前以 Godot 验证地图、触控、NPC 和剧情体验；后端独立负责会话、存档、评分与报告。鸿蒙工程仅作为 Godot Web 导出包的运行外壳，不承载游戏规则。
+Godot 4 职场剧情体验游戏。玩家经历十二个月的工作与生活事件，探索八个部门、参与区域活动，并在流程结束后查看由本局选择和行为记录生成的职业画像报告。HarmonyOS 版本由 ArkTS 应用壳通过 ArkWeb 加载 Godot Web 导出内容；剧情、玩法与报告仍由 Godot 实现。
 
-## 协作入口
+## 项目组成
 
-- 产品剧情与美术需求：`docs/职场小镇开发文档V1.docx`
-- 前后端边界、接口和 Git 规范：`docs/前后端协作架构与开发规范.md`
-- 可执行接口契约：`contracts/openapi.yaml`
-- 前端本地联调样例：`contracts/fixtures/`
+| 路径 | 内容 |
+|---|---|
+| `Startup.tscn`、`Main.tscn` | 开场与小镇入口 |
+| `scripts/`、`data/`、`assets/` | Godot 游戏逻辑、剧情数据和运行素材 |
+| `backend/api/`、`backend/engine_core/` | 本地 API、NPC 对话、事件与评分服务 |
+| `entry/`、`AppScope/`、`hvigor/` | HarmonyOS ArkTS 外壳和 DevEco 构建工程 |
+| `entry/src/main/resources/rawfile/game/` | 打包到 HAP 的 Godot Web 游戏文件，属于运行资源，不是缓存 |
+| `tests/`、`tools/` | 自动化测试和开发辅助工具 |
 
-先以 `contracts/openapi.yaml` 为准讨论和修改接口。前端与后端不得只在聊天记录中约定字段。
+## 克隆与资源
 
-## 目录
+仓库使用 Git LFS 保存较大的 Godot Web PCK。先安装 Git 与 Git LFS，再克隆项目：
 
-```text
-assets/                 地图、角色和其他可提交的美术资源
-data/                   小镇区域、碰撞、导航及后续剧情配置
-scripts/                Godot 前端交互代码
-contracts/              前后端共用的 OpenAPI 契约和 Mock 数据
-backend/                后端服务目录，由后端同学实现
-backend/engine_core/    Python 引擎内核（M0+M1，2026-09-13 迁入），读 data/story/
-entry/                  ArkTS 鸿蒙外壳，不写游戏评分逻辑
-docs/                   开发依据和协作规范
-docs/legacy/            旧工程归档（交付文档/离线网页/参考图/数据历史版本），只读，Godot 已 .gdignore
-tools/                  可重复执行的资源处理工具
-web/                    Web 版开场原型（React + Vite），设计验证用，不是游戏本体
+```powershell
+git lfs install
+git clone https://github.com/funqueen775/workplace_town.git
+cd workplace_town
+git lfs pull
 ```
 
-## 本地运行
+若 LFS 未安装或未拉取，`index.pck` 等文件可能显示为很小的指针文本，游戏和 HAP 都无法正常运行。
 
-Windows 本地体验：安装 Python 3.10+ 和 Godot 4.7，然后双击根目录的 `Start-Game.cmd`。脚本会启动本机后端和游戏；若 Godot 不在 PATH 或 WinGet 目录，先设置 `GODOT_EXE` 指向 Godot 可执行文件。
+## Windows 本地运行
 
-每次启动都会先检查本地后端。若本地保存的会话已不在后端数据库中，启动脚本会把旧会话、待发送事件队列和拒绝记录移入 `%APPDATA%\Godot\app_userdata\职场小镇\api_recovery\`，然后启动游戏并由游戏创建新会话；旧队列只作备份，不会混入新会话。若只是后端暂时无法访问，脚本会停止启动且保留这些文件，修复服务后重试即可。需要主动重启后端时，可在 PowerShell 运行 `& (Join-Path $PWD 'Start-Game.ps1') -Restart`。
+安装 Godot 4.7.x（建议使用与项目一致的 4.7.2）和 Python 3.10 或更新版本。后端仅使用 Python 标准库，不需要 `pip install`。
 
-本地 NPC 大模型密钥只保存在被 Git 忽略的 `backend/local_llm_config.json`。克隆项目后，复制 `backend/local_llm_config.example.json` 为该文件并填写自己有权使用的 API Key；不要把真实密钥提交到仓库、提交记录或共享压缩包。共享仓库不包含任何人的个人 API Key。
+双击项目根目录的 `Start-Game.cmd`。启动脚本会检查 Godot 与本地 API，自动启动 API 服务，在游戏启动前执行一次 Godot headless 资源导入，再打开 `Startup.tscn`。首次启动需要等待 Godot 导入资源；导入结果写入本机 `.godot/`，之后启动会复用缓存。
 
-## 协作开发
+如果 Godot 没有加入 PATH，在 PowerShell 中设置 `GODOT_EXE` 后再运行启动脚本：
 
-- 使用 Godot 4.7.x；本地启动还需要 Python 3.10+。Windows 可双击 `Start-Game.cmd`。
-- `entry/src/main/resources/rawfile/game/index.pck` 是约 166 MiB 的 Godot Web 导出文件，已配置 Git LFS。安装 Git LFS 后执行 `git lfs install`；克隆后若文件仍是指针，执行 `git lfs pull`。
-- 新功能在独立分支开发并通过 Pull Request 合并到 `main`。提交前运行相关后端/Godot 测试，并确认没有 API Key、数据库、`.godot/` 缓存或 `artifacts/` 构建包。
-- `artifacts/`、数据库、Godot 导入缓存和本地大模型配置仅用于本机，不上传。美术源文件和剧情数据如被项目引用，应保留并提交。
-
-操作：WASD 或方向键移动；手机/模拟器用左下角摇杆；靠近 NPC 后按 E、空格或点击交互按钮。
-
-### Godot 开场（`Startup.tscn`）
-
-当前入口为开场漫画 → 标题主菜单 → 小林、老周两道入职情景题 → 选择形象 → 小镇。
-情景题使用已有内景和人物立绘；选择后显示角色回应，预演选择不进入正式测评。
-两题均可跳过并直接进入形象选择。旧版 `Intro.tscn` 和 Web 开场仅作设计参考，不是运行入口。
-
-```bash
-# 启动流程验收
-Godot --headless --path <工程> res://tests/StartupFlowTest.tscn
-# 真渲染截图：标题、两道题、角色选择
-Godot --path <工程> --resolution 1280x720 res://tools/shot_intro.tscn -- --scene res://Startup.tscn --shots title,0,1,avatar --shot-dir <输出目录>
+```powershell
+$env:GODOT_EXE = 'D:\Apps\Godot\Godot_v4.7.2-stable_win64.exe'
+Start-Game.cmd
 ```
 
-## Web 版开场原型（`web/`）
+也可以在 Godot 编辑器中打开项目根目录。正常游玩时建议通过 `Start-Game.cmd` 启动，以便 API 服务同时运行。API 默认只监听本机 `127.0.0.1:8077`。
 
-`web/` 是一份独立的 React + Vite 历史原型，**只用于参考旧版开场的版式、文案与美术方向**，
-不是游戏本体——游戏本体是 Godot。它与 Godot 运行时互不影响：
+NPC 对话在没有模型密钥时使用本地预设回复，游戏和评分流程仍可运行。需要启用大模型 NPC 对话时，将 `backend/local_llm_config.example.json` 复制为 `backend/local_llm_config.json`，再填写自己的服务商、模型和 API Key。该文件已被忽略，不要提交密钥；不要把真实密钥放进 README、源码或截图。
 
-- 目录内放了一份空的 `.gdignore`，告诉 Godot **跳过整个 `web/`**，不要把里面的图片当资源导入；
-- `web/.gitignore` 已忽略 `node_modules` 与 `dist`。
+## DevEco 真机调试
 
-```bash
-cd web
-npm install
-npm run dev        # http://localhost:5173
+1. 安装 DevEco Studio 和 HarmonyOS SDK，使用 Git LFS 克隆并拉取完整资源。
+2. 在 DevEco Studio 中打开项目根目录（包含 `build-profile.json5` 的 `workplace_town`），等待 Hvigor 同步完成。按本机 SDK 安装位置配置 SDK；`local.properties` 是机器配置，不提交。
+3. 用 USB 连接 HarmonyOS 手机，在手机上开启开发者调试并授权这台电脑；在 DevEco 设备列表中选择该真机。
+4. 选择 `entry` 模块的 `default` 目标，点击运行。首次安装按 DevEco 提示生成或选择本机调试签名；签名文件不提交。
+
+也可以从项目根目录用 Hvigor 构建 HAP。将下面的路径替换为本机 DevEco 安装目录：
+
+```powershell
+$env:DEVECO_SDK_HOME = 'D:\deveco\DevEco Studio\sdk'
+& 'D:\deveco\DevEco Studio\tools\hvigor\bin\hvigorw.bat' `
+  --mode module -p product=default -p module=entry@default assembleHap
 ```
 
-深链可直接定位屏幕与页码，例如 `/?screen=town&page=2`、`/?screen=title`。
+HAP 输出在 `entry/build/default/outputs/default/`。若修改 Godot 游戏内容，先用 Godot 的 `Harmony Web` 导出预设重新导出到 `entry/src/main/resources/rawfile/game/index.html`，再将更新后的 Web 文件与代码一起提交。云模拟器与不同真机的 WebGL/GPU 能力可能不同，最终显示效果要在目标真机上验证。
 
-开场三屏的版式约定、文案口径与踩过的坑都写在 `web/README.md`。
-它的底图裁自本工程的 `assets/town/workplace_town_reference.png`，属同一份美术来源。
+## 缓存与提交规则
 
-## 地图数据
+- 不提交 `.godot/`、`.idea/`、`.hvigor/`、`oh_modules/`、`entry/build/`、HAP、数据库、Python `__pycache__/`、本地配置和签名文件。这些是缓存、构建产物或个人环境数据。
+- 提交游戏实际引用的原始图片、音频、字体、Web 导出文件，以及 Godot 的 `*.import` 导入设置和脚本 `*.uid`。`.import` 是资源导入设置，不是 `.godot/` 导入缓存；其他人克隆后会在自己的 `.godot/` 重新生成导入结果。
+- `entry/src/main/resources/rawfile/game/index.pck` 使用 Git LFS；其他需要跟随工程共享的大型二进制资源也按仓库 LFS 规则管理。
+- API Key、`local.properties`、HarmonyOS 调试签名、数据库、截图和临时导出物均不得提交。
+- 通过功能分支提交并创建 Pull Request 到 `main`；不要直接在 `main` 上开发。提交前检查 `git status`、`git diff --check`，运行下方相关校验。
 
-运行时读取 `data/town/regions.json`、`data/town/npcs.json`、`data/town/collision.json` 与 `data/town/navigation.json`。`scripts/WorkplaceTown.gd` 负责将其转换为区域触发器、碰撞多边形、可行走区域和 NPC。
+## 校验
 
-区域对应：A 市场部、B 研发部、C 销售部、D 人事部、E 财务部、F 运营部、G 行政部、H 生产部。
+在项目根目录运行数据与后端检查：
 
-底图：`assets/town/workplace_town_reference.png`。
-
-## 自己绘制碰撞
-
-在 Godot 中打开 `tools/CollisionEditor.tscn`，按 F6 运行。左键逐点勾轮廓，右键撤销最后一个点；选中已有轮廓后可重画或删除。点击“保存到 collision.json”后，运行主场景并按 F3 即可检查红色轮廓。
-
-## NPC 演员表
-
-`data/town/npcs.json` 是**演员表的唯一来源：开场三屏和地图内 NPC 都读它**（`IntroSequence.gd` 与 `WorkplaceTown.gd` 各读一次）。改演员只改这个 JSON，不要改脚本——两份脚本里的同名数组都只是读不到 JSON 时的兜底。
-
-当前四位常驻 NPC（E 财务部 / F 运营部 / G 行政部 / H 生产部暂无常驻 NPC）：
-
-| 区 | 姓名 | 职衔 | 关系系统 |
-| --- | --- | --- | --- |
-| A 市场部 | 陈工 | 邻组 Leader | **否**——事务型直属上级，无好感度、无熊友卡、不参与邀约 |
-| B 研发部 | 王哥 | 技术 · 你的导师 | 是 |
-| C 销售部 | 小林 | 产品 | 是 |
-| D 人事部 | 老周 | 资深 | 是 |
-
-### 两条已定的口径（2026-09-13）
-
-1. **角色是「熊」**。现在 `loadout` 填的是 kun913 现成的人类纸娃娃（`elder_man` / `skirt_woman` / `suit_man` / `neutral_hoodie` / `energetic_ponytail` / `street_creator`），**只是临时占位**；等美术出熊的纸娃娃图集后整体替换，字段名不变。
-2. **只用这 5 只熊**。原先 `WorkplaceTown.gd` 里的 8 个区域 NPC（艾米 / 陈工 / 林总 / 周岚 / 小莫 / 阿哲 / 宁宁 / 乐乐）已作废删除。
-
-## 剧情数据与引擎内核（2026-09-13 迁入）
-
-`data/story/` 除了开场用的 `intro.json`，现在还有 5 份**唯一口径**的剧情/算法数据：
-
-```text
-data/story/scoring_cards.json         打分卡（39 主线事件 + 5 成就 = 123 选项）
-data/story/free_time_system.json      自由活动配置（19 活动 / 16 次机会 / 好感度）
-data/story/monthly_action_nodes.json  月度精力分配模板（4 模板 × 4 选项）
-data/story/crisis_dialogue.json       危机对话
-data/story/task_001_tech_stack.json   技术栈模板
+```powershell
+python tools/v12m_validate.py
+python tools/audit_v12m.py
+python backend/api/selftest.py
+python backend/api/npc_chat_test.py
 ```
 
-`backend/engine_core/` 是从旧工程搬来的 Python 引擎内核（FastAPI M0+M1，纯标准库、零第三方依赖）。
-它**不复制数据副本**，直接读上面的 `data/story/`（查找顺序：环境变量 `XZZ_DATA_DIR` → `<kun913>/data/story/` → 旧位置兜底）。
+Godot 命令行校验示例（按安装路径调整可执行文件）：
 
-```bash
-cd backend/engine_core
-python scripts/validate_config.py            # 构建期校验，改完 JSON 必跑
-python scripts/simulate.py --policy index    # 跑批（index / utility / random）
+```powershell
+$godot = 'D:\Apps\Godot\Godot_v4.7.2-stable_win64_console.exe'
+& $godot --headless --editor --path . --import --quit
+& $godot --headless --path . res://tests/StartupFlowTest.tscn
+& $godot --headless --path . res://tests/V12CoreFlowTest.tscn
+& $godot --headless --path . res://tests/V12MilestonesTest.tscn
 ```
 
-校验器仍会报 12 条 `[注意]`，都是策划待确认项（雷达满分口径 40/37/35/34/30/8 vs 文档记载、调节焦点 5 个选项未标等），**不影响通过**。
-
-历史交付文档、离线网页、开场三屏参考图与数据历史版本都归档在 `docs/legacy/`，清单见 `docs/legacy/README.md`。
+改动某个玩法模块时，同时运行对应的 `tests/` 场景。数据校验中的历史警告需结合本次改动判断，不要误当作测试失败。

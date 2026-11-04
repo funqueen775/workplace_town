@@ -1,25 +1,19 @@
 extends Control
 
-# 开场漫画 -> 标题页 -> 两道入职预演 -> 形象选择 -> Main.tscn。
+# 开场漫画 -> 标题页 -> 三页小镇导览 -> Main.tscn。
 const FONT := preload("res://assets/fonts/NotoSansCJKsc-Regular.otf")
-const TITLE_BG := preload("res://assets/town/workplace_town_no_labels.png")
-const LIN_ROOM := preload("res://assets/场景内部图/创意水巷.png")
-const ZHOU_ROOM := preload("res://assets/场景内部图/树影图书馆.png")
-const LIN_PORTRAITS := [
-	preload("res://assets/角色立绘/小林/小林_自然.png"),
-	preload("res://assets/角色立绘/小林/小林_认真.png"),
-	preload("res://assets/角色立绘/小林/小林_开心.png"),
-	preload("res://assets/角色立绘/小林/小林_疑惑.png"),
-]
-const ZHOU_PORTRAITS := [
-	preload("res://assets/角色立绘/老周/老周_认真.png"),
-	preload("res://assets/角色立绘/老周/老周_疑惑.png"),
-	preload("res://assets/角色立绘/老周/老周_无奈.png"),
-]
-const HOME_BG := preload("res://assets/town/workplace_town_no_labels.png")
-const HOME_START := preload("res://assets/开始游戏页面/按钮-开始游戏.png")
-const HOME_SETTINGS := preload("res://assets/开始游戏页面/按钮-设置.png")
-const HOME_REPORT := preload("res://assets/开始游戏页面/按钮-我的报告.png")
+const INTRO_BG := preload("res://assets/town/workplace_town_no_labels.png")
+const ENTRY_COVER := preload("res://assets/ui/startup/entry_cover.png")
+const COVER_START := preload("res://assets/开始游戏页面/按钮-开始游戏.png")
+const COVER_SETTINGS := preload("res://assets/开始游戏页面/按钮-设置.png")
+const COVER_EXIT := preload("res://assets/开始游戏页面/按钮-退出游戏.png")
+## 三个按钮图四周各有上百像素透明留白，整张缩放会把按钮压扁。
+## 用 AtlasTexture 只裁内容区，再按交付稿坐标落到封面上（坐标取自 557b538 版标题页）。
+const COVER_START_CROP := Rect2(145, 70, 1880, 550)
+const COVER_SETTINGS_CROP := Rect2(190, 130, 1800, 470)
+const COVER_EXIT_CROP := Rect2(166, 118, 1840, 474)
+const B_AREA_ART := preload("res://assets/八大区域地图重制版/B_研发部.png")
+const WANG_GE_PORTRAIT := preload("res://assets/ui/rework_v1/profile/components/03_人际关系/王哥头像.png")
 const INTRO_DIALOG_BG := preload("res://assets/对话框/角色对话框_空白.png")
 const INTRO_BUTTON_PRIMARY := preload("res://assets/ui/rework_v1/task_book/20_推进按钮底板.png")
 const INTRO_BUTTON_SECONDARY := preload("res://assets/ui/rework_v1/task_book/18_追踪按钮底板.png")
@@ -54,77 +48,75 @@ const EXIT_BG := Color("70452c")
 const EXIT_BG_HOVER := Color("88593a")
 const EXIT_TXT := Color("f3dfbe")
 
-const HOME_SIZE := Vector2(1672, 941)
+## 导览三页共用的内容区（相对 frame）：切页不跳版靠它
+## 高度 580→600，并把整页上移 12px：入职页的故事 + 引语和「怎么玩」的四行
+## 都需要更多上下呼吸位，不能贴着卡片底边。
+const CONTENT_RECT := Rect2(94, 238, 1512, 600)
 
-## 开场选择只用于预演，不进入正式剧情和测评。
+## 引言三页（开发文档 11.14）。
 const PAGES := [
-	{"title":"先问什么", "speaker":"小林", "role":"产品同事", "place":"销售部", "room":LIN_ROOM,
-	 "portrait":LIN_PORTRAITS, "question":"客户刚发来新想法，但我们还不知道他最在意什么。你会先？",
-	 "choices":["问清真正需求", "找同事估算", "做个草案给客户看"],
-	 "replies":["好，我把客户叫回来，我们先问明白。", "我去约大家，先看看这事需要多少时间。", "可以，先让客户看到一个能讨论的东西。"],
-	 "expressions":[3, 1, 2]},
-	{"title":"从哪里开始", "speaker":"老周", "role":"资深同事", "place":"人事部", "room":ZHOU_ROOM,
-	 "portrait":ZHOU_PORTRAITS, "question":"大家对同一件事有不同说法。复盘该从哪里开始？",
-	 "choices":["先听各方说法", "先整理事实", "先提出自己的判断"],
-	 "replies":["先听完，再看哪些地方说得不一样。", "有了事实，讨论才不会只剩立场。", "说说看。也别忘了听听别人的依据。"],
-	 "expressions":[1, 0, 2]},
+	{"tab":"入职", "kicker":"入职 · B 区 研发部", "title":"换一种熊生，先试一年",
+	 "body":"旧工作像一摞改不完的文件。你看到「职场小镇」的招工启事，点了申请——想试试换一种活法。",
+	 "body2":"接下来的十二个月，你在 B 区做真实项目：两次评估，第 6 个月转正，第 12 个月晋升。",
+	 "quote":"「来这儿不是躲清闲，是看看你还能做成什么。」", "quote_by":"王哥 · 你的导师",
+	 "footer":"B 区 · 研发部 · 一年后见", "art":B_AREA_ART},
+	{"tab":"怎么玩", "kicker":"操作", "title":"先学会走路，再学会做事",
+	 "controls":true, "footer":"移动、交互、看地图——先把这四件事用顺"},
+	{"tab":"每个月", "kicker":"每个月", "title":"主线必做，其余自选",
+	 "body":"跟着左上角的目标走，主线不会错过。\n手机和手册不用先记，用到了自然会说。\n有自由安排的月份可在行动力内安排多项，也可跳过。",
+	 "footer":"月底自动存档，翻到下个月", "loop":true},
 ]
 
+## 「怎么玩」页的四条操作。键盘和手机都写进去，别只写 PC。
+const CONTROLS := [
+	{"key":"移动", "text":"左下摇杆 / WASD / 方向键"},
+	{"key":"互动", "text":"靠近后点击屏幕按钮进入；按 E 可交谈"},
+	{"key":"返回", "text":"在建筑里点「返回小镇」，或按 Q"},
+	{"key":"地图", "text":"滚轮 / ± / 双指捏合缩放，按住拖动平移"},
+]
+
+## 第 2 页底部的四步月循环；图标全部取自现有 HUD 素材。
+const LOOP_STEPS := [
+	{"icon": preload("res://assets/ui/rework_v1/hud/components/08_任务_定位图标.png"), "label": "主线"},
+	{"icon": preload("res://assets/ui/rework_v1/hud/reference_full_v1/06_手机按钮.png"), "label": "手机 · 手册"},
+	{"icon": preload("res://assets/ui/rework_v1/hud/components/05_蜂蜜罐_满.png"), "label": "自由安排"},
+	{"icon": preload("res://assets/ui/rework_v1/hud/components/12_日历_固定图标按钮.png"), "label": "月末"},
+]
 var _mode := "title"
 var _page := 0
-var _last_intro_page := 0
-var _intro_answers := [-1, -1]
+## 开局入职自评（trait → 1..5）：由入职预演屏后面的登记表五题填。
+var _self_ratings := {}
 var _fonts: Dictionary = {}
+var _intro_started_ms := 0
 var _report_panel: CanvasLayer
 var _settings_panel: CanvasLayer
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_show_opening_comic()
+	# 跳月看片：命令行带了 --v12m-month=N 就跳过开场漫画、标题和引言，直接进镇，
+	# 由城镇在开局那一拍跳到点名的那个月。玩家包里不会带这个参数。
+	for arg in OS.get_cmdline_user_args():
+		if String(arg).begins_with("--v12m-month="):
+			# 换场景得等这一帧把子节点加完再做：直接在 _ready 里切，Godot 会拒绝
+			# remove_child，结果标题还挂着、镇子也进不去（点「开始游戏」没反应）。
+			_enter_town.call_deferred()
+			return
+	_show_login_screen()
 
 
 func _show_opening_comic() -> void:
+	for child in get_children():
+		child.queue_free()
+		if child is CanvasItem:
+			child.visible = false
 	var comic := OPENING_COMIC_SCENE.instantiate()
-	comic.comic_finished.connect(_show_loading_transition)
+	comic.comic_finished.connect(_start_intro)
 	add_child(comic)
 
 
-func _show_loading_transition() -> void:
-	for child in get_children():
-		child.queue_free()
-	_mode = "title"
-	_background()
-
-	var content := VBoxContainer.new()
-	content.set_anchors_preset(Control.PRESET_CENTER)
-	content.position = Vector2(-190, -62)
-	content.size = Vector2(380, 124)
-	content.add_theme_constant_override("separation", 14)
-	add_child(content)
-
-	var title := _label("职 场 小 镇", 36, CREAM_TXT, 2.0, 0.22)
-	title.custom_minimum_size.y = 52
-	content.add_child(title)
-
-	var progress := ProgressBar.new()
-	progress.show_percentage = false
-	progress.custom_minimum_size = Vector2(380, 10)
-	progress.value = 0.0
-	progress.add_theme_stylebox_override("background", _style(Color("2e1a12", 0.72), Color("fff1cc", 0.44), 1, 5))
-	progress.add_theme_stylebox_override("fill", _style(Color("e8ba57"), Color("fff0bd"), 1, 5))
-	content.add_child(progress)
-
-	var hint := _label("正在加载", 17, Color("fff1d2", 0.78))
-	hint.custom_minimum_size.y = 28
-	content.add_child(hint)
-	create_tween().tween_property(progress, "value", 100.0, 1.0)
-
-	var timer := Timer.new()
-	timer.one_shot = true
-	timer.wait_time = 1.15
-	timer.timeout.connect(_show_login_screen)
-	add_child(timer)
-	timer.start()
+func _start_game_flow() -> void:
+	_mode = "comic"
+	_show_opening_comic()
 
 
 func _show_login_screen() -> void:
@@ -138,15 +130,17 @@ func _rebuild() -> void:
 	if _mode == "title":
 		_title_screen()
 	else:
-		_background()
+		_background(INTRO_BG, 0.60)
 		if _mode == "avatar":
 			_avatar_screen()
+		elif _mode == "scenario":
+			_scenario_screen()
 		else:
 			_intro_screen()
 
-func _background() -> void:
+func _background(texture: Texture2D, shade_alpha: float) -> void:
 	var bg := TextureRect.new()
-	bg.texture = TITLE_BG
+	bg.texture = texture
 	bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -154,7 +148,7 @@ func _background() -> void:
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(bg)
 	var shade := ColorRect.new()
-	shade.color = Color(0.06, 0.09, 0.12, 0.34 if _mode == "title" else 0.60)
+	shade.color = Color(0.06, 0.09, 0.12, shade_alpha)
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(shade)
@@ -162,66 +156,38 @@ func _background() -> void:
 # ------------------------------------------------------------------ 标题屏
 
 func _title_screen() -> void:
-	var canvas := Control.new()
-	canvas.name = "HomeCanvas"
-	canvas.mouse_filter = Control.MOUSE_FILTER_PASS
-	add_child(canvas)
+	var paper := ColorRect.new()
+	paper.color = Color("fbe7cf")
+	paper.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	paper.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(paper)
+
+	var stage := Control.new()
+	stage.name = "TitleStage"
+	add_child(stage)
 	var layout := func() -> void:
-		var scale_factor: float = minf(size.x / HOME_SIZE.x, size.y / HOME_SIZE.y)
-		canvas.size = HOME_SIZE
-		canvas.scale = Vector2.ONE * scale_factor
-		canvas.position = (size - HOME_SIZE * scale_factor) * 0.5
+		var factor := maxf(size.x / 1672.0, size.y / 941.0)
+		stage.size = Vector2(1672, 941)
+		stage.scale = Vector2.ONE * factor
+		stage.position = (size - stage.size * factor) * 0.5
 	resized.connect(layout)
-	canvas.tree_exiting.connect(func() -> void: resized.disconnect(layout))
+	stage.tree_exiting.connect(func() -> void: resized.disconnect(layout))
 	layout.call()
 
-	var bg := TextureRect.new()
-	bg.texture = HOME_BG
-	bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	bg.stretch_mode = TextureRect.STRETCH_SCALE
-	bg.size = HOME_SIZE
-	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	canvas.add_child(bg)
+	var cover := TextureRect.new()
+	cover.texture = ENTRY_COVER
+	cover.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	cover.stretch_mode = TextureRect.STRETCH_SCALE
+	cover.size = Vector2(1672, 941)
+	cover.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stage.add_child(cover)
 
-	# 按交付效果图的坐标放置。AtlasTexture 裁掉素材四周的透明留白。
-	_home_button(canvas, "StartGame", HOME_START, Rect2(145, 70, 1880, 550), Rect2(158, 481, 480, 133), _start_intro)
-	_home_button(canvas, "Settings", HOME_SETTINGS, Rect2(190, 130, 1800, 470), Rect2(225, 627, 348, 74), _open_settings)
-	_home_exit_button(canvas)
-	_home_button(canvas, "MyReport", HOME_REPORT, Rect2(195, 105, 1800, 500), Rect2(1371, 52, 260, 73), _open_report)
+	_cover_button(stage, "StartGame", COVER_START, COVER_START_CROP, Rect2(158, 481, 480, 133), _start_game_flow)
+	_cover_button(stage, "Settings", COVER_SETTINGS, COVER_SETTINGS_CROP, Rect2(225, 627, 348, 74), _open_settings)
+	_cover_button(stage, "ExitGame", COVER_EXIT, COVER_EXIT_CROP, Rect2(225, 716, 349, 71), _quit_game)
 
-func _home_exit_button(parent: Control) -> void:
-	var image := AtlasTexture.new()
-	image.atlas = INTRO_BUTTON_SECONDARY
-	image.region = Rect2(202, 231, 1370, 440)
-	var button := TextureButton.new()
-	button.name = "ExitGame"
-	button.texture_normal = image
-	button.ignore_texture_size = true
-	button.stretch_mode = TextureButton.STRETCH_SCALE
-	button.position = Vector2(225, 715)
-	button.size = Vector2(348, 74)
-	button.pivot_offset = button.size * 0.5
-	button.focus_mode = Control.FOCUS_NONE
-	button.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
-	button.mouse_entered.connect(func() -> void:
-		_animate_home_button(button, button.position + Vector2(0, -3), Vector2.ONE * 1.035, Color(1.09, 1.06, 1.02), 0.16))
-	button.mouse_exited.connect(func() -> void:
-		_animate_home_button(button, Vector2(225, 715), Vector2.ONE, Color.WHITE, 0.16))
-	button.button_down.connect(func() -> void:
-		_animate_home_button(button, Vector2(225, 717), Vector2.ONE * 0.96, Color(0.88, 0.84, 0.80), 0.07))
-	button.button_up.connect(func() -> void:
-		if button.is_hovered():
-			_animate_home_button(button, Vector2(225, 712), Vector2.ONE * 1.035, Color(1.09, 1.06, 1.02), 0.12)
-		else:
-			_animate_home_button(button, Vector2(225, 715), Vector2.ONE, Color.WHITE, 0.12))
-	button.pressed.connect(_quit_game)
-	parent.add_child(button)
-	var label := _label("退出游戏", 28, INK)
-	label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	button.add_child(label)
 
-func _home_button(parent: Control, node_name: String, source: Texture2D, crop: Rect2, rect: Rect2, action: Callable) -> void:
+func _cover_button(parent: Control, node_name: String, source: Texture2D, crop: Rect2, rect: Rect2, action: Callable) -> void:
 	var image := AtlasTexture.new()
 	image.atlas = source
 	image.region = crop
@@ -235,21 +201,24 @@ func _home_button(parent: Control, node_name: String, source: Texture2D, crop: R
 	button.size = rect.size
 	button.pivot_offset = rect.size * 0.5
 	button.focus_mode = Control.FOCUS_NONE
+	button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	button.mouse_entered.connect(func() -> void:
-		_animate_home_button(button, rect.position + Vector2(0, -3), Vector2.ONE * 1.035, Color(1.09, 1.06, 1.02), 0.16))
+		_animate_cover_button(button, rect.position + Vector2(0, -3), Vector2.ONE * 1.035, Color(1.09, 1.06, 1.02), 0.16))
 	button.mouse_exited.connect(func() -> void:
-		_animate_home_button(button, rect.position, Vector2.ONE, Color.WHITE, 0.16))
+		_animate_cover_button(button, rect.position, Vector2.ONE, Color.WHITE, 0.16))
 	button.button_down.connect(func() -> void:
-		_animate_home_button(button, rect.position + Vector2(0, 2), Vector2.ONE * 0.96, Color(0.88, 0.84, 0.80), 0.07))
+		_animate_cover_button(button, rect.position + Vector2(0, 2), Vector2.ONE * 0.96, Color(0.88, 0.84, 0.80), 0.07))
 	button.button_up.connect(func() -> void:
 		if button.is_hovered():
-			_animate_home_button(button, rect.position + Vector2(0, -3), Vector2.ONE * 1.035, Color(1.09, 1.06, 1.02), 0.12)
+			_animate_cover_button(button, rect.position + Vector2(0, -3), Vector2.ONE * 1.035, Color(1.09, 1.06, 1.02), 0.12)
 		else:
-			_animate_home_button(button, rect.position, Vector2.ONE, Color.WHITE, 0.12))
-	button.pressed.connect(_activate_home_button.bind(button, rect.position, action))
+			_animate_cover_button(button, rect.position, Vector2.ONE, Color.WHITE, 0.12))
+	button.pressed.connect(_activate_cover_button.bind(button, rect.position, action))
 	parent.add_child(button)
 
-func _animate_home_button(button: TextureButton, target_position: Vector2, target_scale: Vector2, tint: Color, duration: float) -> Tween:
+
+## 悬停上浮 / 按下回弹（原交付稿的动效），用 tween 而不是直接改 modulate。
+func _animate_cover_button(button: TextureButton, target_position: Vector2, target_scale: Vector2, tint: Color, duration: float) -> Tween:
 	var previous: Tween = button.get_meta("motion_tween") as Tween if button.has_meta("motion_tween") else null
 	if previous != null and previous.is_running():
 		previous.kill()
@@ -260,9 +229,11 @@ func _animate_home_button(button: TextureButton, target_position: Vector2, targe
 	button.set_meta("motion_tween", motion)
 	return motion
 
-func _activate_home_button(button: TextureButton, rest_position: Vector2, action: Callable) -> void:
+
+## 按下先播完回弹再执行动作，避免手指还按着画面就切走了。
+func _activate_cover_button(button: TextureButton, rest_position: Vector2, action: Callable) -> void:
 	button.disabled = true
-	await _animate_home_button(button, rest_position + Vector2(0, 2), Vector2.ONE * 0.96, Color(0.90, 0.86, 0.82), 0.10).finished
+	await _animate_cover_button(button, rest_position + Vector2(0, 2), Vector2.ONE * 0.96, Color(0.90, 0.86, 0.82), 0.10).finished
 	if is_instance_valid(button):
 		button.disabled = false
 		action.call()
@@ -271,7 +242,6 @@ func _open_settings() -> void:
 	if _settings_panel == null:
 		_settings_panel = SETTINGS_PANEL.new()
 		_settings_panel.name = "SettingsPanel"
-		_settings_panel.quit_requested.connect(_quit_game)
 		add_child(_settings_panel)
 	_settings_panel.open()
 
@@ -283,142 +253,299 @@ func _open_report() -> void:
 		add_child(_report_panel)
 	_report_panel.open()
 
-# ------------------------------------------------------------------ 入职预演
+# ------------------------------------------------------------------ 导览三页
+# 【2026-09-15 排版重排】三个坑一起修掉，动这块之前先读完：
+#  1. **属性顺序**：`Label.size` 必须写在 `autowrap_mode` **之后**；`TextureRect.size` 必须写在
+#     `expand_mode` **之后**。反了的话，设 size 那一刻的最小尺寸还是"整行宽度 / 纹理原始尺寸"，
+#     size 会被顶大、之后再也不会重算 —— 正文 620 实测变 838（压住右侧插图 104px）、插图 636×454
+#     实测变 660×495（溢出木框），两个 bug 都是这个顺序错。
+#  2. **正文不许写死高度**：Label 高度按行数自适应（行高 ≈ 1.5×字号）。写死 245 再垂直居中，
+#     两行字就悬在框正中、上下各空一大块 —— 这就是"留白太多"的主因。
+#  3. **`_label()` 默认垂直居中，只适合单行标题**，段落必须自己改回 TOP。
 
 func _intro_screen() -> void:
 	var frame := Panel.new()
 	_layout_startup_frame(frame)
 	frame.add_theme_stylebox_override("panel", _style(PAPER, WOOD, 8, 8))
 	add_child(frame)
-	var back := _intro_button("返回", "secondary")
-	back.position = Vector2(36, 34)
-	back.size = Vector2(132, 60)
-	back.pressed.connect(func():
-		if _page == 0:
-			_back()
-		else:
-			_go_page(_page - 1))
-	frame.add_child(back)
-	var heading := _label("入职职场小镇", 34, INK)
-	heading.position = Vector2(300, 34)
-	heading.size = Vector2(1100, 51)
-	frame.add_child(heading)
-	var sub := _label("两个选择，先认识这里的同事", 18, Color("7a5533"))
-	sub.position = Vector2(300, 90)
-	sub.size = Vector2(1100, 27)
-	frame.add_child(sub)
-	var step := _label("%d / %d" % [_page + 1, PAGES.size()], 22, BRICK)
-	step.position = Vector2(1460, 46)
-	step.size = Vector2(170, 42)
-	frame.add_child(step)
-	_scenario_content(frame, PAGES[_page])
-	_footer(frame)
 
-func _scenario_content(frame: Panel, page: Dictionary) -> void:
-	var room := TextureRect.new()
-	room.texture = page["room"] as Texture2D
-	room.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	room.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	room.position = Vector2(95, 198)
-	room.size = Vector2(1510, 430)
-	room.modulate = Color(0.78, 0.78, 0.78)
-	frame.add_child(room)
-	var shade := ColorRect.new()
-	shade.color = Color(0.10, 0.07, 0.05, 0.27)
-	shade.position = room.position
-	shade.size = room.size
-	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	frame.add_child(shade)
-	var answer_index: int = _intro_answers[_page]
-	var portraits: Array = page["portrait"]
+	# 顶栏：返回 / 标题 / 副标题
+	var back := _intro_button("返回", "secondary")
+	back.position = Vector2(36, 30)
+	back.size = Vector2(140, 64)
+	back.add_theme_font_size_override("font_size", 28)
+	back.pressed.connect(_back)
+	frame.add_child(back)
+
+	var heading := _label("认识职场小镇", 44, INK)
+	heading.position = Vector2(300, 26)
+	heading.size = Vector2(1100, 58)
+	frame.add_child(heading)
+
+	var sub := _label("先了解这里怎么过，再决定怎么开始", 26, Color("7a5533"))
+	sub.position = Vector2(300, 88)
+	sub.size = Vector2(1100, 36)
+	frame.add_child(sub)
+
+	# 页签：三页居中排一行
+	var tabs := HBoxContainer.new()
+	tabs.position = Vector2(140, 142)
+	tabs.size = Vector2(1400, 76)
+	tabs.alignment = BoxContainer.ALIGNMENT_CENTER
+	tabs.add_theme_constant_override("separation", 16)
+	frame.add_child(tabs)
+	for index in PAGES.size():
+		var tab := _intro_button(String(PAGES[index]["tab"]), "tab_on" if index == _page else "tab")
+		tab.custom_minimum_size = Vector2(240, 72)
+		tab.add_theme_font_size_override("font_size", 27)
+		tab.pressed.connect(func(): _go_page(index))
+		tabs.add_child(tab)
+
+	var page: Dictionary = PAGES[_page]
+	_text_content(frame, page)
+	_footer(frame, page)
+
+func _text_content(frame: Panel, page: Dictionary) -> void:
+	var card := _intro_dialog_panel()
+	card.position = CONTENT_RECT.position
+	card.size = CONTENT_RECT.size
+	frame.add_child(card)
+
+	var has_art := page.has("art")
+	var column_w := 760.0 if has_art else CONTENT_RECT.size.x - 290.0
+	if has_art:
+		var art_box := Control.new()
+		art_box.position = Vector2(CONTENT_RECT.size.x - 64.0 - 540.0, (CONTENT_RECT.size.y - 405.0) * 0.5)
+		art_box.size = Vector2(540.0, 405.0)
+		card.add_child(art_box)
+
+		var art := TextureRect.new()
+		art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		art.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		art.texture = page["art"] as Texture2D
+		art.position = Vector2(12, 12)
+		art.size = art_box.size - Vector2(24, 24)
+		art_box.add_child(art)
+
+	var kicker := _label(str(page["kicker"]), 30, BRICK)
+	kicker.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	# 卡片左上角自带一条橙色短杠（在 9-patch 被拉伸后的 y≈101 中线上），
+	# 文字要跟它同一条水平中线，不能按标题字号往上顶。
+	kicker.position = Vector2(290, 81)
+	kicker.size = Vector2(column_w - 145.0, 40)
+	card.add_child(kicker)
+
+	var title := _label(str(page["title"]), 54, INK, 0.0, 0.30)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	title.position = Vector2(145, 116)
+	title.size = Vector2(column_w, 76)
+	card.add_child(title)
+
+	if page.get("controls", false):
+		_controls_content(card)
+		return
+
+	var body := _label(str(page["body"]), 30, Color("634330"))
+	body.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	body.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	body.add_theme_constant_override("line_spacing", 12)
+	body.position = Vector2(145, 210)
+	body.size = Vector2(column_w, 0)
+	card.add_child(body)
+	var body_bottom := body.position.y + body.size.y
+
+	if page.has("body2"):
+		var body2 := _label(str(page["body2"]), 30, Color("634330"))
+		body2.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		body2.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+		body2.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		body2.add_theme_constant_override("line_spacing", 12)
+		body2.position = Vector2(145, body_bottom + 16)
+		body2.size = Vector2(column_w, 0)
+		card.add_child(body2)
+		body_bottom = body2.position.y + body2.size.y
+
+	if page.has("quote"):
+		_story_quote(card, page, Vector2(145, body_bottom + 30), column_w)
+
+	if page.get("loop", false):
+		_loop_strip(card, Vector2(145, body_bottom + 34), column_w)
+
+
+## 「入职」页底部的人物引语：头像 + 一句话，比纯规则更有故事味。
+func _story_quote(parent: Control, page: Dictionary, at: Vector2, width: float) -> Control:
+	var strip := Panel.new()
+	strip.position = at
+	strip.size = Vector2(width, 100)
+	strip.add_theme_stylebox_override("panel", _style(Color("f8e8c6"), Color("b98a55"), 2, 10))
+	strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(strip)
+
 	var portrait := TextureRect.new()
-	portrait.texture = portraits[0 if answer_index < 0 else int(page["expressions"][answer_index])] as Texture2D
+	portrait.texture = WANG_GE_PORTRAIT
 	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	portrait.position = Vector2(125, 204)
-	portrait.size = Vector2(450, 420)
+	portrait.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	portrait.position = Vector2(14, 14)
+	portrait.size = Vector2(72, 72)
 	portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	frame.add_child(portrait)
-	var card := _intro_dialog_panel()
-	card.position = Vector2(480, 280)
-	card.size = Vector2(1090, 300)
-	frame.add_child(card)
-	var place := _label(String(page["place"]) + "  ·  " + String(page["role"]), 19, BRICK)
-	place.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	place.position = Vector2(300, 42)
-	place.size = Vector2(650, 34)
-	card.add_child(place)
-	var speaker := _label(String(page["speaker"]), 34, INK, 0.0, 0.2)
-	speaker.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	speaker.position = Vector2(90, 85)
-	speaker.size = Vector2(760, 48)
-	card.add_child(speaker)
-	var line := String(page["question"]) if answer_index < 0 else String(page["replies"][answer_index])
-	var dialogue := _label(line, 27, INK)
-	dialogue.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	dialogue.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	dialogue.position = Vector2(90, 144)
-	dialogue.size = Vector2(900, 104)
-	card.add_child(dialogue)
-	if answer_index >= 0:
-		if _page == PAGES.size() - 1:
-			var handoff := _label("老周递来入职登记表：选好自己的形象，就正式上班。", 25, INK)
-			handoff.position = Vector2(360, 658)
-			handoff.size = Vector2(980, 72)
-			frame.add_child(handoff)
-		return
-	var choices: Array = page["choices"]
-	for index in choices.size():
-		var choice := _intro_button(String(choices[index]), "secondary")
-		choice.position = Vector2(255 + index * 410, 660)
-		choice.size = Vector2(380, 82)
-		choice.pressed.connect(_choose_intro_answer.bind(index))
-		frame.add_child(choice)
+	strip.add_child(portrait)
 
-func _choose_intro_answer(index: int) -> void:
-	if _page < 0 or _page >= PAGES.size() or _intro_answers[_page] >= 0:
-		return
-	_intro_answers[_page] = index
-	_rebuild()
+	var quote := _label(str(page["quote"]), 26, Color("5a3a24"))
+	quote.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	quote.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+	quote.position = Vector2(104, 14)
+	quote.size = Vector2(width - 124.0, 40)
+	strip.add_child(quote)
+
+	var byline := _label(str(page.get("quote_by", "")), 20, Color("8a4a2e"))
+	byline.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	byline.position = Vector2(104, 58)
+	byline.size = Vector2(width - 124.0, 30)
+	strip.add_child(byline)
+	return strip
 
 
-func _footer(frame: Panel) -> void:
-	var counter := _label("第 %d / %d 页" % [_page + 1, PAGES.size()], 18, Color("7a5533"))
-	counter.size = Vector2(180, 60)
-	counter.position = Vector2(102, 828)
-	frame.add_child(counter)
+## 「怎么玩」页：四条操作，一条一行，键位和说明分开。
+func _controls_content(card: Control) -> void:
+	var intro := _label("小镇没有菜单迷宫：会走、会点、会看地图，就能开始。", 30, Color("634330"))
+	intro.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	intro.position = Vector2(145, 208)
+	intro.size = Vector2(1222, 46)
+	card.add_child(intro)
 
-	var hint := _label("预演选择不计入正式测评", 18, Color("7a5533"))
-	hint.position = Vector2(510, 828)
-	hint.size = Vector2(550, 60)
-	frame.add_child(hint)
+	var rows := VBoxContainer.new()
+	rows.position = Vector2(145, 274)
+	rows.size = Vector2(1222, 286)
+	rows.add_theme_constant_override("separation", 10)
+	card.add_child(rows)
+	for control in CONTROLS:
+		var row := Panel.new()
+		row.custom_minimum_size = Vector2(1222, 64)
+		row.add_theme_stylebox_override("panel", _style(Color("fbf0d6"), Color(0.66, 0.48, 0.30, 0.55), 2, 8))
+		rows.add_child(row)
 
-	var previous := _intro_button("上一页", "secondary")
-	previous.position = Vector2(1170, 828)
-	previous.size = Vector2(135, 60)
-	previous.disabled = _page == 0
-	previous.pressed.connect(func(): _go_page(_page - 1))
-	frame.add_child(previous)
+		var chip := Panel.new()
+		chip.position = Vector2(14, 8)
+		chip.size = Vector2(96, 48)
+		chip.add_theme_stylebox_override("panel", _style(Color("e9cf98"), Color("7a4a2b"), 2, 8))
+		row.add_child(chip)
+
+		var key := _label(str(control["key"]), 24, INK, 0.0, 0.18)
+		key.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		chip.add_child(key)
+
+		var text := _label(str(control["text"]), 27, Color("5a3a24"))
+		text.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		text.position = Vector2(130, 0)
+		text.size = Vector2(1070, 64)
+		row.add_child(text)
+
+
+func _loop_strip(parent: Control, at: Vector2, width: float) -> Control:
+	var strip := Panel.new()
+	strip.position = at
+	strip.size = Vector2(width, 154)
+	strip.add_theme_stylebox_override("panel", _style(Color("efd9a9"), Color("a97a4d"), 2, 8, 3))
+	strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(strip)
+
+	var row := HBoxContainer.new()
+	row.size = strip.size
+	row.add_theme_constant_override("separation", 0)
+	strip.add_child(row)
+
+	var cell_w := width / float(LOOP_STEPS.size())
+	for index in LOOP_STEPS.size():
+		var step: Dictionary = LOOP_STEPS[index]
+		var cell := Control.new()
+		cell.custom_minimum_size = Vector2(cell_w, 154)
+		cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		cell.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(cell)
+
+		var icon := TextureRect.new()
+		icon.texture = step["icon"] as Texture2D
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		icon.position = Vector2((cell_w - 72.0) * 0.5, 18)
+		icon.size = Vector2(72, 72)
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		cell.add_child(icon)
+
+		var caption := _label(str(step["label"]), 30, INK, 0.0, 0.18)
+		caption.position = Vector2(0, 96)
+		caption.size = Vector2(cell_w, 48)
+		cell.add_child(caption)
+
+		if index > 0:
+			var rule := ColorRect.new()
+			rule.color = Color(0.42, 0.26, 0.13, 0.35)
+			rule.position = Vector2(0, 40)
+			rule.size = Vector2(2, 74)
+			rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			cell.add_child(rule)
+	return strip
+
+func _footer(frame: Panel, page: Dictionary) -> void:
+	var footer := _label(str(page.get("footer", "")), 24, Color("7a5533"))
+	footer.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	footer.position = Vector2(102, 852)
+	footer.size = Vector2(1020, 48)
+	frame.add_child(footer)
 
 	var skip := _intro_button("跳过", "secondary")
-	skip.position = Vector2(1315, 828)
-	skip.size = Vector2(120, 60)
-	skip.pressed.connect(_start_avatar_selection)
+	skip.position = Vector2(1285, 846)
+	skip.size = Vector2(130, 64)
+	skip.add_theme_font_size_override("font_size", 28)
+	skip.pressed.connect(_skip_intro)
 	frame.add_child(skip)
 
-	var next := _intro_button("去选择形象" if _page == PAGES.size() - 1 else "继续")
-	next.position = Vector2(1445, 828)
-	next.size = Vector2(200, 60)
-	next.disabled = _intro_answers[_page] < 0
-	next.pressed.connect(_start_avatar_selection if _page == PAGES.size() - 1 else func(): _go_page(_page + 1))
+	var next := _intro_button("继续")
+	next.position = Vector2(1425, 846)
+	next.size = Vector2(220, 64)
+	next.add_theme_font_size_override("font_size", 28)
+	if _page < PAGES.size() - 1:
+		next.pressed.connect(func(): _go_page(_page + 1))
+	else:
+		next.pressed.connect(_start_scenarios)
 	frame.add_child(next)
+
+
+func _skip_intro() -> void:
+	var dwell := int(round(float(Time.get_ticks_msec() - _intro_started_ms) / 1000.0))
+	var api := get_node_or_null("/root/ApiClient")
+	if api != null:
+		api.record_event("intro_skip", {"page": _page + 1, "pageCount": PAGES.size()}, dwell)
+	_start_avatar_selection()
 
 func _start_intro() -> void:
 	_mode = "intro"
 	_page = 0
-	_last_intro_page = 0
-	_intro_answers = [-1, -1]
+	_intro_started_ms = Time.get_ticks_msec()
 	_rebuild()
+
+## 导览看完后接两道入职预演；预演不写档案，选完直接去选形象。
+func _start_scenarios() -> void:
+	_mode = "scenario"
+	_rebuild()
+
+func _scenario_screen() -> void:
+	var scenarios = load("res://scripts/StartupScenarios.gd").new()
+	# 预演屏后面就是登记表五题：finished 时把答案接过来，进小镇那刻写进档案。
+	scenarios.finished.connect(func() -> void:
+		var given = scenarios.get("ratings")
+		if given is Dictionary:
+			_self_ratings = (given as Dictionary).duplicate(true)
+		_start_avatar_selection())
+	scenarios.back_requested.connect(func() -> void:
+		_mode = "intro"
+		_page = PAGES.size() - 1
+		_rebuild())
+	add_child(scenarios)
 
 ## 继续游戏：跳过导览直接进小镇，不重写 profile（保留上次开局留下的文件）。
 ## ⚠ 当前存档粒度只有「玩过没有」——真正的进度续玩（currentNodeId / 月份 / 精力落盘）
@@ -426,9 +553,7 @@ func _start_intro() -> void:
 func _continue_game() -> void:
 	get_tree().change_scene_to_file("res://Main.tscn")
 
-func _back() -> void:
-	_mode = "title"
-	_rebuild()
+func _back() -> void: _mode = "title"; _rebuild()
 func _go_page(index: int) -> void: _page = clampi(index, 0, PAGES.size() - 1); _rebuild()
 func _placeholder() -> void: pass
 
@@ -439,12 +564,21 @@ func _quit_game() -> void:
 func _enter_town() -> void:
 	WorldClock.reset_story()
 	var file := FileAccess.open(PROFILE_PATH, FileAccess.WRITE)
-	if file != null: file.store_string(JSON.stringify({"sessionId":"local-" + str(Time.get_unix_time_from_system()), "avatarId":PlayerProfile.get_selected_avatar_id(), "contentVersion":"v1.2", "currentNodeId":"E01", "unlockedRegionIds":["A", "B", "C", "D", "E", "F", "G", "H"]}))
+	if file != null:
+		var profile := {
+			"sessionId": "local-" + str(Time.get_unix_time_from_system()),
+			"avatarId": PlayerProfile.get_selected_avatar_id(),
+			"contentVersion": "v1.2",
+			"currentNodeId": "E01",
+			"unlockedRegionIds": ["A", "B", "C", "D", "E", "F", "G", "H"],
+			# 入职自评（trait → 1..5）。空表 = 玩家跳过了登记，报告那边不许当成"答过"。
+			"selfRatings": _self_ratings.duplicate(true),
+		}
+		file.store_string(JSON.stringify(profile))
 	get_tree().change_scene_to_file("res://Main.tscn")
 
 
 func _start_avatar_selection() -> void:
-	_last_intro_page = _page
 	_mode = "avatar"
 	_rebuild()
 
@@ -458,12 +592,12 @@ func _avatar_screen() -> void:
 	var back := _button("返回", "secondary")
 	back.position = Vector2(36, 34)
 	back.size = Vector2(132, 60)
-	back.pressed.connect(func() -> void: _mode = "intro"; _page = _last_intro_page; _rebuild())
+	back.pressed.connect(func() -> void: _mode = "intro"; _page = PAGES.size() - 1; _rebuild())
 	frame.add_child(back)
 
-	var kicker := _label("入职登记", 22, BRICK)
-	kicker.position = Vector2(250, 54)
-	kicker.size = Vector2(1200, 32)
+	var kicker := _label("准备入职", 30, BRICK)
+	kicker.position = Vector2(250, 48)
+	kicker.size = Vector2(1200, 38)
 	frame.add_child(kicker)
 	var heading := _label("选择你的形象", 44, INK, 0.0, 0.30)
 	heading.position = Vector2(250, 88)
@@ -518,6 +652,8 @@ func _avatar_screen() -> void:
 	confirm.size = Vector2(450, 68)
 	confirm.pressed.connect(_enter_town)
 	frame.add_child(confirm)
+
+
 
 
 func _layout_startup_frame(frame: Panel) -> void:
@@ -579,7 +715,7 @@ func _intro_dialog_panel() -> NinePatchRect:
 
 func _intro_button(value: String, kind := "primary") -> Button:
 	var button := _button(value, kind)
-	var source := INTRO_BUTTON_PRIMARY if kind == "primary" or kind == "tab_on" else INTRO_BUTTON_SECONDARY
+	var source: Texture2D = INTRO_BUTTON_PRIMARY if kind == "primary" or kind == "tab_on" else INTRO_BUTTON_SECONDARY
 	var crop := Rect2(155, 168, 1625, 460) if source == INTRO_BUTTON_PRIMARY else Rect2(202, 231, 1370, 440)
 	var texture := AtlasTexture.new()
 	texture.atlas = source
@@ -599,30 +735,6 @@ func _intro_button(value: String, kind := "primary") -> Button:
 	button.add_theme_color_override("font_pressed_color", INK)
 	button.add_theme_color_override("font_disabled_color", Color("786b57"))
 	return button
-
-func _spacer(height: float) -> Control:
-	var node := Control.new()
-	node.custom_minimum_size.y = height
-	node.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return node
-
-func _divider() -> Control:
-	var line := ColorRect.new()
-	line.color = Color(0.42, 0.26, 0.13, 0.45)
-	line.custom_minimum_size.y = 3
-	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return line
-
-## 小牌：给页码这类小信息裹一圈底盘。
-## ⚠ 不能直接往 Label 上 override("normal") —— "normal" 是 Button 的 stylebox 名，
-##   Label 只认 "normal" 之外的那套（其实 Label 根本没有 stylebox），所以当年那个框一直没画出来。
-func _plate(child: Control, w: float, h: float) -> Control:
-	var wrap := PanelContainer.new()
-	wrap.custom_minimum_size = Vector2(w, h)
-	wrap.size = Vector2(w, h)
-	wrap.add_theme_stylebox_override("panel", _style(Color("ead19c"), Color("865139"), 2, 5))
-	wrap.add_child(child)
-	return wrap
 
 func _button(value: String, kind := "primary") -> Button:
 	var button := Button.new()

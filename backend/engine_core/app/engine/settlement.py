@@ -31,6 +31,9 @@ class Choice:
     coef: float = 0.75                # 情境系数（没人看着 1.0 / 一般 0.75 / 有人盯着 0.5）
     state_delta: dict = field(default_factory=dict)
     competency: dict = field(default_factory=dict)
+    # 十二个月能力五格（开发文档 4.19）：abilityTags 攒点、abilityPeak 点亮第 5 格。
+    ability_tags: dict = field(default_factory=dict)
+    ability_peak: list = field(default_factory=list)
     bigfive: list = field(default_factory=list)      # [{trait, dir, loading?}]
     sdt: dict | None = None
     regulatory_focus: str | None = None
@@ -98,6 +101,8 @@ def normalize_mainline(reg: ConfigRegistry, event_id: str, option_id: str) -> Ch
         coef=float(opt.get("coef", ev.coef)),
         state_delta=dict(opt.get("state_delta", {})),
         competency=dict(opt.get("competency", {})),
+        ability_tags=dict(opt.get("abilityTags", {})),
+        ability_peak=list(opt.get("abilityPeak", [])),
         bigfive=list(opt.get("bigfive", [])),
         sdt=opt.get("sdt"),
         regulatory_focus=opt.get("regulatory_focus"),
@@ -249,6 +254,13 @@ def settle(state: GameState, choice: Choice, reg: ConfigRegistry, *,
     # ---- ② 能力（雷达）
     for k, v in choice.competency.items():
         state.competency[k] = state.competency.get(k, 0) + int(v)
+
+    # ---- ②b 能力五格（开发文档 4.19）：标签攒点；第 5 格只认剧情点亮，不认攒点
+    for k, v in choice.ability_tags.items():
+        state.ability_points[k] = state.ability_points.get(k, 0) + int(v)
+    for name in choice.ability_peak:
+        if name not in state.ability_peak:
+            state.ability_peak.append(name)
 
     # ---- ③ 大五证据：加权载荷 = loading × 情境系数 × 方向
     base = reg.loading_base

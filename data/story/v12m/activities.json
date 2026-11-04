@@ -1,0 +1,581 @@
+{
+  "flowVersion": "12m_v1",
+  "activities": [
+    {
+      "id": "m1_tool",
+      "name": "夜间值守与资料整理",
+      "locationId": "G",
+      "location": "行政部",
+      "description": "夜间在行政部值守，整理桌上的工作资料。",
+      "scene": "res://assets/活动场景/G_行政部_夜间值守与资料整理.png",
+      "apCost": 1,
+      "slots": 1,
+      "hCost": 1,
+      "rewardFlag": "m01_activity_night_duty",
+      "evidenceEligible": false,
+      "repeatRule": "once_per_month",
+      "outcome": "夜深后，你在行政部值守并整理好桌上的资料，交接时把重点标了出来。",
+      "mode": "solo",
+      "portal": {
+        "zoneId": "G"
+      },
+      "placeLine": "点亮台灯，整理桌上的资料并做好交接。",
+      "card": {
+        "title": "行政部",
+        "lines": [
+          "夜间值守时整理资料，把交接重点标记清楚。"
+        ],
+        "shots": [
+          "res://assets/活动场景/G_行政部_夜间值守与资料整理.png"
+        ],
+        "pages": 1
+      },
+      "unlockAfter": "E02",
+      "gatedBy": "month_required",
+      "object": "台灯下的资料",
+      "againLine": "台灯还亮着，桌上的资料已经整理齐了。",
+      "btSignals": [
+        {
+          "trait": "C",
+          "dir": 1,
+          "strength": "M",
+          "context": "独处",
+          "code": "act_tool_build",
+          "fact": "自己搭了个小工具，别人后来用上了"
+        },
+        {
+          "trait": "O",
+          "dir": 1,
+          "strength": "M",
+          "context": "独处",
+          "code": "act_tool_idea",
+          "fact": "工具是自己想出来的，不是照别人给的模子"
+        }
+      ],
+      "abilityTags": {
+        "technical": 1
+      }
+    },
+    {
+      "id": "m1_rooftop",
+      "name": "书院露台吹风",
+      "locationId": "D",
+      "location": "人事部",
+      "description": "到书院露台吹风，暂时离开手头的工作。",
+      "scene": "res://assets/活动场景/D_人事部_书院露台吹风.png",
+      "apCost": 1,
+      "slots": 1,
+      "hCost": 1,
+      "rewardFlag": "m01_activity_rooftop",
+      "evidenceEligible": false,
+      "repeatRule": "once_per_month",
+      "outcome": "你到书院露台吹了一会儿风，回来时肩膀放松了些。",
+      "mode": "solo",
+      "portal": {
+        "zoneId": "D"
+      },
+      "placeLine": "去书院露台吹吹风，歇一会儿。",
+      "card": {
+        "title": "人事部",
+        "lines": [
+          "到书院露台吹风，暂时歇一会儿。"
+        ],
+        "shots": [
+          "res://assets/活动场景/D_人事部_书院露台吹风.png"
+        ],
+        "pages": 1
+      },
+      "unlockAfter": "E02",
+      "gatedBy": "month_required",
+      "object": "书院露台",
+      "againLine": "露台的风还是很轻，你又站了一会儿。",
+      "btSignals": []
+    },
+    {
+      "id": "m1_lakeside",
+      "name": "湖边散步",
+      "locationId": "C",
+      "location": "销售部",
+      "scene": "res://assets/活动场景/C_销售部_湖边散步.png",
+      "description": "沿湖边散步，给自己一点喘息时间。",
+      "apCost": 1,
+      "slots": 1,
+      "outcome": "你沿着湖边慢慢走了一段，回去继续处理手头的工作。",
+      "mode": "solo",
+      "portal": {
+        "zoneId": "C"
+      },
+      "hCost": 1,
+      "placeLine": "沿湖边慢慢走一走。",
+      "card": {
+        "title": "销售部",
+        "lines": [
+          "沿着湖边散步，暂时把工作放在一边。"
+        ],
+        "shots": [
+          "res://assets/活动场景/C_销售部_湖边散步.png"
+        ],
+        "pages": 1
+      },
+      "unlockAfter": "E02",
+      "gatedBy": "month_required",
+      "object": "湖边步道",
+      "againLine": "湖边步道还是安静，你又慢慢走了一段。",
+      "btSignals": [
+        {
+          "trait": "E",
+          "dir": -1,
+          "strength": "W",
+          "context": "独处",
+          "code": "act_lake_solo",
+          "fact": "空下来愿意沿湖散步"
+        }
+      ]
+    },
+    {
+      "id": "m3_waterway",
+      "name": "咖啡交流",
+      "locationId": "C",
+      "location": "销售部",
+      "scene": "res://assets/活动场景/C_销售部_咖啡交流.png",
+      "description": "在销售部附近的食堂和小林喝杯咖啡，聊聊客户会上的事。",
+      "apCost": 1,
+      "slots": 1,
+      "outcome": "你和小林在食堂喝了杯咖啡，也聊了聊客户会上发生的事。",
+      "mode": "solo",
+      "portal": {
+        "zoneId": "C"
+      },
+      "hCost": 1,
+      "placeLine": "和小林在食堂喝杯咖啡，聊聊客户会。",
+      "card": {
+        "title": "销售部",
+        "lines": [
+          "和小林在食堂喝咖啡，聊聊客户会上的事。"
+        ],
+        "shots": [
+          "res://assets/活动场景/C_销售部_咖啡交流.png"
+        ],
+        "pages": 1
+      },
+      "gatedBy": "month_required",
+      "object": "食堂靠窗的座位",
+      "againLine": "食堂靠窗的位置还空着，你们又聊了一会儿。",
+      "unlockHook": "unlock_waterway",
+      "btSignals": [
+        {
+          "trait": "E",
+          "dir": 1,
+          "strength": "M",
+          "context": "结伴",
+          "code": "act_waterway_talk",
+          "fact": "愿意待在客户常来的地方，主动搭话"
+        }
+      ],
+      "abilityTags": {
+        "expression": 1
+      },
+      "thumbArt": "res://assets/ui/activity_cards/thumb_C_COFFEE.png"
+    },
+    {
+      "id": "m7_valley",
+      "name": "团队密室",
+      "locationId": "E",
+      "location": "财务部",
+      "description": "和同事组队参加财务部的团队密室活动。",
+      "scene": "res://assets/活动场景/E_财务部_团队密室.png",
+      "apCost": 1,
+      "slots": 1,
+      "hCost": 1,
+      "mode": "solo",
+      "portal": {
+        "zoneId": "E"
+      },
+      "placeLine": "和同事组队解开密室线索，过程不计入评估。",
+      "card": {
+        "title": "财务部",
+        "lines": [
+          "和同事组队挑战密室，合作解开线索。"
+        ],
+        "shots": [
+          "res://assets/活动场景/E_财务部_团队密室.png"
+        ],
+        "pages": 1
+      },
+      "object": "密室入口",
+      "againLine": "密室的线索还在，你们又试了一种解法。",
+      "outcome": "你和同事完成了团队密室挑战，大家一起复盘了刚才的线索。",
+      "rewardFlag": "m07_valley_first",
+      "repeatRule": "once_per_month",
+      "evidenceEligible": false,
+      "gatedBy": "month_required",
+      "unlockHook": "unlock_sports",
+      "btSignals": [
+        {
+          "trait": "C",
+          "dir": 1,
+          "strength": "M",
+          "context": "硬扛",
+          "code": "act_valley_duel",
+          "fact": "一局一局打完，输了也接着打"
+        }
+      ],
+      "abilityTags": {
+        "resilience": 1
+      }
+    },
+    {
+      "id": "m7_lawn",
+      "name": "草坪运动",
+      "locationId": "E",
+      "location": "财务部",
+      "description": "下班后和同事在草坪上运动放松。",
+      "scene": "res://assets/活动场景/E_财务部_草坪运动.png",
+      "apCost": 1,
+      "slots": 1,
+      "hCost": 1,
+      "mode": "multi",
+      "portal": {
+        "zoneId": "E"
+      },
+      "placeLine": "下班后和同事在草坪上活动一会儿。",
+      "card": {
+        "title": "财务部",
+        "lines": [
+          "下班后和同事在草坪上运动，放松一下。"
+        ],
+        "shots": [
+          "res://assets/活动场景/E_财务部_草坪运动.png"
+        ],
+        "pages": 1
+      },
+      "object": "草坪运动区",
+      "againLine": "草坪上又有人在活动，你跟着动了一会儿。",
+      "outcome": "你和同事在草坪上运动了一会儿，谁也没提工作。",
+      "repeatRule": "once_per_month",
+      "evidenceEligible": false,
+      "gatedBy": "month_required",
+      "unlockAfter": "M07_SPORTS_INVITE",
+      "btSignals": [
+        {
+          "trait": "E",
+          "dir": 1,
+          "strength": "M",
+          "context": "结伴",
+          "code": "act_lawn_play",
+          "fact": "愿意下场跟人一起运动"
+        }
+      ],
+      "thumbArt": "res://assets/ui/activity_cards/thumb_E_SPORT.png"
+    },
+    {
+      "id": "m9_library",
+      "name": "一起自习",
+      "locationId": "D",
+      "location": "人事部",
+      "description": "在人事部学习中心和同事一起自习。",
+      "scene": "res://assets/活动场景/D_人事部_一起自习.png",
+      "apCost": 1,
+      "slots": 1,
+      "hCost": 1,
+      "mode": "solo",
+      "portal": {
+        "zoneId": "D"
+      },
+      "placeLine": "翻开书本，和同事留一段学习时间。",
+      "card": {
+        "title": "人事部",
+        "lines": [
+          "翻开书本，和同事一起自习。"
+        ],
+        "shots": [
+          "res://assets/活动场景/D_人事部_一起自习.png"
+        ],
+        "pages": 1
+      },
+      "object": "学习中心的书桌",
+      "againLine": "书页还停在上次看到的地方。",
+      "outcome": "你和同事各自看了一会儿书，离开时把椅子推回桌下。",
+      "rewardFlag": "m09_longtable",
+      "repeatRule": "once_per_month",
+      "evidenceEligible": false,
+      "gatedBy": "month_required",
+      "unlockAfter": "M09_NAME",
+      "btSignals": [
+        {
+          "trait": "C",
+          "dir": 1,
+          "strength": "S",
+          "context": "硬扛",
+          "code": "act_longtable_fill",
+          "fact": "一个人把申报材料从头填到尾"
+        }
+      ],
+      "abilityTags": {
+        "collaboration": 1
+      },
+      "thumbArt": "res://assets/ui/activity_cards/thumb_D_STUDY.png"
+    },
+    {
+      "id": "m11_boardgame",
+      "name": "烧烤后桌游",
+      "locationId": "H",
+      "location": "生产部",
+      "description": "夜间和同事在生产部草坪烧烤，再到桌游馆玩一局。",
+      "scene": "res://assets/活动场景/H_生产部_夜间烧烤与桌游_桌游馆.png",
+      "previewBeats": [
+        {
+          "image": "res://assets/活动场景/H_生产部_夜间烧烤与桌游_烧烤草坪.png",
+          "text": "夜色落下来，大家围着篝火分着刚烤好的食物。"
+        },
+        {
+          "image": "res://assets/活动场景/H_生产部_夜间烧烤与桌游_桌游馆.png",
+          "text": "吃过东西，你和同事又转到桌游馆，凑成一桌。"
+        }
+      ],
+      "apCost": 1,
+      "slots": 1,
+      "hCost": 1,
+      "mode": "multi",
+      "portal": {
+        "zoneId": "H"
+      },
+      "placeLine": "先围坐烧烤，再到桌游馆和同事玩一局。",
+      "card": {
+        "title": "生产部",
+        "lines": [
+          "夜间烧烤后，到桌游馆和同事玩一局。"
+        ],
+        "shots": [
+          "res://assets/活动场景/H_生产部_夜间烧烤与桌游_烧烤草坪.png",
+          "res://assets/活动场景/H_生产部_夜间烧烤与桌游_桌游馆.png"
+        ],
+        "pages": 1
+      },
+      "object": "桌游馆",
+      "againLine": "桌游馆里还留着一张空桌，你们又玩了一局。",
+      "outcome": "烧烤后，你和同事到桌游馆玩了几局，聊的都是工作以外的事。",
+      "repeatRule": "once_per_month",
+      "evidenceEligible": false,
+      "gatedBy": "month_required",
+      "unlockAfter": "M11_OPEN",
+      "btSignals": [
+        {
+          "trait": "E",
+          "dir": 1,
+          "strength": "M",
+          "context": "结伴",
+          "code": "act_boardgame_join",
+          "fact": "主动凑局"
+        },
+        {
+          "trait": "A",
+          "dir": 1,
+          "strength": "M",
+          "context": "结伴",
+          "code": "act_boardgame_grace",
+          "fact": "输了也不挂脸"
+        }
+      ],
+      "abilityTags": {
+        "collaboration": 1
+      },
+      "thumbArt": "res://assets/ui/activity_cards/thumb_H_BOARD.png"
+    },
+    {
+      "id": "m11_reproduce",
+      "name": "独自学习",
+      "locationId": "D",
+      "location": "人事部",
+      "description": "在人事部学习中心独自学习，占两格行动力。",
+      "scene": "res://assets/活动场景/D_人事部_独自学习.png",
+      "apCost": 2,
+      "slots": 2,
+      "hCost": 1,
+      "mode": "solo",
+      "portal": {
+        "zoneId": "D"
+      },
+      "placeLine": "翻开书本，留一段时间专心学习。",
+      "card": {
+        "title": "人事部",
+        "lines": [
+          "翻开书本，留一段时间专心学习。"
+        ],
+        "shots": [
+          "res://assets/活动场景/D_人事部_独自学习.png"
+        ],
+        "pages": 1
+      },
+      "object": "学习中心的书桌",
+      "againLine": "你把书签夹回原来的那一页。",
+      "outcome": "你在人事部学习中心专心读完了手头的资料。",
+      "repeatRule": "once_per_month",
+      "evidenceEligible": false,
+      "gatedBy": "month_required",
+      "unlockAfter": "M11_MATERIAL",
+      "btSignals": [
+        {
+          "trait": "C",
+          "dir": 1,
+          "strength": "S",
+          "context": "硬扛",
+          "code": "act_reproduce_run",
+          "fact": "一个人把资料从头读到尾"
+        },
+        {
+          "trait": "O",
+          "dir": 1,
+          "strength": "M",
+          "context": "硬扛",
+          "code": "act_reproduce_open",
+          "fact": "愿意花时间独自学习新内容"
+        }
+      ],
+      "abilityTags": {
+        "technical": 1
+      },
+      "rewardFlag": "m11_reproduce_record",
+      "thumbArt": "res://assets/ui/activity_cards/thumb_D_STUDY.png"
+    },
+    {
+      "id": "m_grind",
+      "name": "文娱室合唱",
+      "locationId": "G",
+      "location": "行政部",
+      "description": "下班后去行政部文娱室和同事合唱。",
+      "scene": "res://assets/活动场景/G_行政部_文娱室合唱.png",
+      "apCost": 1,
+      "slots": 1,
+      "hCost": 1,
+      "evidenceEligible": false,
+      "repeatRule": "once_per_month",
+      "outcome": "你和同事在文娱室唱了几首歌，散场时已经不再看工作群。",
+      "mode": "solo",
+      "portal": {
+        "zoneId": "G"
+      },
+      "placeLine": "和同事在文娱室唱几首歌，放松一下。",
+      "card": {
+        "title": "行政部",
+        "lines": [
+          "文娱室有人在唱歌，过来一起唱几首。"
+        ],
+        "shots": [
+          "res://assets/活动场景/G_行政部_文娱室合唱.png"
+        ],
+        "pages": 1
+      },
+      "unlockAfter": "M07_SPORTS_INVITE",
+      "gatedBy": "month_required",
+      "object": "文娱室点歌屏",
+      "againLine": "点歌屏还停在上次那首歌。",
+      "btSignals": [
+        {
+          "trait": "C",
+          "dir": 1,
+          "strength": "S",
+          "context": "硬扛",
+          "code": "act_grind_push",
+          "fact": "愿意在下班后和同事一起唱歌"
+        }
+      ],
+      "abilityTags": {"collaboration": 1}
+    },
+    {
+      "id": "m5_stage",
+      "name": "舞台后台排练",
+      "locationId": "F",
+      "location": "运营部",
+      "scene": "res://assets/活动场景/F_运营部_舞台后台排练.png",
+      "description": "在运营部舞台后台和彩排团队一起排练下一场演示。",
+      "apCost": 1,
+      "slots": 1,
+      "mode": "solo",
+      "portal": {
+        "zoneId": "F"
+      },
+      "hCost": 1,
+      "stateDelta": {},
+      "placeLine": "在舞台后台和大家排练下一场演示。",
+      "object": "后台排练区",
+      "outcome": "你和彩排团队在运营部后台走了一遍演示流程。",
+      "againLine": "后台的设备还在，团队又走了一遍流程。",
+      "card": {
+        "title": "运营部",
+        "lines": [
+          "和彩排团队一起排练下一场演示。"
+        ],
+        "pages": 1,
+        "shots": [
+          "res://assets/活动场景/F_运营部_舞台后台排练.png"
+        ]
+      },
+      "gatedBy": "month_required",
+      "unlockAfter": "M05_DEMO",
+      "abilityTags": {
+        "expression": 1
+      },
+      "btSignals": [
+        {
+          "trait": "C",
+          "dir": 1,
+          "strength": "M",
+          "context": "硬扛",
+          "code": "act_stage_rehearse",
+          "fact": "和彩排团队一起准备舞台演示"
+        }
+      ],
+      "thumbArt": "res://assets/ui/activity_cards/thumb_F_STAGE.png"
+    },
+    {
+      "id": "m5_umbrella",
+      "name": "雨天同行",
+      "locationId": "F",
+      "location": "运营部",
+      "scene": "res://assets/活动场景/F_运营部_雨天同行.png",
+      "description": "在运营部与小林雨天同行。",
+      "apCost": 1,
+      "slots": 1,
+      "mode": "solo",
+      "portal": {
+        "zoneId": "F"
+      },
+      "hCost": 1,
+      "stateDelta": {},
+      "placeLine": "和小林撑开伞，一起走过雨天。",
+      "object": "雨棚下那把长柄伞",
+      "outcome": "雨里那一段路没人说话。走到出口，两个人各自把袖子拧了一把水。",
+      "againLine": "又下雨了，伞还在雨棚下靠着。",
+      "card": {
+        "title": "运营部",
+        "lines": [
+          "运营部展厅这边一下雨就没什么人走。",
+          "撑开伞，一起走过那一段。",
+          "去拿雨棚下那把长柄伞。"
+        ],
+        "pages": 1,
+        "shots": [
+          "res://assets/活动场景/F_运营部_雨天同行.png"
+        ]
+      },
+      "gatedBy": "month_required",
+      "unlockAfter": "M05_DEMO",
+      "abilityTags": {
+        "collaboration": 1
+      },
+      "btSignals": [
+        {
+          "trait": "A",
+          "dir": 1,
+          "strength": "M",
+          "context": "帮人",
+          "code": "act_share_umbrella",
+          "fact": "下雨天会把伞分给一起走的人"
+        }
+      ],
+      "thumbArt": "res://assets/ui/activity_cards/thumb_F_RAIN.png",
+      "cardArt": "res://assets/小场景新UI/运营部/03_下方活动卡.png"
+    }
+  ]
+}

@@ -199,19 +199,19 @@ const LEGACY_MAIN_EVENTS := [
 		"outcome":{"option_a":"你接过话头：「这个思路我这边已经跑过两轮，我补几个数据。」老周顿了顿，把话筒让了出来。","option_b":"散会后你去找老周，把笔记本摊开。最后汇报变成两个人的名字，你的那两轮数据也进了方案。","option_c":"你合上笔记本。后来方案落地时没人记得谁先提出来的，只有你知道那两轮实验昨晚刚跑完。"}, "memoryNote":{"option_a":{"text":"点子被抢时当场认领并补了数据","tone":"gold"},"option_b":{"text":"点子被抢后会联合汇报","tone":"gold"},"option_c":{"text":"点子被抢时没吭声","tone":"gray"}}
 	},
 	{
-		"id":"M2-E08", "scoringKey": "none", "month":15, "day":1, "hour":16, "title":"熊熊有招训练对局", "locationId":"E", "location":"E 财务部", "durationMinutes":30, "actTitle":"第二幕 · 真实需求与成本压力", "situation":"weak", "cast":[{"name":"小赵","role":"实习生","pos":"left"}],
-		"story":"训练谷的活动本来只是放松。小赵把一叠妙招卡推到你面前，说今天不谈 KPI，试试看谁更会看局势。", "prompt":"要陪他试一局吗？", "hint":"训练谷邀约 · 本事件是节奏调节，不进入职业测评。",
+		"id":"M2-E08", "scoringKey": "none", "month":15, "day":1, "hour":16, "title":"熊熊有招训练对局", "locationId":"E", "location":"E 松风训练谷", "durationMinutes":30, "actTitle":"第二幕 · 真实需求与成本压力", "situation":"weak", "cast":[{"name":"小赵","role":"实习生","pos":"left"}],
+		"story":"松风训练谷的活动本来只是放松。小赵把一叠妙招卡推到你面前，说今天不谈 KPI，试试看谁更会看局势。", "prompt":"要陪他试一局吗？", "hint":"松风训练谷邀约 · 本事件是节奏调节，不进入职业测评。",
 		"choices":[{"id":"option_a","text":"接下邀请，现在就试一局。"},{"id":"option_b","text":"这次先不了，下次再说。"},{"id":"option_c","text":"把卡收好，晚点自己来练。"}],
-		"outcome":{"option_a":"骰子在手，妙招卡摊开。这一局，就当真正的休息。（进入熊熊有招）","option_b":"小赵把卡收回口袋：行，这局欠着，随时来找我。","option_c":"你把那叠卡揣走了。训练谷的门一直开着。"}, "memoryNote":{"option_a":{"text":"接住了训练谷的邀请","tone":"gold"},"option_b":{"text":"把对局留给了下次","tone":"gray"},"option_c":{"text":"自己偷偷去练了","tone":"gold"}}
+		"outcome":{"option_a":"骰子在手，妙招卡摊开。这一局，就当真正的休息。（进入熊熊有招）","option_b":"小赵把卡收回口袋：行，这局欠着，随时来找我。","option_c":"你把那叠卡揣走了。松风训练谷的门一直开着。"}, "memoryNote":{"option_a":{"text":"接住了松风训练谷的邀请","tone":"gold"},"option_b":{"text":"把对局留给了下次","tone":"gray"},"option_c":{"text":"自己偷偷去练了","tone":"gold"}}
 	},
 	{
-		"id":"M3-E09", "scoringKey": "E14", "month":16, "day":1, "hour":23, "title":"连续加班后心悸", "locationId":"G", "location":"G 行政部", "durationMinutes":40, "actTitle":"第三幕 · 事故与责任", "situation":"strong", "cast":[],
+		"id":"M3-E09", "scoringKey": "E14", "month":16, "day":1, "hour":23, "title":"连续加班后心悸", "locationId":"G", "location":"G 暖邻康护院", "durationMinutes":40, "actTitle":"第三幕 · 事故与责任", "situation":"strong", "cast":[],
 		"story":"连续加班后，你在楼梯间停下来，心跳没有按预想恢复。手机上还有未读的项目消息。", "prompt":"这一晚你怎么处理？", "hint":"身体报警也是项目状态的一部分。",
-		"choices":[{"id":"option_a","text":"回到工位，把今晚的任务做完再说。"},{"id":"option_b","text":"暂停工作，去康护院休息并告诉团队。"},{"id":"option_c","text":"把任务拆给同事，约定明早再接手。"}],
+		"choices":[{"id":"option_a","text":"回到工位，把今晚的任务做完再说。"},{"id":"option_b","text":"暂停工作，去暖邻康护院休息并告诉团队。"},{"id":"option_c","text":"把任务拆给同事，约定明早再接手。"}],
 		"outcome":{"option_a":"你把任务交了出去，身体却没有因此得到答案。第二天的疲惫比任何告警都诚实。","option_b":"你第一次在项目最忙的时候停下来。团队没有散，反而开始补上原本没人认领的风险。","option_c":"交接并不完美，但你保住了明天继续判断的能力。"}, "memoryNote":{"option_a":{"text":"报警后仍选择硬扛","tone":"gray"},"option_b":{"text":"在最忙时停下来求助","tone":"gold"},"option_c":{"text":"把任务交给了团队","tone":"gold"}}
 	},
 	{
-		"id":"M3-E10", "scoringKey": "E17", "month":18, "day":1, "hour":14, "title":"客户现场 Demo 翻车", "locationId":"F", "location":"F 运营部 · 路演台", "durationMinutes":55, "actTitle":"第三幕 · 事故与责任", "situation":"strong", "cast":[{"name":"王哥","role":"技术导师","pos":"left"},{"name":"小林","role":"产品","pos":"right"}],
+		"id":"M3-E10", "scoringKey": "E17", "month":18, "day":1, "hour":14, "title":"客户现场 Demo 翻车", "locationId":"F", "location":"F 观澜会展码头 · 路演台", "durationMinutes":55, "actTitle":"第三幕 · 事故与责任", "situation":"strong", "cast":[{"name":"王哥","role":"技术导师","pos":"left"},{"name":"小林","role":"产品","pos":"right"}],
 		"story":"最重要的客户面前，助手开始编造不存在的政策。大屏上的每一句话都把前期技术债推到台前。", "prompt":"你先做什么？", "hint":"公开失误时，先保护用户再保护叙事。",
 		"choices":[{"id":"option_a","text":"立刻中止演示，如实说明问题并切到人工流程。"},{"id":"option_b","text":"继续演示，避开出错问题，争取把流程走完。"},{"id":"option_c","text":"说是网络抖了一下，重启试试。"}],
 		"outcome":{"option_a":"场面冷了下来，但错误没有继续扩大。散场后，客户问的是你们怎么复盘。","option_b":"演示被勉强撑完，录屏却留下了每个闪躲的瞬间。","option_c":"重试之后页面确实正常了。客户没再追问，只有你知道刚才那两分钟里发生了什么。"}, "memoryNote":{"option_a":{"text":"路演台上先按下了暂停","tone":"gold"},"option_b":{"text":"试着绕过现场错误","tone":"gray"},"option_c":{"text":"把翻车说成了网络抖动","tone":"gray"}}
@@ -253,7 +253,7 @@ const LEGACY_MAIN_EVENTS := [
 		"outcome":{"option_a":"文档花了时间，新人却第一次能在不叫醒你的情况下排查问题。","option_b":"文档写完了，最要紧的几个判断留在了你脑子里。新人照着做能跑起来，遇到岔路仍要来找你。","option_c":"「下个迭代」一直没空出来。三个月后新人问起，你得重新回忆一遍当初为什么这样做。"}, "memoryNote":{"option_a":{"text":"把踩坑写成了路标","tone":"gold"},"option_b":{"text":"写了一半，留了一半","tone":"gray"},"option_c":{"text":"把文档推到了下个迭代","tone":"gray"}}
 	},
 	{
-		"id":"M5-E17", "scoringKey": "E39", "month":32, "day":18, "hour":20, "title":"副业边界", "locationId":"H", "location":"H 生产部 · 宿舍", "durationMinutes":40, "actTitle":"第五幕 · 边界与答辩", "situation":"medium", "cast":[],
+		"id":"M5-E17", "scoringKey": "E39", "month":32, "day":18, "hour":20, "title":"副业边界", "locationId":"H", "location":"H 慢生活园 · 宿舍", "durationMinutes":40, "actTitle":"第五幕 · 边界与答辩", "situation":"medium", "cast":[],
 		"story":"朋友邀你参与一个与公司业务擦边的 AI 外包，报酬不错，期限也刚好压在项目冲刺期。", "prompt":"你如何回应这份邀约？", "hint":"边界不只来自合同，也来自精力和信任。",
 		"choices":[{"id":"option_a","text":"接下外包，晚上和周末挤时间完成。"},{"id":"option_b","text":"拒绝邀约，并说明与现有业务可能冲突。"},{"id":"option_c","text":"先向公司报备边界，确认不涉业务后再接。"}],
 		"outcome":{"option_a":"收入多了一笔，睡眠也少了一截。你开始在两份承诺之间来回切换。","option_b":"你错过了机会，但没有把模糊地带留给未来解释。","option_c":"报备过程不轻松，却让这件事不再只由你一个人猜测。"}, "memoryNote":{"option_a":{"text":"把夜晚也卖给了外包","tone":"gray"},"option_b":{"text":"拒绝了擦边的机会","tone":"gold"},"option_c":{"text":"先让边界被看见","tone":"gold"}}
@@ -289,13 +289,13 @@ const LEGACY_MAIN_EVENTS := [
 		"outcome":{"option_a":"数字依旧漂亮，被拒绝的人却仍然找不到入口。","option_b":"报表复杂了，边缘案例终于不再只是一行被忽略的备注。","option_c":"争论没有消失，但每个取舍都开始有了被说明的对象。"}, "memoryNote":{"option_a":{"text":"把增长当成唯一成功","tone":"gray"},"option_b":{"text":"把边缘案例放进指标","tone":"gold"},"option_c":{"text":"公开了不同人的取舍","tone":"gold"}}
 	},
 	{
-		"id":"M6-E23", "scoringKey": "E42", "month":45, "day":1, "hour":17, "title":"把故事说到哪一步", "locationId":"G", "location":"G 行政部 · 庭院", "durationMinutes":45, "actTitle":"第六幕 · 传承与新局", "situation":"medium", "cast":[{"name":"小林","role":"产品","pos":"left"}],
+		"id":"M6-E23", "scoringKey": "E42", "month":45, "day":1, "hour":17, "title":"把故事说到哪一步", "locationId":"G", "location":"G 暖邻康护院 · 庭院", "durationMinutes":45, "actTitle":"第六幕 · 传承与新局", "situation":"medium", "cast":[{"name":"小林","role":"产品","pos":"left"}],
 		"story":"客户想把一位受帮助用户的经历包装成宣传案例。当事人感谢你们，却希望保留距离，不想成为谁的品牌故事。", "prompt":"你怎样处理这份案例？", "hint":"真实经历不是可无限使用的素材。",
 		"choices":[{"id":"option_a","text":"在去标识后完整发布，突出项目价值。"},{"id":"option_b","text":"只在获得逐项同意后使用，并保留随时撤回权。"},{"id":"option_c","text":"放弃这个案例，改用匿名汇总数据说明效果。"}],
 		"outcome":{"option_a":"故事很打动人，你也知道当事人再难控制它会被讲到哪里。","option_b":"流程慢了些，信任却没有被一次传播透支。","option_c":"宣传少了一个高潮，团队保住了不把个人经历当工具的底线。"}, "memoryNote":{"option_a":{"text":"把故事交给了传播","tone":"gray"},"option_b":{"text":"给同意保留了撤回权","tone":"gold"},"option_c":{"text":"用汇总数据替代个人故事","tone":"gold"}}
 	},
 	{
-		"id":"M6-E24", "scoringKey": "C5", "month":48, "day":1, "hour":11, "title":"传承与新局终局答辩", "locationId":"F", "location":"F 运营部 · 公开复盘台", "durationMinutes":70, "actTitle":"第六幕 · 传承与新局", "situation":"strong", "cast":[{"name":"小赵","role":"接班人","pos":"left"},{"name":"陈工","role":"终局评审","pos":"right"}],
+		"id":"M6-E24", "scoringKey": "C5", "month":48, "day":1, "hour":11, "title":"传承与新局终局答辩", "locationId":"F", "location":"F 观澜会展码头 · 公开复盘台", "durationMinutes":70, "actTitle":"第六幕 · 传承与新局", "situation":"strong", "cast":[{"name":"小赵","role":"接班人","pos":"left"},{"name":"陈工","role":"终局评审","pos":"right"}],
 		"story":"你与接班人共同面对公开复盘：系统留下了什么、团队学会了什么、下一阶段应由谁负责。六幕选择都在这一天回到你面前。", "prompt":"你把什么交给下一阶段？", "hint":"终局不是结束，而是把可继续的判断交出去。",
 		"choices":[{"id":"option_a","text":"交付一套稳定流程，要求团队严格沿用。"},{"id":"option_b","text":"交付原则、证据和复盘机制，让新人继续修正。"},{"id":"option_c","text":"交付个人经验，关键判断仍由自己最后拍板。"}],
 		"outcome":{"option_a":"流程很完整，新的问题仍在流程外等待被看见。","option_b":"你留下的不是答案，而是一套愿意承认错误并继续学习的方法。","option_c":"经验被认真记下，团队也还在等什么时候能不再依赖你。"}, "memoryNote":{"option_a":{"text":"把稳定流程交给了未来","tone":"gray"},"option_b":{"text":"把复盘能力交给了未来","tone":"gold"},"option_c":{"text":"把最后判断留在自己手里","tone":"gray"}}

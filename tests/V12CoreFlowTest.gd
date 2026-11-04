@@ -13,8 +13,8 @@ func _ready() -> void:
 	if String(profile_snapshot.get("role", "")) != "实习开发师" or int(profile_snapshot.get("next_review", 0)) != 6:
 		_fail("初始档案应显示实习生及第6月首次晋升检查")
 		return
-	if profile_snapshot.get("abilities", []) != [3, 3, 3, 3, 3]:
-		_fail("新员工能力应从后端基准值3开始")
+	if profile_snapshot.get("abilities", []) != [1, 1, 1, 2, 1]:
+		_fail("新员工能力应从入职起点开始（技术1·协作1·表达1·原则2·抗压1，与后端 ABILITY_BASELINE 同一份数）")
 		return
 	var npcs: Array = town.get("_npc_instances")
 	if npcs.is_empty():

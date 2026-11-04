@@ -29,6 +29,10 @@ func _process(_delta: float) -> void:
 		_layout_focus()
 
 
+## 气泡里那句提示也认当前搭档（由对局页在创建时设进来，默认还是旧那条线的王哥）。
+var partner_name := "王哥"
+
+
 func focus(control: Control, hint: String, margin: float = 14.0) -> void:
 	if not is_instance_valid(control):
 		clear_focus()
@@ -141,7 +145,7 @@ func transfer_dice(source_row: HBoxContainer, indices: Array, target: Control, e
 		ghost.queue_free()
 	combat_group.visible = false
 	if emphasize:
-		focus(target, "王哥留下的两枚骰子加入你的骰池", 15)
+		focus(target, "王哥留下的两枚骰子加入你的骰池".replace("王哥", partner_name), 15)
 	await get_tree().create_timer(0.8).timeout
 
 

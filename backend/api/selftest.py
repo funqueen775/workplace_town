@@ -141,11 +141,11 @@ def main() -> int:
           and set(sess["state"].keys()) >= set(shape["state"].keys()),
           str(list(sess.get("state", {}).keys())))
     check("初始 currentNodeId=M1-E01", sess["state"]["currentNodeId"] == "M1-E01")
-    check("新员工初始档案：L1、能力3、首次考核第6月",
+    check("新员工初始档案：L1、能力按第一天入职给（1/1/1/2/1）、首次考核第6月",
           sess["state"].get("level") == 1
           and sess["state"].get("abilityLevels") == {
-              "technical": 3, "collaboration": 3, "expression": 3,
-              "integrity": 3, "resilience": 3,
+              "technical": 1, "collaboration": 1, "expression": 1,
+              "integrity": 2, "resilience": 1,
           }
           and sess["state"].get("nextAssessmentMonth") == 6
           and sess["state"].get("assessmentHistory") == [])

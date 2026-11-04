@@ -1,7 +1,7 @@
 /node_modules
 **/node_modules
 /oh_modules
-/local.properties
+local.properties
 /.idea
 .codegenie/
 **/build
@@ -25,6 +25,10 @@ tools/startup_home_hover_preview.png*
 /.clang-tidy
 **/.test
 /.appanalyzer
+
+# HarmonyOS 签名文件（自动生成，包含密钥）
+**/.signing/
+**/signing-configs.json
 
 # Python（backend/engine_core）
 __pycache__/

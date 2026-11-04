@@ -1,72 +1,50 @@
 extends CanvasLayer
-## 设置弹窗（2026-09-17 UI 打磨批次）。
-## 入口：右上角「设置」圆钮。职责：操作说明 + 继续游戏 / 退出游戏。
-## 风格基线：暖木底 + 金边圆角大卡 + 入场缩放/淡入 + 按压回弹 + 点背景/ESC 关闭。
-## 之后要把别的弹窗统一成这套质感时，照这里抄。
-## 刻意不引用任何 autoload（WorldClock / ApiClient）：探针可以直接 new 出来测。
+## 精简设置：只提供背景音乐音量和返回标题。
 
 signal settings_closed()
-signal quit_requested()
+signal title_requested()
 
 const FONT := preload("res://assets/fonts/NotoSansCJKsc-Regular.otf")
+const PANEL_ART := preload("res://assets/ui/rework_v1/profile/components/01_基础面板/空白大底板.png")
+const TITLE_ART := preload("res://assets/ui/rework_v1/profile/components/01_基础面板/无字标题牌.png")
+const MUSIC_ART := preload("res://assets/游戏设置/13_背景音乐滑条.png")
+const RETURN_TITLE_ART := preload("res://assets/游戏设置/08_返回标题.png")
+const RETURN_TITLE_REGION := Rect2(391, 192, 1390, 355)
+const CARD_SIZE := Vector2(820, 760)
+const MUSIC_CONFIG_PATH := "user://town_ui_settings.cfg"
 
-const COLOR_BACKDROP := Color(0.02, 0.03, 0.06, 0.55)
-## 暖木主色 54321f（带 0.985 透明度，压在夜景上也不发闷）。
-const COLOR_BG := Color(0.329, 0.196, 0.122, 0.985)
-const COLOR_BORDER := Color("d49a4c")
-const COLOR_TITLE := Color("ffe5a8")
-const COLOR_TEXT := Color("fff0c9")
-const COLOR_SUB := Color("d5b77b")
-const COLOR_CHIP := Color("ef9f27")
-const COLOR_CHIP_TEXT := Color("3a2410")
-const COLOR_LINE := Color(0.831, 0.604, 0.298, 0.35)
-const COLOR_PRIMARY := Color("ef9f27")
-const COLOR_PRIMARY_HOVER := Color("ffb548")
-const COLOR_PRIMARY_PRESSED := Color("d98a1a")
-const COLOR_DANGER_TEXT := Color("ffb09a")
-const COLOR_DANGER_BORDER := Color("c96b4a")
-
-const CARD_SIZE := Vector2(560, 500)
-
-## 操作说明四行（键位 chip + 说明文字）。
-const KEY_ROWS := [
-	{"chip": "走", "text": "移动：WASD / 方向键 / 左下摇杆"},
-	{"chip": "E", "text": "互动：交谈 · 进出区域 · 开始当前剧情"},
-	{"chip": "Q", "text": "返回小镇（在建筑里时）"},
-	{"chip": "滚", "text": "地图缩放：滚轮 / ± / 双指捏合 · 按住拖动平移"},
-]
+const COLOR_BACKDROP := Color(0.02, 0.03, 0.06, 0.58)
+const COLOR_TEXT := Color("63301d")
 
 var _root: Control
-var _dim: ColorRect
-var _card: Panel
+var _card: Control
 var _open_flag := false
-var _tween: Tween
+var _music_slider: HSlider
+var _music_volume := 0.8
 
 
 func _ready() -> void:
 	layer = 200
+	_load_music_setting()
 	_root = Control.new()
 	_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_root.mouse_filter = Control.MOUSE_FILTER_STOP
 	_root.visible = false
 	add_child(_root)
-	_dim = ColorRect.new()
-	_dim.color = COLOR_BACKDROP
-	_dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	# 背景点击关闭交给 center 的 gui_input；这里放行，别把点击吞在 dim 上。
-	_dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_root.add_child(_dim)
-	var center := CenterContainer.new()
-	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	center.mouse_filter = Control.MOUSE_FILTER_STOP
-	center.gui_input.connect(_on_center_gui_input)
-	_root.add_child(center)
-	_card = Panel.new()
-	_card.custom_minimum_size = CARD_SIZE
+
+	var backdrop := ColorRect.new()
+	backdrop.color = COLOR_BACKDROP
+	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_root.add_child(backdrop)
+
+	_card = Control.new()
 	_card.size = CARD_SIZE
-	_card.add_theme_stylebox_override("panel", _card_style())
-	center.add_child(_card)
+	_card.mouse_filter = Control.MOUSE_FILTER_STOP
+	_root.add_child(_card)
 	_build_content()
+	_root.resized.connect(_layout_card)
+	_layout_card()
 
 
 func open() -> void:
@@ -74,29 +52,12 @@ func open() -> void:
 		return
 	_open_flag = true
 	_root.visible = true
-	_dim.modulate.a = 0.0
-	_card.modulate.a = 0.0
-	_card.pivot_offset = CARD_SIZE / 2.0
-	_card.scale = Vector2(0.92, 0.92)
-	_kill_tween()
-	_tween = create_tween()
-	_tween.set_parallel(true)
-	_tween.tween_property(_dim, "modulate:a", 1.0, 0.18)
-	_tween.tween_property(_card, "modulate:a", 1.0, 0.22)
-	_tween.tween_property(_card, "scale", Vector2.ONE, 0.24).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-
 
 func close() -> void:
 	if not _open_flag:
 		return
 	_open_flag = false
-	_kill_tween()
-	_tween = create_tween()
-	_tween.set_parallel(true)
-	_tween.tween_property(_dim, "modulate:a", 0.0, 0.16)
-	_tween.tween_property(_card, "modulate:a", 0.0, 0.16)
-	_tween.tween_property(_card, "scale", Vector2(0.94, 0.94), 0.16).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	_tween.chain().tween_callback(_hide_root)
+	_root.visible = false
 	settings_closed.emit()
 
 
@@ -105,187 +66,112 @@ func is_open() -> bool:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not _open_flag:
-		return
-	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE:
+	if _open_flag and event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE:
 		get_viewport().set_input_as_handled()
 		close()
 
 
-## ---------- 内容搭建 ----------
-
 func _build_content() -> void:
-	var title_font := FontVariation.new()
-	title_font.base_font = FONT
-	title_font.variation_embolden = 0.5
+	_add_art(PANEL_ART, Vector2.ZERO, CARD_SIZE, _card)
+	_add_art(TITLE_ART, Vector2(255, 24), Vector2(310, 76), _card)
 
-	var title := _label("设置", 30, COLOR_TITLE)
-	title.position = Vector2(42, 25)
-	title.size = Vector2(220, 44)
-	title.add_theme_font_override("font", title_font)
+	var title := _label("游戏设置", 36)
+	title.position = Vector2(275, 76)
+	title.size = Vector2(270, 58)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_card.add_child(title)
 
-	# 标题下的金色小短条：一眼把「标题区」和「内容区」分开。
-	var underline := Panel.new()
-	underline.position = Vector2(44, 74)
-	underline.size = Vector2(56, 4)
-	var underline_style := StyleBoxFlat.new()
-	underline_style.bg_color = COLOR_CHIP
-	underline_style.set_corner_radius_all(2)
-	underline.add_theme_stylebox_override("panel", underline_style)
-	underline.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_card.add_child(underline)
+	var music_label := _label("背景音乐", 24)
+	music_label.position = Vector2(142, 280)
+	music_label.size = Vector2(150, 46)
+	_card.add_child(music_label)
+	_add_art(MUSIC_ART, Vector2(300, 284), Vector2(350, 42), _card)
 
-	var subtitle := _label("熊心壮职 · 职业测评小镇", 14, COLOR_SUB)
-	subtitle.position = Vector2(114, 66)
-	subtitle.size = Vector2(300, 24)
-	_card.add_child(subtitle)
+	_music_slider = HSlider.new()
+	_music_slider.name = "MusicVolumeSlider"
+	_music_slider.position = Vector2(320, 284)
+	_music_slider.size = Vector2(310, 42)
+	_music_slider.min_value = 0.0
+	_music_slider.max_value = 1.0
+	_music_slider.step = 0.01
+	_music_slider.value = _music_volume
+	_music_slider.value_changed.connect(_on_music_volume_changed)
+	_card.add_child(_music_slider)
 
-	var close_button := _make_circle_close_button()
-	close_button.position = Vector2(CARD_SIZE.x - 40.0 - 22.0, 22)
-	close_button.pressed.connect(close)
-	_card.add_child(close_button)
-
-	var section := _label("操作方式", 17, COLOR_TITLE)
-	section.position = Vector2(32, 116)
-	section.size = Vector2(220, 28)
-	section.add_theme_font_override("font", title_font)
-	_card.add_child(section)
-
-	for i in KEY_ROWS.size():
-		var row: Dictionary = KEY_ROWS[i]
-		var y := 156.0 + 48.0 * i
-		var chip := Panel.new()
-		chip.position = Vector2(32, y)
-		chip.size = Vector2(34, 34)
-		var chip_style := StyleBoxFlat.new()
-		chip_style.bg_color = COLOR_CHIP
-		chip_style.set_corner_radius_all(17)
-		chip.add_theme_stylebox_override("panel", chip_style)
-		chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_card.add_child(chip)
-		var chip_label := _label(String(row["chip"]), 17, COLOR_CHIP_TEXT)
-		chip_label.position = Vector2(0, 0)
-		chip_label.size = Vector2(34, 34)
-		chip_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		chip.add_child(chip_label)
-		var text := _label(String(row["text"]), 17, COLOR_TEXT)
-		text.position = Vector2(82, y + 1)
-		text.size = Vector2(446, 32)
-		_card.add_child(text)
-
-	var divider := ColorRect.new()
-	divider.color = COLOR_LINE
-	divider.position = Vector2(32, 366)
-	divider.size = Vector2(CARD_SIZE.x - 64.0, 1)
-	divider.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_card.add_child(divider)
-
-	var resume_button := Button.new()
-	resume_button.position = Vector2(32, 388)
-	resume_button.size = Vector2(316, 56)
-	resume_button.text = "继续游戏"
-	resume_button.add_theme_font_override("font", title_font)
-	resume_button.add_theme_font_size_override("font_size", 20)
-	resume_button.add_theme_color_override("font_color", COLOR_CHIP_TEXT)
-	resume_button.add_theme_color_override("font_hover_color", COLOR_CHIP_TEXT)
-	resume_button.add_theme_color_override("font_pressed_color", COLOR_CHIP_TEXT)
-	resume_button.add_theme_stylebox_override("normal", _button_style(COLOR_PRIMARY, COLOR_PRIMARY, 14))
-	resume_button.add_theme_stylebox_override("hover", _button_style(COLOR_PRIMARY_HOVER, COLOR_PRIMARY_HOVER, 14))
-	resume_button.add_theme_stylebox_override("pressed", _button_style(COLOR_PRIMARY_PRESSED, COLOR_PRIMARY_PRESSED, 14))
-	resume_button.pivot_offset = resume_button.size / 2.0
-	resume_button.pressed.connect(_on_button_press.bind(resume_button))
-	_card.add_child(resume_button)
-
-	var quit_button := Button.new()
-	quit_button.position = Vector2(364, 388)
-	quit_button.size = Vector2(164, 56)
-	quit_button.text = "退出游戏"
-	quit_button.add_theme_font_override("font", title_font)
-	quit_button.add_theme_font_size_override("font_size", 20)
-	quit_button.add_theme_color_override("font_color", COLOR_DANGER_TEXT)
-	quit_button.add_theme_color_override("font_hover_color", Color("ffd0c0"))
-	quit_button.add_theme_color_override("font_pressed_color", COLOR_DANGER_TEXT)
-	quit_button.add_theme_stylebox_override("normal", _button_style(Color(0.08, 0.05, 0.04, 0.4), COLOR_DANGER_BORDER, 14))
-	quit_button.add_theme_stylebox_override("hover", _button_style(Color(0.22, 0.08, 0.05, 0.6), Color("e8896b"), 14))
-	quit_button.add_theme_stylebox_override("pressed", _button_style(Color(0.05, 0.03, 0.02, 0.6), COLOR_DANGER_BORDER, 14))
-	quit_button.pivot_offset = quit_button.size / 2.0
-	quit_button.pressed.connect(_on_button_press.bind(quit_button))
-	quit_button.pressed.connect(func(): quit_requested.emit())
-	_card.add_child(quit_button)
-
-	var footer := _label("每个自由活动窗口有 3 点行动力，耗尽后开放下一主线。", 13, COLOR_SUB)
-	footer.position = Vector2(32, 458)
-	footer.size = Vector2(CARD_SIZE.x - 64.0, 24)
-	_card.add_child(footer)
-func _make_circle_close_button() -> Button:
-	var button := Button.new()
-	button.size = Vector2(40, 40)
-	button.text = "×"
-	button.tooltip_text = "关闭"
-	button.add_theme_font_override("font", FONT)
-	button.add_theme_font_size_override("font_size", 22)
-	button.add_theme_color_override("font_color", COLOR_SUB)
-	button.add_theme_color_override("font_hover_color", COLOR_TITLE)
-	button.add_theme_stylebox_override("normal", _button_style(Color(0, 0, 0, 0.18), Color(0.831, 0.604, 0.298, 0.4), 20))
-	button.add_theme_stylebox_override("hover", _button_style(Color(0.42, 0.25, 0.15, 0.9), COLOR_BORDER, 20))
-	button.add_theme_stylebox_override("pressed", _button_style(Color(0.28, 0.16, 0.09, 0.9), COLOR_BORDER, 20))
-	button.pivot_offset = button.size / 2.0
-	button.pressed.connect(_on_button_press.bind(button))
-	return button
+	var return_texture := AtlasTexture.new()
+	return_texture.atlas = RETURN_TITLE_ART
+	return_texture.region = RETURN_TITLE_REGION
+	var return_button := TextureButton.new()
+	return_button.name = "ReturnToTitleButton"
+	return_button.ignore_texture_size = true
+	return_button.texture_normal = return_texture
+	return_button.texture_hover = return_texture
+	return_button.texture_pressed = return_texture
+	return_button.position = Vector2(190, 594)
+	return_button.size = Vector2(440, 112)
+	return_button.stretch_mode = TextureButton.STRETCH_SCALE
+	return_button.pressed.connect(_on_return_to_title)
+	_card.add_child(return_button)
 
 
-## 点背景（卡片外）关闭。
-func _on_center_gui_input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		close()
+func _layout_card() -> void:
+	if _card == null or _root == null:
+		return
+	var available := _root.size - Vector2(40, 40)
+	var scale_factor := minf(1.0, minf(available.x / CARD_SIZE.x, available.y / CARD_SIZE.y))
+	_card.scale = Vector2.ONE * scale_factor
+	_card.position = (_root.size - CARD_SIZE * scale_factor) * 0.5
 
 
-## 按压回弹：scale 1 → 0.94 → 1（旋转中心在控件中心）。
-func _on_button_press(button: Button) -> void:
-	button.pivot_offset = button.size / 2.0
-	var bounce := create_tween()
-	bounce.tween_property(button, "scale", Vector2(0.94, 0.94), 0.07).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	bounce.tween_property(button, "scale", Vector2.ONE, 0.13).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+func _on_music_volume_changed(value: float) -> void:
+	_music_volume = value
+	_apply_music_volume()
+	_save_music_setting()
 
 
-## ---------- 样式工具 ----------
-
-func _card_style() -> StyleBoxFlat:
-	var style := StyleBoxFlat.new()
-	style.bg_color = COLOR_BG
-	style.border_color = COLOR_BORDER
-	style.set_border_width_all(3)
-	style.set_corner_radius_all(18)
-	style.shadow_color = Color(0, 0, 0, 0.5)
-	style.shadow_size = 26
-	return style
+func _on_return_to_title() -> void:
+	_save_music_setting()
+	close()
+	title_requested.emit()
 
 
-func _button_style(bg: Color, border: Color, radius: int) -> StyleBoxFlat:
-	var style := StyleBoxFlat.new()
-	style.bg_color = bg
-	style.border_color = border
-	style.set_border_width_all(2)
-	style.set_corner_radius_all(radius)
-	return style
+func _apply_music_volume() -> void:
+	if AudioServer.get_bus_index("Music") >= 0:
+		AudioManager.set_volume_linear(_music_volume)
 
 
-func _label(value: String, font_size: int, color: Color) -> Label:
+func _load_music_setting() -> void:
+	var config := ConfigFile.new()
+	if config.load(MUSIC_CONFIG_PATH) == OK:
+		_music_volume = clampf(float(config.get_value("display", "music", _music_volume)), 0.0, 1.0)
+	_apply_music_volume()
+
+
+func _save_music_setting() -> void:
+	var config := ConfigFile.new()
+	config.load(MUSIC_CONFIG_PATH)
+	config.set_value("display", "music", _music_volume)
+	config.save(MUSIC_CONFIG_PATH)
+
+
+func _add_art(texture: Texture2D, at: Vector2, size_value: Vector2, parent: Control) -> TextureRect:
+	var art := TextureRect.new()
+	art.texture = texture
+	art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	art.stretch_mode = TextureRect.STRETCH_SCALE
+	art.position = at
+	art.size = size_value
+	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(art)
+	return art
+
+
+func _label(value: String, font_size: int) -> Label:
 	var label := Label.new()
 	label.text = value
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.add_theme_font_override("font", FONT)
 	label.add_theme_font_size_override("font_size", font_size)
-	label.add_theme_color_override("font_color", color)
+	label.add_theme_color_override("font_color", COLOR_TEXT)
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return label
-
-
-func _kill_tween() -> void:
-	if _tween != null and _tween.is_valid():
-		_tween.kill()
-
-
-func _hide_root() -> void:
-	_root.visible = false

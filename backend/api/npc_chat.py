@@ -63,7 +63,7 @@ def reply(npc: dict, message: str, memories: list[dict]) -> tuple[str, str]:
         url = os.getenv("ARK_API_URL", "https://ark.cn-beijing.volces.com/api/v3/chat/completions").strip()
     else:
         return fallback, "template"
-    if not key:
+    if not key or key.lower().startswith(("replace-", "your-")):
         return fallback, "template"
     context = "\n".join(f"- {item['fact']}" for item in memories) or "暂无"
     system = "\n".join([

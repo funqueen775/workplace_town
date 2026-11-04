@@ -31,6 +31,9 @@ signal handbook_recorded(event_id: String, records: Dictionary)
 ## 便签是心湖记忆墙的唯一数据源：落了盘，玩家下次进游戏还能翻到自己当时贴了什么；
 ## 不落盘它就只是"弹一下就没了"的装饰。
 signal memo_recorded(event_id: String, memo: Dictionary)
+## 每一拍过手时对外广播一次：带巡要按某一句台词立门（beat 上的 hook），
+## 面板自己不懂这些，只管把 beat 原样递出来。
+signal beat_reached(event_id: String, beat_index: int, beat: Dictionary)
 
 const HANDBOOK := preload("res://scripts/HandbookPanel.gd")
 const TORN_BUBBLE := preload("res://scripts/ui/TornBubble.gd")
@@ -48,6 +51,8 @@ const TYPE_INTERVAL := 0.022
 var text_speed := 1
 var large_text := false
 var reduced_motion := false
+## 剧情里的手机演出交给城镇那部真手机去演（城镇在构建面板时接上）。
+var phone_peek := Callable()
 
 ## 入场拍：黑场里先把"这是哪一幕、哪一天、什么地方"压上来，再落进叙述。
 const ENTRY_CARD_IN := 0.35
@@ -58,14 +63,14 @@ const ENTRY_DIM := 0.62
 
 ## 区域内景图：剧情演出与可探索室内共用同一批场景美术。
 const INTERIOR_BY_ZONE := {
-	"A": "res://assets/场景内部图/熊起东方总部.png",
-	"B": "res://assets/场景内部图/云栖科技丘.png",
-	"C": "res://assets/场景内部图/创意水巷.png",
-	"D": "res://assets/场景内部图/树影图书馆.png",
-	"E": "res://assets/场景内部图/松风训练谷.png",
-	"F": "res://assets/场景内部图/观澜展会码头.png",
-	"G": "res://assets/场景内部图/暖邻康护院.png",
-	"H": "res://assets/场景内部图/慢生活园.png",
+	"A": "res://assets/八大区域地图重制版/A_市场部.png",
+	"B": "res://assets/八大区域地图重制版/B_研发部.png",
+	"C": "res://assets/八大区域地图重制版/C_销售部.png",
+	"D": "res://assets/八大区域地图重制版/D_人事部.png",
+	"E": "res://assets/八大区域地图重制版/E_财务部.png",
+	"F": "res://assets/八大区域地图重制版/F_运营部.png",
+	"G": "res://assets/八大区域地图重制版/G_行政部.png",
+	"H": "res://assets/八大区域地图重制版/H_生产部.png",
 }
 
 ## 情境强度只做光影，不显示任何标签或数字（V5.27 红线：测量口径不下发前端）
@@ -78,6 +83,10 @@ const NOTE_TONE := {
 	"gold": Color("f2c14e"),
 	"gray": Color("9aa2ab"),
 }
+## 关键词强调色：比正文深一档的砖红，米色纸面上够跳，又不会被读成"危险"。
+const EMPHASIS_INK := Color("8f3a26")
+## 能点的词用松绿 + 下划线：跟剧情重音（砖棕加粗）一眼分得开。
+const TERM_INK := Color("2f6b5f")
 
 const BUBBLE_FILL := Color(0.05, 0.05, 0.07, 0.95)
 const BUBBLE_FILL_HOT := Color(0.14, 0.13, 0.17, 0.97)
@@ -101,6 +110,7 @@ var _entry_card: Control
 var _entry_age := 0.0
 var _top_bar: Control
 var _typewriter_label: Label
+var _typewriter_rich: RichTextLabel
 var _typewriter_full := ""
 var _typewriter_shown := 0
 var _typewriter_timer: Timer
@@ -135,7 +145,7 @@ func _ready() -> void:
 	_typewriter_timer.timeout.connect(_tick_typewriter)
 
 
-func present(event: Dictionary) -> void:
+func present(event: Dictionary, quiet := false) -> void:
 	_event = event.duplicate(true)
 	_chosen_id = ""
 	_beats = _player_visible_beats(_event.get("beats", []) as Array)
@@ -153,6 +163,11 @@ func present(event: Dictionary) -> void:
 		_beats.append({"type": "choice"})
 	_beat_index = -1
 	_build_stage()
+	if quiet:
+		# 同一间屋子里连着问的后续屏：不再黑一次场、不再报一次标题，直接接上话。
+		_root.show()
+		_end_entry()
+		return
 	_show_entry()
 	_root.show()
 
@@ -308,34 +323,75 @@ func _build_top_bar() -> void:
 
 
 ## 事件卡上的时间戳：只用事件自带的 month / day / hour，不另外读时钟。
+## 十二个月这条线不摆"几号几点"（开发文档：只说月 + 旬 + 时段），
+## 所以 dateStyle 是 xun 的时候报旬位；老 48 个月那条线照旧。
 func clock_text() -> String:
+	if String(_event.get("dateStyle", "")) == "xun":
+		return "第 %d 月 · %s · %s" % [
+			int(_event.get("month", 1)),
+			_xun_label(String(_event.get("phase", "early"))),
+			_band_word(),
+		]
 	return "第 %d 月 %d 日 · %02d:00" % [
 		int(_event.get("month", 1)), int(_event.get("day", 1)), int(_event.get("hour", 9)),
 	]
 
 
+## 时段那一个词。十二个月这条线一律以节点写的 timeBand 为准：
+## 数据里 hour 多半没跟着填（几十处是缺省的 9 点），拿 hour 去算就会出现
+## 标题写着"周四深夜 02:10"、日期牌上却写着"上午"（2026-10-29 与 10-30 两次实机）。
+## 日期牌和入场卡两处都要用它，口径不能一边改一边忘。
+func _band_word() -> String:
+	var band := String(_event.get("timeBand", ""))
+	if band == "night":
+		return "夜里"
+	if band == "afternoon":
+		return "午后"
+	if band == "morning":
+		return "上午"
+	return _time_word(int(_event.get("hour", 9)))
+
+
 ## 日期牌的显示口径：月/日 + 周几 + 时段，和 WorldClock 的 30 天月制对齐（不做真实历法）。
 func _date_stamp(month: int, day: int, hour: int) -> Dictionary:
+	# 十二个月这条线只认"月 + 旬 + 时段"（开发文档：月份表故事进程，上中下旬表月内状态）。
+	# 老 48 个月那条线照旧用月/日 + 周几。
+	if String(_event.get("dateStyle", "")) == "xun":
+		return {
+			"date": "第 %d 月" % maxi(month, 1),
+			"weekday": _xun_label(String(_event.get("phase", "early"))),
+			"phase": _band_word(),
+		}
 	const WEEKDAYS := ["周一", "周二", "周三", "周四", "周五", "周六", "周日"]
 	var total := (maxi(month, 1) - 1) * 30 + (maxi(day, 1) - 1)
-	var phase := "上午"
-	if hour < 6:
-		phase = "深夜"
-	elif hour < 8:
-		phase = "清晨"
-	elif hour < 12:
-		phase = "上午"
-	elif hour < 17:
-		phase = "下午"
-	elif hour < 19:
-		phase = "傍晚"
-	else:
-		phase = "夜晚"
+	var phase := _time_word(hour)
 	return {
 		"date": "%d/%d" % [maxi(month, 1), maxi(day, 1)],
 		"weekday": WEEKDAYS[posmod(total, 7)],
 		"phase": phase,
 	}
+
+
+func _time_word(hour: int) -> String:
+	if hour < 6:
+		return "深夜"
+	if hour < 8:
+		return "清晨"
+	if hour < 12:
+		return "上午"
+	if hour < 17:
+		return "下午"
+	if hour < 19:
+		return "傍晚"
+	return "夜晚"
+
+
+func _xun_label(phase: String) -> String:
+	if phase == "mid":
+		return "中旬"
+	if phase == "late":
+		return "下旬"
+	return "上旬"
 
 
 ## cast 兼容两种写法：
@@ -373,6 +429,7 @@ func _next_beat() -> void:
 		_finish_without_choice()
 		return
 	var beat := Dictionary(_beats[_beat_index])
+	beat_reached.emit(String(_event.get("id", "")), _beat_index, beat)
 	match String(beat.get("type", "say")):
 		"say":
 			_show_say(beat)
@@ -380,8 +437,10 @@ func _next_beat() -> void:
 			_show_interact(beat)
 		"choice":
 			_show_choices(String(beat.get("prompt", "")))
+		"phone_cinematic":
+			_show_phone_message(beat)
 		_:
-			_show_narration(String(beat.get("text", "")))
+			_show_narration(String(beat.get("text", "")), beat.get("emphasis", []) as Array)
 
 
 ## 说话拍：气泡 + 名字牌 + 立绘聚焦。
@@ -393,37 +452,53 @@ func _show_say(beat: Dictionary) -> void:
 	var profile := _speaker_profile(speaker_id)
 	var portrait_name := _portrait_name(String(profile.get("name", speaker_id)))
 	var bubble := _make_dialogue_frame(true)
-	var body := _label("", 30, Color("56301e"), true)
+	# 能点的词单独标出来（松绿下划线），不然光有角上一颗点，玩家不知道句里哪个词能点。
+	var term := _matched_term(text)
+	var body := _emphasis_label(text, 30, beat.get("emphasis", []) as Array, 14, String(term.get("word", "")))
 	body.position = Vector2(520.0, 72.0) if not portrait_name.is_empty() else Vector2(95.0, 72.0)
 	body.size = Vector2(bubble.size.x - body.position.x - 90.0, bubble.size.y - 118.0)
-	body.vertical_alignment = VERTICAL_ALIGNMENT_TOP
-	body.add_theme_constant_override("line_spacing", 14)
 	bubble.add_child(body)
-	_typewriter_label = body
+	_typewriter_rich = body
 	_start_typewriter(text)
 	if not portrait_name.is_empty():
-		var expression := String(beat.get("expression", ""))
-		if expression not in ["开心", "认真", "无奈", "疑惑", "自然"]:
+		# 台词里写了 expression 就以它为准（作者看得见语境，机器看不见）；
+		# 没写才退回关键词猜测。写了但那张图不存在，_portrait_texture 会退回自然脸，
+		# 数据层由校验器当场拦（点了没有的脸）。2026-11-02。
+		var expression := String(beat.get("expression", "")).strip_edges()
+		if expression.is_empty():
 			expression = _expression_for(text)
 		_add_speaker_portrait(portrait_name, expression)
 	_add_asset_name_plate(bubble, profile, speaker_id)
 	_add_dialogue_hint(bubble)
+	_add_term_dot(bubble, term)
 
 
 ## 旁白拍：没有名字、没有立绘聚焦。玩家在看场景，不是在看人。
-func _show_narration(text: String) -> void:
+func _show_narration(text: String, emphasis: Array = []) -> void:
 	_stage = "narration"
 	_clear_ui()
 	var bubble := _make_dialogue_frame(false)
-	var body := _label("", 29, Color("56301e"), true)
+	var term := _matched_term(text)
+	var body := _emphasis_label(text, 29, emphasis, 14, String(term.get("word", "")))
 	body.position = Vector2(92.0, 62.0)
 	body.size = Vector2(bubble.size.x - 184.0, bubble.size.y - 118.0)
-	body.vertical_alignment = VERTICAL_ALIGNMENT_TOP
-	body.add_theme_constant_override("line_spacing", 14)
 	bubble.add_child(body)
-	_typewriter_label = body
+	_typewriter_rich = body
 	_start_typewriter(text)
 	_add_dialogue_hint(bubble)
+	_add_term_dot(bubble, term)
+
+
+## 手机演出拍：剧情里收到一条消息，交给系统里那部真手机演——右下角那颗的右侧抽屉
+## 拉开、停一会儿、自己收回。这里不另画卡；手机还没建出来时才退回旁白，不让这一拍空白。
+func _show_phone_message(beat: Dictionary) -> void:
+	_stage = "narration"
+	_clear_ui()
+	var speaker := String(beat.get("speaker", ""))
+	var text := String(beat.get("text", ""))
+	if phone_peek.is_valid() and bool(phone_peek.call(speaker, text, _event)):
+		return
+	_show_narration(text)
 
 
 ## 可交互拍：不推进剧情，等玩家去碰它。
@@ -487,11 +562,25 @@ func _show_choices(prompt: String) -> void:
 		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_ui_layer.add_child(row)
 		var label := _label(text, 27, Color("56301e"), true)
-		label.position = Vector2(68.0, 20.0)
-		label.size = Vector2(bubble_w - 136.0, row_height - 40.0)
+		var detail := String(choice.get("detail", "")).strip_edges()
+		if detail.is_empty():
+			label.position = Vector2(68.0, 20.0)
+			label.size = Vector2(bubble_w - 136.0, row_height - 40.0)
+		else:
+			# 剧情册里「选项」和「玩家看到的台词 / 行动」本来就是两列：
+			# 选项那一行只留一句动作，台词/行动小一号挂在下面，选之前照样看得见代价。
+			label.position = Vector2(68.0, 16.0)
+			label.size = Vector2(bubble_w - 136.0, 40.0)
 		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		label.add_theme_constant_override("line_spacing", 4)
 		row.add_child(label)
+		if not detail.is_empty():
+			var detail_label := _label(detail, 21, Color("8a6a52"), true)
+			detail_label.position = Vector2(68.0, 58.0)
+			detail_label.size = Vector2(bubble_w - 136.0, row_height - 68.0)
+			detail_label.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+			detail_label.add_theme_constant_override("line_spacing", 2)
+			row.add_child(detail_label)
 		var button := Button.new()
 		button.name = "Hit_%s" % choice_id
 		button.flat = true
@@ -521,15 +610,44 @@ func _show_outcome(choice_id: String) -> void:
 	_stop_typewriter()
 	_clear_ui()
 	var text := _outcome_text(choice_id)
+	var spoken := _split_spoken_outcome(text)
+	if not spoken.is_empty():
+		_show_outcome_spoken(choice_id, String(spoken["who"]), String(spoken["said"]))
+		return
 	var bubble := _make_dialogue_frame(false)
-	var body := _label("", 28, Color("56301e"), true)
+	var body := _emphasis_label(text, 28, _choice_emphasis(choice_id), 10)
 	body.position = Vector2(92.0, 57.0)
 	body.size = Vector2(bubble.size.x - 184.0, bubble.size.y - 123.0)
-	body.vertical_alignment = VERTICAL_ALIGNMENT_TOP
-	body.add_theme_constant_override("line_spacing", 10)
 	bubble.add_child(body)
-	_typewriter_label = body
+	_typewriter_rich = body
 	_start_typewriter(text)
+	_finish_outcome_frame(bubble, choice_id)
+
+
+## 结果句写成"某某：……"的，就当那个人在说话：名字牌、立绘都照台词摆。
+## 它仍然是"结果"这一拍（点一下才收），不能被当成下一句台词。
+func _show_outcome_spoken(choice_id: String, who: String, said: String) -> void:
+	var profile := _profile_by_name(who)
+	# 演员表里没有这个人（"大领导""跨部门评委"这种只在台上出现一次的）：
+	# 照样给他一块名字牌，只是没有立绘——比把台词当旁白念强。
+	if profile.is_empty():
+		profile = {"name": who, "id": who}
+	var portrait_name := _portrait_name(String(profile.get("name", who)))
+	var bubble := _make_dialogue_frame(true)
+	var body := _emphasis_label(said, 30, _choice_emphasis(choice_id), 14)
+	body.position = Vector2(520.0, 72.0) if not portrait_name.is_empty() else Vector2(95.0, 72.0)
+	body.size = Vector2(bubble.size.x - body.position.x - 90.0, bubble.size.y - 118.0)
+	bubble.add_child(body)
+	_typewriter_rich = body
+	_start_typewriter(said)
+	if not portrait_name.is_empty():
+		_add_speaker_portrait(portrait_name, _expression_for(said))
+	_add_asset_name_plate(bubble, profile, who)
+	_finish_outcome_frame(bubble, choice_id)
+
+
+## 结果这一拍底下共用的两行：你选了什么、记忆墙上贴一张、右下角"点击继续"。
+func _finish_outcome_frame(bubble: Control, choice_id: String) -> void:
 	var echo := _label("你选择了 · %s" % _choice_text(choice_id), 18, Color("9b6a48"))
 	echo.position = Vector2(92.0, bubble.size.y - 70.0)
 	echo.size = Vector2(bubble.size.x - 320.0, 28.0)
@@ -537,6 +655,32 @@ func _show_outcome(choice_id: String) -> void:
 	bubble.add_child(echo)
 	_add_memo_note(choice_id)
 	_add_dialogue_hint(bubble)
+
+
+## "大领导：“这句比刚才那句有用。”" → {who: 大领导, said: “这句……”}
+## 冒号必须在前 8 个字里，冒号前面不能带标点——免得把正文里的冒号当成人在说话。
+func _split_spoken_outcome(text: String) -> Dictionary:
+	var idx := text.find("：")
+	if idx <= 0 or idx > 8:
+		return {}
+	var who := text.substr(0, idx).strip_edges()
+	var said := text.substr(idx + 1).strip_edges()
+	if who.is_empty() or said.is_empty():
+		return {}
+	if who.contains("，") or who.contains("。") or who.contains("“") or who.contains(" "):
+		return {}
+	return {"who": who, "said": said}
+
+
+## 按**显示名**找演员：结果句里写的是"大领导"，不是演员表里的 id。
+func _profile_by_name(name: String) -> Dictionary:
+	if (_event.get("speakers", {}) as Dictionary).has(name):
+		return _speaker_profile(name)
+	for value in _cast_list():
+		var actor := Dictionary(value)
+		if String(actor.get("name", "")) == name:
+			return actor
+	return {}
 
 
 func _finish_without_choice() -> void:
@@ -661,34 +805,55 @@ func _advance() -> void:
 func _start_typewriter(text: String) -> void:
 	_typewriter_full = text
 	_typewriter_shown = 0
-	if is_instance_valid(_typewriter_label):
-		_typewriter_label.text = text if reduced_motion else ""
-		if reduced_motion:
-			_typewriter_shown = text.length()
-		else:
-			_typewriter_timer.wait_time = [0.05, TYPE_INTERVAL, 0.008][clampi(text_speed, 0, 2)]
-			_typewriter_timer.start()
+	if not _has_typewriter_target():
+		return
+	if reduced_motion:
+		_typewriter_shown = _visible_total()
+		_set_typewriter_progress(-1)
+	else:
+		_set_typewriter_progress(0)
+		_typewriter_timer.wait_time = [0.05, TYPE_INTERVAL, 0.008][clampi(text_speed, 0, 2)]
+		_typewriter_timer.start()
 
 
 func _tick_typewriter() -> void:
-	if not is_instance_valid(_typewriter_label):
+	if not _has_typewriter_target():
 		_stop_typewriter()
 		return
-	_typewriter_shown = mini(_typewriter_shown + 2, _typewriter_full.length())
-	_typewriter_label.text = _typewriter_full.substr(0, _typewriter_shown)
-	if _typewriter_shown >= _typewriter_full.length():
+	var total := _visible_total()
+	_typewriter_shown = mini(_typewriter_shown + 2, total)
+	_set_typewriter_progress(_typewriter_shown)
+	if _typewriter_shown >= total:
 		_stop_typewriter()
 
 
 func _is_typing() -> bool:
-	return _typewriter_shown < _typewriter_full.length()
+	return _has_typewriter_target() and _typewriter_shown < _visible_total()
 
 
 func _finish_typewriter() -> void:
-	_typewriter_shown = _typewriter_full.length()
-	if is_instance_valid(_typewriter_label):
-		_typewriter_label.text = _typewriter_full
+	_typewriter_shown = _visible_total()
+	_set_typewriter_progress(-1)
 	_stop_typewriter()
+
+
+func _has_typewriter_target() -> bool:
+	return is_instance_valid(_typewriter_rich) or is_instance_valid(_typewriter_label)
+
+
+## 强调用的是 BBCode，字符数得按"看得见的字"算，不然打字机会把标签也算进去。
+func _visible_total() -> int:
+	if is_instance_valid(_typewriter_rich):
+		return _typewriter_rich.get_total_character_count()
+	return _typewriter_full.length()
+
+
+func _set_typewriter_progress(count: int) -> void:
+	if is_instance_valid(_typewriter_rich):
+		# -1 = 全部显示；RichTextLabel 自己会跳过 BBCode 标签。
+		_typewriter_rich.visible_characters = count
+	elif is_instance_valid(_typewriter_label):
+		_typewriter_label.text = _typewriter_full.substr(0, maxi(count, 0))
 
 
 func _stop_typewriter() -> void:
@@ -699,12 +864,18 @@ func _stop_typewriter() -> void:
 # ---------------------------------------------------------------- 新对白素材
 
 func _portrait_name(name: String) -> String:
-	return name if name in ["小林", "小赵", "王哥", "老周"] else ""
+	if name.is_empty():
+		return ""
+	# 有「自然」立绘的说话人就给他立绘；配角（大领导/记录评委/HRBP…）也算。
+	return name if ResourceLoader.exists(PORTRAIT_PATH % [name, name, "自然"]) else ""
 
 
 func _portrait_texture(name: String, expression: String) -> Texture2D:
 	var path := PORTRAIT_PATH % [name, name, expression]
-	return _load_texture(path)
+	var texture := _load_texture(path)
+	if texture == null and expression != "自然":
+		texture = _load_texture(PORTRAIT_PATH % [name, name, "自然"])
+	return texture
 
 
 func _expression_for(text: String) -> String:
@@ -775,6 +946,180 @@ func _add_dialogue_hint(frame: Control) -> void:
 	label.size = Vector2(150.0, 30.0)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	frame.add_child(label)
+
+
+# ---------------------------------------------------------------- 行话小圆点
+#
+# 只做一件事：台词里冒出一个玩家不可能懂的专业词，给一句人话。
+# 不记录听过没听过、不进档案页、不呼吸提示。全年八个词（data/story/v12m/terms.json），
+# 不点什么都不发生，点一下浮一句，再点任意地方收起。
+
+const TERMS_PATH := "res://data/story/v12m/terms.json"
+const TERM_DOT_SIZE := 46.0
+
+var _terms: Array = []
+var _term_card: Control
+## 当前这一拍的气泡和可点的词：台词里那个词本身也能点，靠这两个变量找到该给谁开纸片。
+var _term_frame: Control
+var _term_current: Dictionary
+## 鼠标此刻是不是停在那个词上（这一版 RichTextLabel 没有"某点在哪个链接上"的查询，
+## 只能靠悬停信号自己记）。
+var _term_hot := false
+var _term_last_toggle := 0
+## 第一次遇到能点的词时给一句一次性的说明：不解释的话玩家根本不知道有这功能。
+var _term_hint_seen := false
+
+
+func _load_terms() -> void:
+	if not _terms.is_empty():
+		return
+	var parsed = JSON.parse_string(FileAccess.get_file_as_string(TERMS_PATH))
+	if parsed is Dictionary:
+		_terms = (parsed as Dictionary).get("terms", []) as Array
+
+
+func _matched_term(text: String) -> Dictionary:
+	_load_terms()
+	for value in _terms:
+		if not (value is Dictionary):
+			continue
+		var term := value as Dictionary
+		var word := String(term.get("word", ""))
+		if not word.is_empty() and text.contains(word):
+			return term
+	return {}
+
+
+func _add_term_dot(frame: Control, term: Dictionary) -> void:
+	_term_frame = frame
+	_term_current = term
+	if term.is_empty():
+		return
+	var dot := Button.new()
+	dot.name = "TermDot"
+	dot.text = "？"
+	dot.position = Vector2(frame.size.x - TERM_DOT_SIZE - 26.0, 22.0)
+	dot.size = Vector2(TERM_DOT_SIZE, TERM_DOT_SIZE)
+	dot.add_theme_font_override("font", FONT)
+	dot.add_theme_font_size_override("font_size", 24)
+	dot.add_theme_color_override("font_color", Color("fff4d5"))
+	dot.add_theme_stylebox_override("normal", _term_dot_style(Color("b95035")))
+	dot.add_theme_stylebox_override("hover", _term_dot_style(Color("cf6247")))
+	dot.add_theme_stylebox_override("pressed", _term_dot_style(Color("8f3a26")))
+	dot.pressed.connect(_toggle_term_card.bind(frame, term))
+	frame.add_child(dot)
+	if not _term_hint_seen:
+		_term_hint_seen = true
+		_add_term_hint(frame, dot)
+
+
+## 一次性的说明：第一次有词可点时，点在呼吸、旁边写一行"这个词能点"。
+## 呼吸四秒后自己停，字跟着淡掉；玩家点过一次之后就再也不出现。
+func _add_term_hint(frame: Control, dot: Button) -> void:
+	# 气泡是浅色纸，米白字会直接融进去——用砖棕，跟那颗点同一个颜色家族。
+	var hint := _label("画线那个词，点一下", 20, Color("a8552e"), true)
+	hint.name = "TermHint"
+	hint.position = Vector2(frame.size.x - 470.0, 30.0)
+	hint.size = Vector2(392.0, 30.0)
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	frame.add_child(hint)
+	if reduced_motion:
+		return
+	dot.pivot_offset = dot.size * 0.5
+	var breathe := dot.create_tween().set_loops()
+	breathe.tween_property(dot, "scale", Vector2(1.16, 1.16), 0.6) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	breathe.tween_property(dot, "scale", Vector2.ONE, 0.6) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	var fade := create_tween()
+	fade.tween_interval(4.0)
+	fade.tween_property(hint, "modulate:a", 0.0, 0.6)
+	fade.tween_callback(func():
+		if is_instance_valid(hint):
+			hint.queue_free())
+
+
+## 点在那个词上：开 / 收那张纸片。
+func _on_term_meta(_meta) -> void:
+	# 触屏没有"悬停"，只有 meta_clicked；鼠标那边已经在 _on_term_body_input 里处理过了，
+	# 200 毫秒内不重复翻面，否则一次点击会开完又关。
+	if Time.get_ticks_msec() - _term_last_toggle < 200:
+		return
+	_open_term_card()
+
+
+## 词以外的地方点了还是"点击继续"——不能因为文字接了鼠标，整段对话就卡住。
+func _on_term_body_input(event: InputEvent, label: RichTextLabel) -> void:
+	var pressed := false
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		pressed = true
+	elif event is InputEventScreenTouch and event.pressed:
+		pressed = true
+	if not pressed:
+		return
+	if not _term_hot:
+		_advance()
+		return
+	_term_last_toggle = Time.get_ticks_msec()
+	_open_term_card()
+
+
+func _open_term_card() -> void:
+	if _term_frame == null or not is_instance_valid(_term_frame) or _term_current.is_empty():
+		return
+	_toggle_term_card(_term_frame, _term_current)
+
+
+func _term_dot_style(background: Color) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = background
+	style.set_corner_radius_all(int(TERM_DOT_SIZE / 2.0))
+	style.set_border_width_all(2)
+	style.border_color = Color("f6e6bd")
+	style.shadow_color = Color(0, 0, 0, 0.40)
+	style.shadow_size = 4
+	return style
+
+
+func _toggle_term_card(frame: Control, term: Dictionary) -> void:
+	if _term_card != null and is_instance_valid(_term_card):
+		_term_card.queue_free()
+		_term_card = null
+		return
+	var word := String(term.get("word", ""))
+	var plain := String(term.get("plain", ""))
+	var width := maxf(380.0, FONT.get_string_size(plain, HORIZONTAL_ALIGNMENT_LEFT, -1, 26).x + 72.0)
+	var card := Panel.new()
+	card.name = "TermCard"
+	card.size = Vector2(width, 106.0)
+	card.position = Vector2(round((frame.size.x - width) * 0.5), -card.size.y - 16.0)
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color("fff3dc")
+	style.border_color = Color("5b321f")
+	style.set_border_width_all(3)
+	style.set_corner_radius_all(6)
+	style.shadow_color = Color(0, 0, 0, 0.42)
+	style.shadow_size = 8
+	card.add_theme_stylebox_override("panel", style)
+	var title := _label(word, 24, Color("b95035"), true)
+	title.position = Vector2(26, 14)
+	title.size = Vector2(width - 52, 32)
+	card.add_child(title)
+	var body := _label(plain, 26, Color("4a2b1a"))
+	body.position = Vector2(26, 52)
+	body.size = Vector2(width - 52, 44)
+	card.add_child(body)
+	var close := Button.new()
+	close.flat = true
+	close.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
+	close.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	close.pressed.connect(func():
+		if is_instance_valid(card):
+			card.queue_free()
+		_term_card = null)
+	card.add_child(close)
+	frame.add_child(card)
+	_term_card = card
 
 
 # ---------------------------------------------------------------- 零件
@@ -901,6 +1246,8 @@ func _add_key_hint(bubble: Control, text: String) -> void:
 func _clear_ui() -> void:
 	for child in _ui_layer.get_children():
 		child.queue_free()
+	_typewriter_label = null
+	_typewriter_rich = null
 	_entry_fade = null
 	_entry_card = null
 
@@ -918,7 +1265,19 @@ func _speaker_profile(speaker_id: String) -> Dictionary:
 	return {}
 
 
+## 结果页那句"谁说了什么"读的是**选项自己带的 outcome**（开发册 11.4 第 2 条）。
+## 以前只查事件级那张旧 outcome 表——全年 39 个带选项的节点都把话写在选项上，
+## 表是空的，于是每次选完都掉到"你的选择被记录下来了"这句兜底里。
 func _outcome_text(choice_id: String) -> String:
+	for value in (_event.get("choices", []) as Array):
+		if not (value is Dictionary):
+			continue
+		var choice := Dictionary(value)
+		if String(choice.get("id", "")) != choice_id:
+			continue
+		var per_choice := String(choice.get("outcome", ""))
+		if not per_choice.is_empty():
+			return per_choice
 	var outcomes: Dictionary = _event.get("outcome", {})
 	return String(outcomes.get(choice_id, "你的选择被记录下来了。"))
 
@@ -937,6 +1296,8 @@ func _memo_payload(choice_id: String, note: Dictionary) -> Dictionary:
 		"actTitle": String(_event.get("actTitle", "")),
 		"month": int(_event.get("month", 1)),
 		"day": int(_event.get("day", 1)),
+		# 十二个月的日期口径是"上/中/下旬"，便签要跟着它写，别再用旧时钟算出来的"几日"。
+		"phase": String(_event.get("phase", "")),
 		"choiceId": choice_id,
 		"choiceText": _choice_text(choice_id),
 		"text": String(note.get("text", "")),
@@ -1018,6 +1379,71 @@ func _label(value: String, font_size: int, color: Color, bold: bool = false) -> 
 	label.add_theme_font_size_override("font_size", roundi(font_size * (1.12 if large_text else 1.0)))
 	label.add_theme_color_override("font_color", color)
 	return label
+
+
+## 台词正文。强调短语来自 beat 的 emphasis 数组（数据里仍是干净原文），
+## 这里只负责把关键词包成"更重的字重 + 砖红"，其余字保持原样。
+func _emphasis_label(text: String, font_size: int, emphasis: Array, spacing: int = 14, term_word: String = "") -> RichTextLabel:
+	var rich := RichTextLabel.new()
+	rich.bbcode_enabled = true
+	rich.scroll_active = false
+	rich.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	rich.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# RichTextLabel 的 line_spacing 属性是枚举，像素间距要走主题常量。
+	rich.add_theme_constant_override("line_spacing", spacing)
+	var size := roundi(font_size * (1.12 if large_text else 1.0))
+	rich.add_theme_font_override("normal_font", _bold(FONT, 0.6))
+	rich.add_theme_font_override("bold_font", _bold(FONT, 1.0))
+	rich.add_theme_font_size_override("normal_font_size", size)
+	rich.add_theme_font_size_override("bold_font_size", size)
+	rich.add_theme_color_override("default_color", Color("56301e"))
+	rich.text = _markup(text, emphasis, term_word)
+	if not term_word.is_empty() and text.contains(term_word):
+		# 词本身可点：接到链接上就开解释；点在别处仍然照旧"点击继续"。
+		rich.mouse_filter = Control.MOUSE_FILTER_STOP
+		rich.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		rich.meta_clicked.connect(_on_term_meta)
+		rich.meta_hover_started.connect(func(_meta): _term_hot = true)
+		rich.meta_hover_ended.connect(func(_meta): _term_hot = false)
+		rich.gui_input.connect(_on_term_body_input.bind(rich))
+	return rich
+
+
+func _markup(text: String, emphasis: Array, term_word: String = "") -> String:
+	# 能点的词先单独包一层：松绿 + 下划线，跟剧情重音（砖棕加粗）区分开——
+	# 一个意思是"这句要记住"，一个意思是"这个词可以点"，不能长一个样。
+	var pre := text
+	if not term_word.is_empty() and pre.contains(term_word):
+		# [url] 包一层：玩家点的是这个词本身，不是只能去摸角上那颗点。
+		pre = pre.replace(term_word,
+			"[url=term][color=#%s][u]%s[/u][/color][/url]" % [TERM_INK.to_html(false), term_word])
+	var phrases: Array[String] = []
+	for value in emphasis:
+		var phrase := String(value)
+		if not phrase.is_empty() and text.contains(phrase):
+			phrases.append(phrase)
+	# 长的先包，避免短词把长词劈成两截。
+	phrases.sort_custom(func(a, b): return a.length() > b.length())
+	var result := pre
+	var done: Array[String] = []
+	for phrase in phrases:
+		var covered := false
+		for earlier in done:
+			if earlier.contains(phrase):
+				covered = true
+				break
+		if covered:
+			continue
+		result = result.replace(phrase, "[color=#%s][b]%s[/b][/color]" % [EMPHASIS_INK.to_html(false), phrase])
+		done.append(phrase)
+	return result
+
+
+func _choice_emphasis(choice_id: String) -> Array:
+	for value in _event.get("choices", []) as Array:
+		if value is Dictionary and String((value as Dictionary).get("id", "")) == choice_id:
+			return (value as Dictionary).get("emphasis", []) as Array
+	return []
 
 
 func _note_style(fill: Color) -> StyleBoxFlat:

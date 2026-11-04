@@ -14,14 +14,14 @@
     "B_研发部",
     "C_销售部",
     "心湖",
-    "E_财务部"
+    "E_松风训练谷"
    ],
    "stage2_months_17_32": [
     "D_人事部",
-    "H_生产部"
+    "H_慢生活园"
    ],
    "stage3_months_33_48": [],
-   "_stage3_todo": "阶段 3 暂无专属组团：原设计把 F_运营部 / G_行政部 放在这一档，但这两组团当前零活动。补上活动后，把名字挪进 stage3_months_33_48。",
+   "_stage3_todo": "阶段 3 暂无专属组团：原设计把 F_观澜会展码头 / G_暖邻康护院 放在这一档，但这两组团当前零活动。补上活动后，把名字挪进 stage3_months_33_48。",
    "_field_note": "活动真正的门槛看 activity.unlock_game（值 = 阶段号，与上表同义）；本表只是文档，代码不读它。"
   }
  },
@@ -389,7 +389,7 @@
   },
   {
    "activity_id": "D3_lawn_sports",
-   "zone": "E_财务部",
+   "zone": "E_松风训练谷",
    "type": "duo",
    "party_size": 2,
    "candidates": [
@@ -447,7 +447,7 @@
   },
   {
    "activity_id": "D4_camp_bbq",
-   "zone": "E_财务部",
+   "zone": "E_松风训练谷",
    "type": "duo",
    "party_size": 2,
    "candidates": [
@@ -587,7 +587,7 @@
   },
   {
    "activity_id": "G1_trust_escape_room",
-   "zone": "E_财务部",
+   "zone": "E_松风训练谷",
    "type": "group",
    "party_size": 3,
    "candidates": [
@@ -664,7 +664,7 @@
   },
   {
    "activity_id": "G2_campfire",
-   "zone": "E_财务部",
+   "zone": "E_松风训练谷",
    "type": "group",
    "party_size": "2-3",
    "candidates": [
@@ -733,7 +733,7 @@
   },
   {
    "activity_id": "G3_board_game",
-   "zone": "H_生产部",
+   "zone": "H_慢生活园",
    "unlock_game": 2,
    "type": "group",
    "party_size": 3,
@@ -894,7 +894,7 @@
   },
   {
    "activity_id": "W2_own_project",
-   "zone": "B_研发部|H_生产部",
+   "zone": "B_研发部|H_慢生活园",
    "type": "work",
    "party_size": 1,
    "estimated_seconds": 50,

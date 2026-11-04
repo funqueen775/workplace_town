@@ -63,6 +63,10 @@ class GameState:
 
     # ---------------- 隐藏账本：能力 / 大五证据 / 专题信号
     competency: dict[str, int] = field(default_factory=dict)
+    # 十二个月能力五格（开发文档 4.19）：选项上的能力标签攒点进 ability_points；
+    # 第 5 格不靠攒，只由剧情里"有人真的拿你的东西去用"那一幕写进 ability_peak。
+    ability_points: dict[str, int] = field(default_factory=dict)
+    ability_peak: list[str] = field(default_factory=list)
     bigfive_evidence: dict[str, list[dict]] = field(default_factory=dict)
     sdt: list[dict] = field(default_factory=list)
     regulatory_focus: list[dict] = field(default_factory=list)

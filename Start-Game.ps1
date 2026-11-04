@@ -3,12 +3,18 @@ param([switch]$Restart)
 $ErrorActionPreference = "Stop"
 $projectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $configPath = Join-Path $projectRoot "backend/local_llm_config.json"
-if (-not (Test-Path -LiteralPath $configPath)) {
-    throw "Missing backend/local_llm_config.json. Share the complete project folder."
+$hasLlmKey = $false
+if (Test-Path -LiteralPath $configPath) {
+    try {
+        $llmConfig = Get-Content -LiteralPath $configPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        $apiKey = [string]$llmConfig.apiKey
+        $hasLlmKey = -not [string]::IsNullOrWhiteSpace($apiKey) -and $apiKey -notlike "replace-*"
+    } catch {
+        Write-Warning "The local model config is invalid; NPC chat will use offline replies."
+    }
 }
-$llmConfig = Get-Content -LiteralPath $configPath -Raw -Encoding UTF8 | ConvertFrom-Json
-if ([string]::IsNullOrWhiteSpace($llmConfig.apiKey) -or $llmConfig.apiKey -like "replace-*") {
-    throw "The local model key is not configured."
+if (-not $hasLlmKey) {
+    Write-Host "No model API key configured. NPC chat will use offline replies."
 }
 
 $python = (Get-Command python -ErrorAction Stop).Source
@@ -213,6 +219,14 @@ if ($runningGame) {
     Write-Host "The game and backend are already running."
     exit 0
 }
+Write-Host "Importing Godot resources into the local .godot cache..."
+$importArgs = @("--headless", "--editor", "--path", "`"$projectRoot`"", "--import", "--quit")
+$importProcess = Start-Process -FilePath $godot -WorkingDirectory $projectRoot `
+    -ArgumentList $importArgs -Wait -PassThru
+if ($importProcess.ExitCode -ne 0) {
+    throw "Godot resource import failed with exit code $($importProcess.ExitCode)."
+}
+Write-Host "Godot resource import completed."
 Start-Process -FilePath $godot -WorkingDirectory $projectRoot -ArgumentList @(
     "--path", "`"$projectRoot`"", "--scene", "res://Startup.tscn"
 ) | Out-Null
