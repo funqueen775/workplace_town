@@ -50,6 +50,7 @@ const MONTH12_PLACES_PATH := "res://data/story/v12m/activities.json"
 const MONTH12_HINTS_PATH := "res://data/story/v12m/hints.json"
 ## 全年参数（每月几格行动点、心情上限、月初回几点）只有这一份出处。
 const MONTH12_MANIFEST_PATH := "res://data/story/v12m/manifest.json"
+const MONTH12_ACTION_INTRO_FLAG := "action_points_intro_seen"
 ## 判定门槛（三条红线、转正两态、晋升规则表）只认这一份文件，代码里不写数（4.21）。
 ## 缺字段一律往轻的那边退：配置没写全时，宁可放过，不可误判玩家不合格。
 const MONTH12_RUBRICS_PATH := "res://data/story/v12m/rubrics.json"
@@ -322,13 +323,14 @@ var _hook_nav_zone := ""
 ## 通用月份的自由安排：格数从节点里读（第 3 月起是 2 格），不再写死首月那一格。
 var _month12_activity_generic := false
 var _month12_activity_ids: Array[String] = []
+var _activity_handoff_ids: Array[String] = []
 ## ---------- 五本账里先做成真账的两本（4.15）----------
 ## 心情 H：0–上限（manifest.hMax），月初回 1 点封顶；一处活动给回多少走 stateDelta.H，
 ## 额外消耗走 hCost，且 H≤2 时消耗翻倍（行动点不翻）。
 var _mood := 6
 var _mood_max := 6
 var _mood_month_start := 6
-## 行动点：每月几格从 manifest.apByMonth 读（1/3/5/7/9/11 = 1/2/2/3/3/3），月底清零不跨月。
+## 行动力额度：普通自由活动月 1 点；第 7 月为「熊熊有招」保留 3 点，月底清零不跨月。
 var _ap_total := 0
 ## 这个月做过的每一笔，月末卡当场结算给玩家看：{"what","ap","mood"}
 var _month_ledger: Array = []
@@ -1920,9 +1922,10 @@ func _skip_month12_tour() -> void:
 func _skip_month12_story() -> void:
 	if not _month12_active or _month12_month >= 12 or _month12_phase in ["done", "report"]:
 		return
-	if _town_ui_v2 != null:
-		_town_ui_v2.set_activity_hint("")
 	_month12_activity_ids.clear()
+	_activity_handoff_ids.clear()
+	if _town_ui_v2 != null:
+		_town_ui_v2.set_activity_guide("", "", false)
 	var finished_month := _month12_month
 	_month12_flags["m%02d_story_skipped" % finished_month] = true
 	_month12_phase = "done"
@@ -1990,7 +1993,7 @@ func _refresh_town_ui_v2() -> void:
 		return
 	var remaining := _action_window.remaining if _action_window != null and not _action_window.current_window_id.is_empty() else 3
 	if _month12_active:
-		# 一罐一格，六格封顶：读数跟着账走。
+		# 蜜罐代表行动力；心情读数使用上方的爱心条。
 		_town_ui_v2.refresh(WorldClock.snapshot(), WorldClock.next_main_event(), _month12_ap_left, maxi(1, _ap_total), "行动力")
 	else:
 		_town_ui_v2.refresh(WorldClock.snapshot(), WorldClock.next_main_event(), remaining, 3)
@@ -2085,11 +2088,11 @@ func _hud_button_tutorial_config(kind: String) -> Dictionary:
 		"mood":
 			return {
 				"kind": "mood",
-				"kicker": "顶上那罐",
+				"kicker": "顶上那排爱心",
 				"title": "心情",
 				"lede": "它记着你还能撑多久，一共六格。",
 				"hero_title": "心情",
-				"hero_sub": "六格 · 一罐一格",
+				"hero_sub": "六格 · 一颗一格",
 				"preview_title": "它不写在手册里",
 				"preview_text": "公司不记这本账。剩几格，只有你自己知道。",
 				"steps": [
@@ -2910,11 +2913,11 @@ func _build_mobile_joystick(layer: CanvasLayer) -> void:
 
 
 func _update_zone_state() -> void:
+	_update_location_marker_visibility()
 	if _month12_active:
 		# 首月是脚本化带巡：所有入口/传送门一律不响应，防止玩家串场。
 		_nearby_zone = {}
 		return
-	_update_location_marker_visibility()
 	if not _active_zone.is_empty():
 		_nearby_zone = {}
 		return
@@ -2931,14 +2934,15 @@ func _update_location_marker_visibility() -> void:
 	var entered_code := ""
 	if _active_zone.is_empty() and _player != null:
 		for zone in ZONES:
+			var code := String(zone["code"])
+			if _month12_active and not _is_month12_zone_open(code):
+				continue
 			if (zone["rect"] as Rect2).has_point(_player.position):
-				entered_code = String(zone["code"])
+				entered_code = code
 				break
 	for marker in _location_markers:
-		# 十二个月这条线不挂这批木牌：那八张是从旧 48 个月裁出来的（市场部 / 人事部 / 暖邻康护院…），
-		# 而现在的底图自己已经把「市场部 / 人事部 / 暖邻康护院」画在建筑上了，
-		# 挂出来就是同一个门口两个名字打架（2026-10-28 实机截图里撞见）。
-		marker.visible = not _month12_active and marker.name == "LocationMarker%s" % entered_code
+		# 底图没有地点文字；靠近已开放区域时，在对应建筑上显示仓库现有地点牌。
+		marker.visible = marker.name == "LocationMarker%s" % entered_code
 
 
 func _use_interior_layout(code: String) -> void:
@@ -3057,11 +3061,14 @@ func _on_weekend_scene_finished() -> void:
 		# 通用月份：格子还有就回镇上继续，用完才翻月。
 		# 0 格月例外：门只是开着让人看一眼，翻月由玩家自己点"结束这个月"。
 		if _month12_slots_total <= 0 or _month12_slots_left > 0:
+			_refresh_month12_activity_guide()
 			return
 		call_deferred("_finish_month12_activity_node")
 		return
 	if _month12_active:
 		# 首月做完一件自由活动：不扣旧行动力窗口的点（那套窗口首月压根没启动），直接进月末。
+		if _town_ui_v2 != null:
+			_town_ui_v2.set_activity_guide("", "", false)
 		call_deferred("_start_month12_close")
 		return
 	if not _pending_action_activity.is_empty():
@@ -4231,9 +4238,7 @@ func _start_month_opening() -> void:
 	if _town_ui_v2 != null:
 		# 首月先聚焦岗位条和当前任务；手机、手册按流程需要再开放。
 		# 档案不再是需要开放的东西：它就在左上角那条岗位栏上，开局就能翻。
-		# 那罐蜂蜜是心情 H，不是体力。首月不亮：这个月没有任何东西会扣心情，
-		# 摆一个不会动的读数上去，等于让玩家盯一件没有后果的事。
-		# 第 2 月月初起账时它才登场（见 _begin_month_ledger）。
+		# 行动力蜜罐在自由活动说明卡后显示；心情独立用爱心读数，不与行动力共用图标。
 		_town_ui_v2.set_energy_visible(false)
 		_town_ui_v2.set_phone_visible(false)
 		_town_ui_v2.set_phone_red_dot(false)
@@ -4646,9 +4651,8 @@ func _month12_activity_step() -> void:
 	if _town_ui_v2 != null:
 		_town_ui_v2.set_task_card("本周自由安排 · 1 点", "第 1 月 · 门口亮起来了")
 		_town_ui_v2.set_task_note("走近提示区域的门，点击进入")
-		_town_ui_v2.set_activity_hint(_month12_activity_destination_hint(_month12_activity_ids))
-	_show_reminder_toast("本月活动已开放", _month12_activity_destination_hint(_month12_activity_ids))
 	_show_end_month_button(true)
+	_start_month12_activity_handoff(_month12_activity_ids, true)
 
 
 func _load_month12_places() -> void:
@@ -4855,16 +4859,144 @@ func _advance_hook_cards() -> void:
 		_advance_hook_cards()
 		return
 	var place: Dictionary = _hook_queue.pop_front()
-	_month12_place_panel.show_unlock(place)
+	_month12_place_panel.show_unlock(place, bool(place.get("navigate", true)), String(place.get("presentationHeading", "解 锁")))
 
 
 func _on_place_unlock_dismissed(_activity_id: String) -> void:
+	if _activity_id == "action_points_intro":
+		_month12_flags[MONTH12_ACTION_INTRO_FLAG] = true
 	if _tour_card_after.is_valid():
 		var after := _tour_card_after
 		_tour_card_after = Callable()
 		after.call()
 		return
 	_advance_hook_cards()
+
+
+func _start_month12_activity_handoff(activity_ids: Array, show_all_unlock_cards: bool) -> void:
+	_activity_handoff_ids = _available_month12_activity_ids(activity_ids)
+	if _activity_handoff_ids.is_empty():
+		if _town_ui_v2 != null:
+			_town_ui_v2.set_energy_visible(true)
+			_town_ui_v2.set_activity_guide("本月自由安排", "本月暂无已开放活动，可以结束本月。", true)
+		_show_reminder_toast("没有可参加的活动", "检查当前已开放区域与活动安排")
+		return
+	if _town_ui_v2 != null:
+		_town_ui_v2.set_energy_visible(false)
+		_town_ui_v2.set_activity_guide("", "", false)
+		_town_ui_v2.set_task_note("自由活动已开放 · 可前往任意活动地点选择")
+	_hook_nav_zone = ""
+	_month12_waypoint = Vector2(-99999, -99999)
+	if _guide_line != null:
+		_guide_line.clear()
+	_hook_queue.clear()
+	if not bool(_month12_flags.get(MONTH12_ACTION_INTRO_FLAG, false)):
+		_hook_queue.append({
+			"id": "action_points_intro",
+			"name": "行动力说明",
+			"navigate": false,
+			"presentationHeading": "行动力说明",
+			"card": {
+				"title": "行动力怎么用",
+				"lines": [
+					"行动力用于参加本月开放的区域活动。",
+					"每项活动消耗点数；用完后才能继续主线。",
+					"开放区域有多项活动，可自由选择，不必跟路线。",
+					"A、B区是办公区，没有活动；请选开放的C-H区。",
+				],
+				"shots": [],
+			},
+		})
+	var card_ids: Array[String] = []
+	if show_all_unlock_cards:
+		card_ids.append_array(_activity_handoff_ids)
+	else:
+		card_ids.append(_activity_handoff_ids[0])
+	for index in card_ids.size():
+		var activity := _month12_place_by_id(card_ids[index]).duplicate(true)
+		activity["navigate"] = false
+		if index == 0:
+			if not show_all_unlock_cards:
+				activity["presentationHeading"] = "行动安排"
+		_hook_queue.append(activity)
+	_hook_after = Callable(self, "_finish_month12_activity_handoff")
+	_advance_hook_cards()
+
+
+func _available_month12_activity_ids(activity_ids: Array) -> Array[String]:
+	var ordered_ids: Array[String] = []
+	for value in activity_ids:
+		var activity_id := String(value)
+		if not ordered_ids.has(activity_id):
+			ordered_ids.append(activity_id)
+	# 开过的地方仍可再访；当本月的首选活动已做完时，用其他已开放活动承接剩余行动力。
+	for value in _month12_unlocked_places.keys():
+		var activity_id := String(value)
+		if not ordered_ids.has(activity_id):
+			ordered_ids.append(activity_id)
+	var available: Array[String] = []
+	for activity_id in ordered_ids:
+		var activity := _month12_place_by_id(activity_id)
+		var zone := String(activity.get("locationId", ""))
+		var cost := maxi(1, int(activity.get("apCost", 1)))
+		var slots := maxi(1, int(activity.get("slots", 1)))
+		if activity.is_empty() or zone not in ["C", "D", "E", "F", "G", "H"]:
+			continue
+		if not bool(_month12_unlocked_places.get(activity_id, false)) \
+				or not bool(_month12_open_zones.get(zone, false)) \
+				or _month12_activity_visited(activity_id) \
+				or cost > _month12_ap_left:
+			continue
+		if _month12_activity_generic and slots > _month12_slots_left:
+			continue
+		available.append(activity_id)
+	return available
+
+
+func _finish_month12_activity_handoff() -> void:
+	_hook_nav_zone = ""
+	_month12_waypoint = Vector2(-99999, -99999)
+	if _guide_line != null:
+		_guide_line.clear()
+	if _town_ui_v2 != null:
+		_town_ui_v2.set_energy_visible(true)
+		_town_ui_v2.set_task_note("自由活动 · 可选择任意开放的活动地点")
+		_refresh_mood_hud()
+	_refresh_month12_activity_guide()
+
+
+func _refresh_month12_activity_guide() -> void:
+	if _town_ui_v2 == null:
+		return
+	if not _month12_active or _month12_ap_left <= 0:
+		_town_ui_v2.set_activity_guide("", "", false)
+		return
+	if _month12_activity_generic and _month12_slots_left <= 0:
+		_town_ui_v2.set_activity_guide("", "", false)
+		return
+	if not _month12_activity_generic and _month12_activity_taken:
+		_town_ui_v2.set_activity_guide("", "", false)
+		return
+	var candidates := _available_month12_activity_ids(_activity_handoff_ids)
+	if candidates.is_empty():
+		_town_ui_v2.set_activity_guide("本月暂无可用活动", "可以结束本月，继续后续剧情。", true)
+		return
+	var names_by_zone: Dictionary = {}
+	var zone_order: Array[String] = []
+	for activity_id in candidates:
+		var activity := _month12_place_by_id(activity_id)
+		var zone_code := String(activity.get("locationId", ""))
+		var zone_name := String(activity.get("location", _month12_zone_name(zone_code)))
+		if not names_by_zone.has(zone_name):
+			names_by_zone[zone_name] = []
+			zone_order.append(zone_name)
+		(names_by_zone[zone_name] as Array).append(String(activity.get("name", "区域活动")))
+	var activity_lines: Array[String] = []
+	for zone_name in zone_order:
+		activity_lines.append("%s：%s" % [zone_name, "、".join(names_by_zone[zone_name])])
+	var title := "本月可参加的活动 · 剩余 %d 点" % _month12_ap_left
+	var note := "\n".join(activity_lines)
+	_town_ui_v2.set_activity_guide(title, note, true)
 
 
 ## 某一屏读完，把 unlockAfter 指向这一屏的去处立门并排队弹卡。
@@ -4942,8 +5074,7 @@ func runner_open_activity(node: Dictionary) -> void:
 	# 这一屏是当天哪一段：日历格只有白天/夜晚，午后写不进日期牌，就写进卡片副行。
 	_activity_band_word = _band_word_of(String(node.get("timeBand", "")))
 	# 后面还有没有剧情：决定那颗按钮叫什么、按下去要不要多说一句。
-	# 第 1/5/7 月的两格在月末，按下去就是收尾；第 3/9/11 月的两格夹在中间，
-	# 按下去只是"不逛了"，当天晚上那几屏照演——按钮上写"结束这个月"是在说谎。
+	# 活动格用完后，按下去才推进；第 3/9/11 月后面还有剧情，按钮只是结束自由安排。
 	var next_node: Dictionary = {}
 	if _month_runner != null:
 		next_node = _month_runner_peek()
@@ -4961,13 +5092,12 @@ func runner_open_activity(node: Dictionary) -> void:
 		_month12_activity_ids.append(String(activity_id))
 	_refresh_month12_place_seals()
 	_update_month12_activity_card()
-	if _month12_slots_left > 0:
-		_show_reminder_toast("本月活动已开放", _month12_activity_destination_hint(_month12_activity_ids))
-	else:
+	if _month12_slots_left <= 0:
 		_show_reminder_toast("这个月没有个人时间", "老地方还能进去坐坐，不花点")
+	else:
+		_start_month12_activity_handoff(node.get("activityIds", []) as Array, false)
 	_show_end_month_button(true)
 	_refresh_end_month_label(node)
-	_apply_hook_navigation()
 	_fire_hints("activity_open")
 	# 自由安排这一屏也要能挂自己的提示：`node_started:<活动节点 id>` 和剧情屏同一套触发词，
 	# 否则"本月几格、去哪儿"这类话只能写死在每个月里（第 5 月就没有提示可挂）。
@@ -5096,8 +5226,6 @@ func _month12_out_of_slots() -> bool:
 func _update_month12_activity_card() -> void:
 	if _town_ui_v2 == null or not _month12_activity_generic:
 		return
-	var destination_hint := _month12_activity_destination_hint(_month12_activity_ids)
-	_town_ui_v2.set_activity_hint(destination_hint)
 	var title := ""
 	var note := ""
 	if _month12_slots_total <= 0:
@@ -5148,8 +5276,9 @@ func _month12_activity_destination_hint(activity_ids: Array) -> String:
 ## 通用月份的收尾：格子用完、或者玩家自己点"结束这个月"。
 func _finish_month12_activity_node() -> void:
 	_show_end_month_button(false)
+	_activity_handoff_ids.clear()
 	if _town_ui_v2 != null:
-		_town_ui_v2.set_activity_hint("")
+		_town_ui_v2.set_activity_guide("", "", false)
 	_month12_activity_ids.clear()
 	_hook_nav_zone = ""
 	if _month12_activity_generic and _month12_slots_left > 0:
@@ -5317,7 +5446,7 @@ func _show_month12_place_list(zone_code: String) -> void:
 			"cardArt": art_path,
 			"thumbArt": String(act.get("thumbArt", "")),
 			"badge": _month12_zone_name(zone_code),
-			# 卡右边那栏是心情账（蜂蜜罐全游戏只表示心情 H），
+			# 卡右边那栏是心情账，使用爱心图标；蜜罐只表示行动力，
 			# 占几格写在下面那行小字里，由 _month12_place_row_note 统一口径。
 			"cost": int(act.get("hCost", 0)),
 			"note": _month12_place_row_note(act),
@@ -5366,9 +5495,11 @@ func _show_month12_place_list(zone_code: String) -> void:
 		points_text = "本月还剩 1 格" if slots_left > 0 else "这个月安排完了 · 老地方还能进去坐坐"
 	var carded: Array = []
 	for row_value in rows:
-		if not String(Dictionary(row_value).get("cardArt", "")).is_empty():
+		var row_id := String(Dictionary(row_value).get("id", ""))
+		if _interior_preview != null and _interior_preview.has_activity_card(row_id):
 			carded.append(row_value)
-	if MONTH12_CARD_SURFACE == "room" and _interior_preview != null and _interior_preview.is_open():
+	if MONTH12_CARD_SURFACE == "room" and not carded.is_empty() \
+			and _interior_preview != null and _interior_preview.is_open():
 		# 屋里右上角那一叠（队友 10-30 录屏那版）：这一屋子能去的地方全在里面，
 		# 有整卡的贴整卡，没整卡的现画同版式票根——右下角那块面板同时收掉，
 		# 不然同一份去处读两遍。
@@ -5378,14 +5509,15 @@ func _show_month12_place_list(zone_code: String) -> void:
 		# 板子占的正是右上角"本月主线"那块地方：进屋收掉它，出屋还原（_exit_zone）。
 		if _town_ui_v2 != null:
 			_town_ui_v2.set_activity_scene_mode(true)
-		_interior_preview.set_activities(rows, true, 1)
+		_interior_preview.set_activities(carded, true, 1)
 		return
 	if not carded.is_empty():
 		_activity_panel.hide_panel()
 		_activity_cards.open("%s 区" % zone_code, rows, points_text)
 		return
+	var panel_lift := 84.0 if _month12_active and _month12_month == 5 else 0.0
 	_activity_panel.show_for_region(zone_code, rows, slots_left, slots_total, points_text,
-		_month12_now_line(zone_code))
+		_month12_now_line(zone_code), panel_lift)
 
 
 ## 面板最底下那一句落点："现在去什么地方做什么"。
@@ -5678,13 +5810,16 @@ func _on_month12_activity_chosen(option_id: String) -> void:
 
 
 func _on_end_month_pressed() -> void:
+	if _month12_active and _month12_ap_left > 0 \
+			and not _available_month12_activity_ids(_activity_handoff_ids).is_empty():
+		_refresh_month12_activity_guide()
+		_show_reminder_toast("先完成区域活动", "行动力用完后才能继续主线；A、B区没有活动")
+		return
 	_show_end_month_button(false)
-	if _town_ui_v2 != null:
-		_town_ui_v2.set_activity_hint("")
 	if _month12_activity_generic:
 		# 后面还有剧情时这颗按钮只是"不逛了"，不说一句玩家会以为整个月都翻过去了。
 		if not _activity_next_is_close:
-			_show_reminder_toast("这两格不安排了", "今天后面还有一段，接着走")
+			_show_reminder_toast("这项活动不安排了", "今天后面还有一段，接着走")
 		call_deferred("_finish_month12_activity_node")
 		return
 	if not _month12_activity_taken:
@@ -6619,11 +6754,18 @@ func _start_month_nodes(month_value: int) -> void:
 
 
 ## 月初卡点"继续"之后、本月节点表启动之前：第 2 月在这里插心情讲解卡。
-## 罐子在这一拍刚刚亮（_begin_month_ledger），而首月组内小工具已经可能掉过一格——
+## 爱心条在这一拍刚刚亮（_begin_month_ledger），而首月组内小工具已经可能掉过一格——
 ## 玩家带着"这是什么"的疑问进门，卡就在疑问最新鲜的时候答。E04 的三个选项都不显示
 ## 心情代价，所以先讲机制不会把技术选型变成"保一格 vs 拿 S+2"的算术题。
 func _begin_month_nodes_after_start_card(month_value: int, month_nodes: Array) -> void:
+	if month_value == 2:
+		if _show_hud_button_tutorial("mood", func(): _actually_start_month_nodes(month_value, month_nodes)):
+			return
 	_actually_start_month_nodes(month_value, month_nodes)
+
+
+func _is_mood_meter_unlocked(month_value: int) -> bool:
+	return month_value >= 2
 
 
 func _actually_start_month_nodes(month_value: int, month_nodes: Array) -> void:
@@ -8278,14 +8420,15 @@ func _begin_month_ledger(month_value: int) -> void:
 		_mood = clampi(_resume_mood, 0, _mood_max)
 		_resume_mood = -1
 	_mood_month_start = _mood
-	# 读数第 2 月登场：那个月第一次出现"选它会累"（评审室那一档 −1），
-	# 有了后果再给读数，顺序不能反。
-	var show_meter := true
+	# 心情玩法在第二月解锁显示：第一月先体验入职，不提前展示这本账。
+	var show_meter := _is_mood_meter_unlocked(month_value)
 	if show_meter and not _mood_meter_lit:
 		_mood_meter_just_lit = true
 	_mood_meter_lit = show_meter
 	if _town_ui_v2 != null:
-		_town_ui_v2.set_energy_visible(show_meter)
+		_town_ui_v2.set_mood_visible(show_meter)
+		# 行动力先收起，等到自由活动说明卡后再亮，避免玩家尚未知道用途就看到计数。
+		_town_ui_v2.set_energy_visible(false)
 	_ap_total = int(_ap_by_month.get(month_value, 0))
 	_month12_ap_left = _ap_total
 	# 翻月前先把上个月那本活动账归档：报告的"自由活动回顾"要看整年，不是只看这个月。
@@ -8359,12 +8502,13 @@ func _month_ledger_line() -> String:
 	]
 
 
-## 心情变了就重画那罐蜂蜜：读数必须跟着账走，不能停在开局那个数。
+## 心情变了就重画 HUD 爱心：读数必须跟着账走，不能停在开局那个数。
 ## 只刷蜂蜜那一行（update_card=false）：十二个月流程里卡片由剧情写，
 ## 这里再刷一次 WorldClock 的主线，会把「自由安排 · 还剩 N 格」打回「新员工手册」。
 func _refresh_mood_hud() -> void:
 	if _town_ui_v2 != null and _month12_active:
-		_town_ui_v2.refresh(WorldClock.snapshot(), WorldClock.next_main_event(), _month12_ap_left, 1 if _month12_month == 1 else 3, "行动力", false)
+		_town_ui_v2.refresh(WorldClock.snapshot(), WorldClock.next_main_event(), _month12_ap_left, maxi(1, _ap_total), "行动力", false)
+		_town_ui_v2.set_mood(_mood, _mood_max)
 
 
 ## 在屋里点了那一行：旁白就在室内这一屏演完。

@@ -42,11 +42,11 @@ func close() -> void:
 
 
 ## ① 解锁讲解卡。card = activities.json 里的 card 字段（title / lines / shots）。
-func show_unlock(activity: Dictionary, navigate := true) -> void:
+func show_unlock(activity: Dictionary, navigate := true, heading_text := "解 锁") -> void:
 	var card: Dictionary = activity.get("card", {}) as Dictionary
 	var lines: Array = card.get("lines", []) as Array
 	var paper := _open_sheet(-3.0)
-	var heading := _label("解 锁", 96, Color("F3E3C2"), HAND_FONT)
+	var heading := _label(heading_text, 72 if heading_text.length() > 3 else 96, Color("F3E3C2"), HAND_FONT)
 	heading.position = Vector2(-18, 18)
 	heading.size = Vector2(420, 120)
 	paper.add_child(heading)

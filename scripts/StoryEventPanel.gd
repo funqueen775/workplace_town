@@ -94,7 +94,7 @@ const BUBBLE_LINE := Color(0.97, 0.96, 0.92)
 const PLATE_FILL := Color(0.97, 0.96, 0.93)
 const PLATE_LINE := Color(0.06, 0.05, 0.08)
 const INK := Color(0.10, 0.09, 0.12)
-const PAD_X := 46.0
+const PAD_X := 54.0
 
 var _root: Control
 var _stage_layer: Control
@@ -454,9 +454,9 @@ func _show_say(beat: Dictionary) -> void:
 	var bubble := _make_dialogue_frame(true)
 	# 能点的词单独标出来（松绿下划线），不然光有角上一颗点，玩家不知道句里哪个词能点。
 	var term := _matched_term(text)
-	var body := _emphasis_label(text, 30, beat.get("emphasis", []) as Array, 14, String(term.get("word", "")))
-	body.position = Vector2(520.0, 72.0) if not portrait_name.is_empty() else Vector2(95.0, 72.0)
-	body.size = Vector2(bubble.size.x - body.position.x - 90.0, bubble.size.y - 118.0)
+	var body := _emphasis_label(text, 34, beat.get("emphasis", []) as Array, 20, String(term.get("word", "")))
+	body.position = Vector2(520.0, 64.0) if not portrait_name.is_empty() else Vector2(95.0, 64.0)
+	body.size = Vector2(bubble.size.x - body.position.x - 90.0, bubble.size.y - 112.0)
 	bubble.add_child(body)
 	_typewriter_rich = body
 	_start_typewriter(text)
@@ -479,9 +479,9 @@ func _show_narration(text: String, emphasis: Array = []) -> void:
 	_clear_ui()
 	var bubble := _make_dialogue_frame(false)
 	var term := _matched_term(text)
-	var body := _emphasis_label(text, 29, emphasis, 14, String(term.get("word", "")))
-	body.position = Vector2(92.0, 62.0)
-	body.size = Vector2(bubble.size.x - 184.0, bubble.size.y - 118.0)
+	var body := _emphasis_label(text, 34, emphasis, 20, String(term.get("word", "")))
+	body.position = Vector2(92.0, 58.0)
+	body.size = Vector2(bubble.size.x - 184.0, bubble.size.y - 108.0)
 	bubble.add_child(body)
 	_typewriter_rich = body
 	_start_typewriter(text)
@@ -615,9 +615,9 @@ func _show_outcome(choice_id: String) -> void:
 		_show_outcome_spoken(choice_id, String(spoken["who"]), String(spoken["said"]))
 		return
 	var bubble := _make_dialogue_frame(false)
-	var body := _emphasis_label(text, 28, _choice_emphasis(choice_id), 10)
-	body.position = Vector2(92.0, 57.0)
-	body.size = Vector2(bubble.size.x - 184.0, bubble.size.y - 123.0)
+	var body := _emphasis_label(text, 32, _choice_emphasis(choice_id), 16)
+	body.position = Vector2(92.0, 54.0)
+	body.size = Vector2(bubble.size.x - 184.0, bubble.size.y - 120.0)
 	bubble.add_child(body)
 	_typewriter_rich = body
 	_start_typewriter(text)
@@ -634,9 +634,9 @@ func _show_outcome_spoken(choice_id: String, who: String, said: String) -> void:
 		profile = {"name": who, "id": who}
 	var portrait_name := _portrait_name(String(profile.get("name", who)))
 	var bubble := _make_dialogue_frame(true)
-	var body := _emphasis_label(said, 30, _choice_emphasis(choice_id), 14)
-	body.position = Vector2(520.0, 72.0) if not portrait_name.is_empty() else Vector2(95.0, 72.0)
-	body.size = Vector2(bubble.size.x - body.position.x - 90.0, bubble.size.y - 118.0)
+	var body := _emphasis_label(said, 34, _choice_emphasis(choice_id), 20)
+	body.position = Vector2(520.0, 64.0) if not portrait_name.is_empty() else Vector2(95.0, 64.0)
+	body.size = Vector2(bubble.size.x - body.position.x - 90.0, bubble.size.y - 112.0)
 	bubble.add_child(body)
 	_typewriter_rich = body
 	_start_typewriter(said)
@@ -648,9 +648,9 @@ func _show_outcome_spoken(choice_id: String, who: String, said: String) -> void:
 
 ## 结果这一拍底下共用的两行：你选了什么、记忆墙上贴一张、右下角"点击继续"。
 func _finish_outcome_frame(bubble: Control, choice_id: String) -> void:
-	var echo := _label("你选择了 · %s" % _choice_text(choice_id), 18, Color("9b6a48"))
-	echo.position = Vector2(92.0, bubble.size.y - 70.0)
-	echo.size = Vector2(bubble.size.x - 320.0, 28.0)
+	var echo := _label("你选择了 · %s" % _choice_text(choice_id), 21, Color("9b6a48"))
+	echo.position = Vector2(92.0, bubble.size.y - 76.0)
+	echo.size = Vector2(bubble.size.x - 320.0, 32.0)
 	echo.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	bubble.add_child(echo)
 	_add_memo_note(choice_id)
@@ -904,7 +904,7 @@ func _make_dialogue_frame(character: bool) -> Control:
 	frame.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	frame.stretch_mode = TextureRect.STRETCH_SCALE
 	frame.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
-	frame.size = Vector2(minf(1550.0, size.x - 56.0), 330.0 if character else 280.0)
+	frame.size = Vector2(minf(1550.0, size.x - 56.0), 370.0 if character else 330.0)
 	frame.position = Vector2((size.x - frame.size.x) * 0.5, size.y - frame.size.y - 70.0)
 	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_ui_layer.add_child(frame)
@@ -941,9 +941,9 @@ func _add_asset_name_plate(frame: Control, profile: Dictionary, fallback: String
 
 
 func _add_dialogue_hint(frame: Control) -> void:
-	var label := _label("点击继续", 19, Color("9b6a48"), true)
-	label.position = Vector2(frame.size.x - 235.0, frame.size.y - 72.0)
-	label.size = Vector2(150.0, 30.0)
+	var label := _label("点击继续", 22, Color("9b6a48"), true)
+	label.position = Vector2(frame.size.x - 245.0, frame.size.y - 78.0)
+	label.size = Vector2(165.0, 36.0)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	frame.add_child(label)
 
@@ -1152,9 +1152,9 @@ func _bubble_height(text: String, width: float, font_size: int) -> float:
 	if text.is_empty():
 		return 128.0
 	var lines := _wrapped_lines(text, width - PAD_X * 2.0, font_size)
-	# 行高 = 字号 ×1.42（中文字体实际行高）+ line_spacing 12；上下各留 34px 内边距。
+	# 行高 = 字号 ×1.42（中文字体实际行高）+ 加大的行距；上下多留白避免贴边。
 	# 估小了正文就会压到下面那行「你选择了」上面去。
-	return maxf(128.0, float(lines) * (float(font_size) * 1.42 + 12.0) + 68.0)
+	return maxf(144.0, float(lines) * (float(font_size) * 1.42 + 20.0) + 82.0)
 
 
 ## 名字牌：白底黑字的斜切牌，挂在气泡外侧。

@@ -22,7 +22,7 @@ func _ready() -> void:
 	hide_panel()
 
 
-func show_for_region(region_id: String, activities: Array, remaining: int, maximum: int, points_text := "", footer := "") -> void:
+func show_for_region(region_id: String, activities: Array, remaining: int, maximum: int, points_text := "", footer := "", vertical_lift := 0.0) -> void:
 	_zone_id = region_id
 	_activities = activities.duplicate(true)
 	_title.text = "%s 区 · 能进去的地方" % region_id
@@ -48,7 +48,8 @@ func show_for_region(region_id: String, activities: Array, remaining: int, maxim
 	# 这里用左上锚点 + 绝对坐标：面板高度是算出来的，靠右锚点的偏移量在动态尺寸下会算漂。
 	var viewport_size := get_viewport().get_visible_rect().size
 	_root.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_root.position = Vector2(viewport_size.x - 490.0, maxf(120.0, viewport_size.y - _root.size.y - 14.0))
+	_root.position = Vector2(viewport_size.x - 490.0,
+		maxf(120.0, viewport_size.y - _root.size.y - 14.0 - vertical_lift))
 	_footer.text = footer
 	_footer.visible = not footer.is_empty()
 	_footer.position = Vector2(20, 158 + rows_height + 12)

@@ -168,8 +168,15 @@ var _task_caption: Label
 var _root: Control
 var _view: String = ""
 var _energy_panel: Control
-var _activity_hint: Label
+var _activity_guide: Panel
+var _activity_guide_title: Label
+var _activity_guide_note: Label
+var _activity_scene_mode := false
+var _activity_guide_requested_visible := false
 var _task_panel: Control
+var _mood_panel: Panel
+var _mood_label: Label
+var _mood_hearts: Array[TextureRect] = []
 var _phone_button: Button
 var _phone_dot: Panel
 var _manual_button: Button
@@ -199,7 +206,7 @@ func _ready() -> void:
 
 ## update_card：要不要顺手把右上角那张「本月主线」卡刷回 WorldClock 的主线。
 ## 十二个月流程下卡片归剧情这边写（自由安排会写「还剩几格」），
-## 心情一变就重画那罐蜂蜜时若还刷卡片，标题会被打回 WorldClock 的旧主线，
+## 心情一变就重画 HUD 时若还刷卡片，标题会被打回 WorldClock 的旧主线，
 ## 于是出现「标题写着新员工手册、第三行却写着还剩 1 格」这种半新半旧的卡。
 func refresh(snapshot: Dictionary, event: Dictionary, energy := 0, energy_max := 3, energy_caption := "精力", update_card := true) -> void:
 	_layout_hud()
@@ -210,9 +217,11 @@ func refresh(snapshot: Dictionary, event: Dictionary, energy := 0, energy_max :=
 	var state := ApiClient.server_state()
 	_job_label.text = "当前职位  %s" % _profile_role(int(state.get("level", 1)))
 	_energy_label.text = "%s  %d/%d" % [energy_caption, energy, energy_max]
-	var lit := int(round(float(energy) / maxf(1.0, float(energy_max)) * float(_honey_icons.size())))
+	var visible_jars := mini(maxi(energy_max, 0), _honey_icons.size())
 	for index in _honey_icons.size():
-		_honey_icons[index].texture = HUD_HONEY_FULL if index < lit else HUD_HONEY_EMPTY
+		_honey_icons[index].visible = index < visible_jars
+		if index < visible_jars:
+			_honey_icons[index].texture = HUD_HONEY_FULL if index < energy else HUD_HONEY_EMPTY
 	if not update_card:
 		return
 	if event.is_empty():
@@ -223,15 +232,11 @@ func refresh(snapshot: Dictionary, event: Dictionary, energy := 0, energy_max :=
 
 
 func set_activity_scene_mode(enabled: bool) -> void:
+	_activity_scene_mode = enabled
 	if _task_panel != null:
 		_task_panel.visible = not enabled
-
-
-func set_activity_hint(text: String) -> void:
-	if _activity_hint == null:
-		return
-	_activity_hint.text = text
-	_activity_hint.visible = not text.is_empty() and _energy_panel != null and _energy_panel.visible
+	if _activity_guide != null:
+		_activity_guide.visible = _activity_guide_requested_visible and not enabled
 
 
 func open_view(view: String, payload: Dictionary = {}) -> void:
@@ -375,6 +380,28 @@ func _build_hud() -> void:
 	_hud.add_child(_standing_line)
 	_art(HUD_PORTRAIT, Vector2(46, 158), Vector2(72, 72), _hud)
 	_player_portrait = _art(HUD_PLAYER_PORTRAITS.get(PlayerProfile.get_selected_avatar_id(), HUD_PLAYER_PORTRAITS["avatar_player"]), Vector2(53, 165), Vector2(58, 58), _hud)
+	var mood_panel := Panel.new()
+	mood_panel.name = "MoodMeter"
+	mood_panel.size = Vector2(440, 42)
+	mood_panel.visible = false
+	mood_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var mood_style := StyleBoxFlat.new()
+	mood_style.bg_color = Color(0.329, 0.196, 0.122, 0.94)
+	mood_style.border_color = Color("ffc453")
+	mood_style.set_border_width_all(2)
+	mood_style.set_corner_radius_all(14)
+	mood_panel.add_theme_stylebox_override("panel", mood_style)
+	_hud.add_child(mood_panel)
+	_mood_panel = mood_panel
+	_mood_label = _label("心情  6/6", 18)
+	_mood_label.position = Vector2(14, 3)
+	_mood_label.size = Vector2(130, 34)
+	_mood_label.add_theme_color_override("font_color", Color("fff0c9"))
+	mood_panel.add_child(_mood_label)
+	for index in 6:
+		var heart := _art(PROFILE_HEART_FULL, Vector2(154 + index * 44, 8), Vector2(24, 24), mood_panel)
+		heart.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_mood_hearts.append(heart)
 	var energy := _art(HUD_ENERGY, Vector2.ZERO, Vector2(440, 98), _hud)
 	_energy_panel = energy
 	_energy_label = _label("行动力  1/1", 28)
@@ -382,23 +409,40 @@ func _build_hud() -> void:
 	_energy_label.position = Vector2(24, 14)
 	_energy_label.size = Vector2(220, 68)
 	energy.add_child(_energy_label)
-	# 三格行动力，点亮数量和数值同步。
+	# 蜜罐数量代表本月行动力总点数，每罐对应一点。
 	for index in 3:
 		var honey := _art(HUD_HONEY_FULL, Vector2(280 + index * 40, 26), Vector2(28, 34), energy)
 		_honey_icons.append(honey)
-	_activity_hint = _label("", 18)
-	_activity_hint.name = "ActivityHandoffHint"
-	_activity_hint.position = Vector2.ZERO
-	_activity_hint.size = Vector2(720, 48)
-	_activity_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_activity_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_activity_hint.clip_text = true
-	_activity_hint.visible = false
-	_activity_hint.add_theme_color_override("font_color", Color("fff2cf"))
-	_activity_hint.add_theme_color_override("font_outline_color", Color("342015"))
-	_activity_hint.add_theme_constant_override("outline_size", 5)
-	_activity_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_hud.add_child(_activity_hint)
+	var activity_guide := Panel.new()
+	activity_guide.name = "ActivityGuideBanner"
+	activity_guide.position = Vector2.ZERO
+	activity_guide.size = Vector2(840, 142)
+	activity_guide.visible = false
+	activity_guide.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var guide_style := StyleBoxFlat.new()
+	guide_style.bg_color = Color(0.329, 0.196, 0.122, 0.97)
+	guide_style.border_color = Color("ffc453")
+	guide_style.set_border_width_all(2)
+	guide_style.set_corner_radius_all(16)
+	guide_style.shadow_color = Color(0, 0, 0, 0.4)
+	guide_style.shadow_size = 14
+	activity_guide.add_theme_stylebox_override("panel", guide_style)
+	_hud.add_child(activity_guide)
+	_activity_guide = activity_guide
+	var guide_icon := _art(HUD_HONEY_FULL, Vector2(18, 20), Vector2(46, 48), activity_guide)
+	guide_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_activity_guide_title = _label("行动安排", 22)
+	_activity_guide_title.position = Vector2(78, 12)
+	_activity_guide_title.size = Vector2(730, 30)
+	_activity_guide_title.add_theme_color_override("font_color", Color("ffe5a8"))
+	activity_guide.add_child(_activity_guide_title)
+	_activity_guide_note = _label("", 17)
+	_activity_guide_note.position = Vector2(78, 46)
+	_activity_guide_note.size = Vector2(730, 84)
+	_activity_guide_note.add_theme_color_override("font_color", Color("fff0c9"))
+	_activity_guide_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_activity_guide_note.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+	activity_guide.add_child(_activity_guide_note)
 	var task := Control.new()
 	task.size = Vector2(390, 380)
 	_task_panel = task
@@ -568,11 +612,13 @@ func _layout_hud() -> void:
 		return
 	var viewport_size := get_viewport().get_visible_rect().size
 	_hud.size = viewport_size
+	if _mood_panel != null:
+		_mood_panel.position = Vector2((viewport_size.x - _mood_panel.size.x) * 0.5, 8)
 	if _energy_panel != null:
-		_energy_panel.position = Vector2((viewport_size.x - _energy_panel.size.x) * 0.5, 18)
-	if _activity_hint != null and _energy_panel != null:
-		_activity_hint.position = Vector2((viewport_size.x - _activity_hint.size.x) * 0.5,
-			_energy_panel.position.y + _energy_panel.size.y + 2.0)
+		_energy_panel.position = Vector2((viewport_size.x - _energy_panel.size.x) * 0.5, 58)
+	if _activity_guide != null:
+		var guide_y := _energy_panel.position.y + _energy_panel.size.y + 8.0 if _energy_panel != null and _energy_panel.visible else 24.0
+		_activity_guide.position = Vector2((viewport_size.x - _activity_guide.size.x) * 0.5, guide_y)
 	if _task_panel != null:
 		_task_panel.position = Vector2(viewport_size.x - _task_panel.size.x - 30, 24)
 	_layout_bottom_buttons(viewport_size)
@@ -1185,8 +1231,41 @@ func set_phone_visible(value: bool) -> void:
 func set_energy_visible(value: bool) -> void:
 	if _energy_panel != null:
 		_energy_panel.visible = value
-	if _activity_hint != null:
-		_activity_hint.visible = value and not _activity_hint.text.is_empty()
+		_layout_hud()
+
+
+func set_mood(value: int, mood_max: int) -> void:
+	if _mood_panel == null:
+		return
+	var maximum := clampi(mood_max, 0, _mood_hearts.size())
+	var current := clampi(value, 0, maximum)
+	_mood_label.text = "心情  %d/%d" % [current, maximum]
+	for index in _mood_hearts.size():
+		_mood_hearts[index].visible = index < maximum
+		if index < maximum:
+			_mood_hearts[index].texture = PROFILE_HEART_FULL if index < current else PROFILE_HEART_EMPTY
+
+
+func set_mood_visible(value: bool) -> void:
+	if _mood_panel != null:
+		_mood_panel.visible = value
+		_layout_hud()
+
+
+func set_activity_guide(title: String, note: String, visible: bool) -> void:
+	if _activity_guide == null:
+		return
+	_activity_guide_title.text = title
+	_activity_guide_note.text = note
+	var row_count := maxi(1, note.count("\n") + 1)
+	var viewport_width := get_viewport().get_visible_rect().size.x
+	var guide_width := minf(840.0, maxf(420.0, viewport_width - 32.0))
+	_activity_guide.size = Vector2(guide_width, 60.0 + row_count * 28.0)
+	_activity_guide_title.size.x = guide_width - 100.0
+	_activity_guide_note.size = Vector2(guide_width - 100.0, row_count * 28.0)
+	_activity_guide_requested_visible = visible
+	_activity_guide.visible = visible and not _activity_scene_mode
+	_layout_hud()
 
 
 func set_manual_visible(value: bool) -> void:

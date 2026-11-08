@@ -462,24 +462,25 @@ func _build_interior_characters(location: Dictionary) -> void:
 	_dialog.name = "InteriorNpcDialog"
 	_dialog.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 	_dialog.offset_left = 330
-	_dialog.offset_top = -330
+	_dialog.offset_top = -360
 	_dialog.offset_right = -330
 	_dialog.offset_bottom = -70
 	_dialog.add_theme_stylebox_override("panel", _panel_style())
 	_dialog.z_index = 2000
 	_dialog.hide()
 	_scene.add_child(_dialog)
-	_dialog_text = _label("%s：欢迎来到%s。有什么想了解的吗？" % [_npc_data.get("name", "NPC"), location.get("name", "这个区域")], 21, Color("fff0c9"))
-	_dialog_text.position = Vector2(36, 18)
-	_dialog_text.size = Vector2(1188, 92)
+	_dialog_text = _label("%s：欢迎来到%s。有什么想了解的吗？" % [_npc_data.get("name", "NPC"), location.get("name", "这个区域")], 25, Color("fff0c9"))
+	_dialog_text.position = Vector2(38, 22)
+	_dialog_text.size = Vector2(1000, 112)
+	_dialog_text.add_theme_constant_override("line_spacing", 8)
 	_dialog.add_child(_dialog_text)
 	_message_input = LineEdit.new()
 	_message_input.name = "PlayerMessageInput"
 	_message_input.placeholder_text = "输入你想对%s说的话……" % _npc_data.get("name", "NPC")
-	_message_input.position = Vector2(36, 126)
-	_message_input.size = Vector2(950, 72)
+	_message_input.position = Vector2(38, 150)
+	_message_input.size = Vector2(930, 78)
 	_message_input.add_theme_font_override("font", FONT)
-	_message_input.add_theme_font_size_override("font_size", 21)
+	_message_input.add_theme_font_size_override("font_size", 24)
 	_message_input.add_theme_color_override("font_color", Color("3a2618"))
 	_message_input.add_theme_color_override("font_placeholder_color", Color("8f735c"))
 	_message_input.add_theme_stylebox_override("normal", _input_style())
@@ -488,10 +489,10 @@ func _build_interior_characters(location: Dictionary) -> void:
 	_send_button = Button.new()
 	_send_button.name = "SendMessageButton"
 	_send_button.text = "发送"
-	_send_button.position = Vector2(1008, 126)
-	_send_button.size = Vector2(180, 72)
+	_send_button.position = Vector2(990, 150)
+	_send_button.size = Vector2(190, 78)
 	_send_button.add_theme_font_override("font", FONT)
-	_send_button.add_theme_font_size_override("font_size", 22)
+	_send_button.add_theme_font_size_override("font_size", 24)
 	_send_button.add_theme_color_override("font_color", Color("fff4d4"))
 	_send_button.add_theme_stylebox_override("normal", _button_style(Color("9f4c36")))
 	_send_button.add_theme_stylebox_override("hover", _button_style(Color("bf6241")))
@@ -500,10 +501,10 @@ func _build_interior_characters(location: Dictionary) -> void:
 	var close_button := Button.new()
 	close_button.name = "CloseDialogButton"
 	close_button.text = "关闭"
-	close_button.position = Vector2(1080, 18)
-	close_button.size = Vector2(108, 52)
+	close_button.position = Vector2(1060, 22)
+	close_button.size = Vector2(120, 56)
 	close_button.add_theme_font_override("font", FONT)
-	close_button.add_theme_font_size_override("font_size", 18)
+	close_button.add_theme_font_size_override("font_size", 21)
 	close_button.add_theme_stylebox_override("normal", _button_style(Color("6f4933")))
 	close_button.pressed.connect(_close_dialog)
 	_dialog.add_child(close_button)

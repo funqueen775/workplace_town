@@ -179,49 +179,56 @@
     },
     {
       "id": "m7_valley",
-      "name": "团队密室",
+      "name": "熊熊有招",
       "locationId": "E",
       "location": "财务部",
-      "description": "和同事组队参加财务部的团队密室活动。",
+      "description": "小赵邀你去松风训练谷打一局。可以反复练习，胜负不影响职业评估；本次活动消耗 3 点行动力。",
       "scene": "res://assets/活动场景/E_财务部_团队密室.png",
-      "apCost": 1,
+      "apCost": 3,
       "slots": 1,
       "hCost": 1,
       "mode": "solo",
       "portal": {
         "zoneId": "E"
       },
-      "placeLine": "和同事组队解开密室线索，过程不计入评估。",
+      "placeLine": "小赵：周末去松风训练谷打一局吧，我带你熟悉规则。输了也没关系，可以再练。",
       "card": {
         "title": "财务部",
         "lines": [
-          "和同事组队挑战密室，合作解开线索。"
+          "小赵邀你去松风训练谷打一局，熟悉掷骰、判断和配合。",
+          "活动地点：训练谷入口"
         ],
         "shots": [
           "res://assets/活动场景/E_财务部_团队密室.png"
         ],
         "pages": 1
       },
-      "object": "密室入口",
-      "againLine": "密室的线索还在，你们又试了一种解法。",
-      "outcome": "你和同事完成了团队密室挑战，大家一起复盘了刚才的线索。",
+      "object": "训练谷入口",
+      "againLine": "训练谷的场地还开着，你和小赵又练了一局。",
+      "outcome": "你和小赵在松风训练谷完成了一次练习。牌局胜负和过程不计入职业评估。",
       "rewardFlag": "m07_valley_first",
       "repeatRule": "once_per_month",
       "evidenceEligible": false,
       "gatedBy": "month_required",
       "unlockHook": "unlock_sports",
-      "btSignals": [
-        {
-          "trait": "C",
-          "dir": 1,
-          "strength": "M",
-          "context": "硬扛",
-          "code": "act_valley_duel",
-          "fact": "一局一局打完，输了也接着打"
-        }
-      ],
-      "abilityTags": {
-        "resilience": 1
+      "btSignals": [],
+      "duel": "training_valley",
+      "duelText": {
+        "partner": "小赵",
+        "partnerArt": "res://training_valley/assets/characters/xiaozhao_locked.png",
+        "selectLine": "小赵：规则我先陪你走一遍。选我的角色卡，我们搭档上场；输了还能再练。",
+        "victoryLines": [
+          {
+            "speaker": "松叔",
+            "text": "这一局打得不错。输赢先放一边，把规则和队友的节奏记住就行。"
+          },
+          {
+            "speaker": "小赵",
+            "text": "下次再来练也行。走吧，回小镇看看还有什么安排。"
+          }
+        ],
+        "endTitle": "训练结束",
+        "endText": "本次练习已结束。牌局胜负、骰运和出牌不进入职业评估。返回小镇后结算本活动：消耗 3 点行动力，占用 1 个活动名额。"
       }
     },
     {
@@ -387,10 +394,10 @@
       "name": "独自学习",
       "locationId": "D",
       "location": "人事部",
-      "description": "在人事部学习中心独自学习，占两格行动力。",
+      "description": "在人事部学习中心独自学习，消耗 1 点行动力。",
       "scene": "res://assets/活动场景/D_人事部_独自学习.png",
-      "apCost": 2,
-      "slots": 2,
+      "apCost": 1,
+      "slots": 1,
       "hCost": 1,
       "mode": "solo",
       "portal": {

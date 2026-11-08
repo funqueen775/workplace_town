@@ -447,7 +447,7 @@ func _build_selection_layer() -> void:
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_theme_constant_override("separation", 10)
 	select_layer.add_child(row)
-	wang_partner_card = _partner_card(partner_name, "可靠兜底", partner_texture, false)
+	wang_partner_card = _partner_card(partner_name, "本次搭档", partner_texture, false)
 	row.add_child(wang_partner_card)
 	for entry in _other_partners():
 		row.add_child(_partner_card(String(entry[0]), "尚未解锁", entry[1] as Texture2D, true))
@@ -460,7 +460,7 @@ func _build_selection_layer() -> void:
 	var dialogue_box := VBoxContainer.new()
 	dialogue_box.add_theme_constant_override("separation", 8)
 	dialogue.add_child(dialogue_box)
-	var speaker_name := _label("王哥", 23, Color("#2f5a44"))
+	var speaker_name := _label(partner_name, 23, Color("#2f5a44"))
 	speaker_name.add_theme_stylebox_override("normal", _name_rule())
 	dialogue_box.add_child(speaker_name)
 	var words := _label(
