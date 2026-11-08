@@ -474,8 +474,11 @@ def main() -> int:
         month = int(node["month"])
         budget = node.get("budget") or {}
         slots = int(budget.get("slots", -1))
-        if slots != ap_by_month.get(month, 0):
-            errors.append(f"{node['id']} 的 budget.slots={slots} 与 apByMonth[{month}]={ap_by_month.get(month, 0)} 不一致")
+        if slots < 1 or slots > ap_by_month.get(month, 0):
+            errors.append(
+                f"{node['id']} 的 budget.slots={slots} 必须在 1 到 apByMonth[{month}]="
+                f"{ap_by_month.get(month, 0)} 之间"
+            )
         if slots <= 0:
             errors.append(f"{node['id']} 在没有行动点预算的月份里挂了活动节点")
         pool = node.get("activityIds") or []
@@ -488,8 +491,10 @@ def main() -> int:
     inviteable = {str(npc.get("id")) for npc in manifest.get("npcs", []) if npc.get("inRelationSystem")}
     for activity in (activities or {}).get("activities", []):
         activity_by_id[str(activity.get("id"))] = activity
-        if int(activity.get("apCost", 0)) > int(activity.get("slots", 0)):
-            errors.append(f"活动 {activity.get('id')} 的 apCost 大于 slots")
+        if int(activity.get("apCost", 0)) < 1:
+            errors.append(f"活动 {activity.get('id')} 的 apCost 必须至少为 1")
+        if int(activity.get("slots", 0)) < 1:
+            errors.append(f"活动 {activity.get('id')} 的 slots 必须至少为 1")
         if visible_length(str(activity.get("name", ""))) > 8:
             errors.append(f"活动 {activity.get('id')} 的名称超过 8 字，装不进卡面")
         mode = str(activity.get("mode", "solo"))

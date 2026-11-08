@@ -17,7 +17,7 @@ const TYPE_INTERVAL := 0.022
 const COLOR_TEXT := Color("56301e")
 const COLOR_SUB := Color("9b6a48")
 ## 对话框字号：1080p 下 32px 才有 galgame 台词的分量。
-const DIALOG_FONT_SIZE := 32
+const DIALOG_FONT_SIZE := 36
 
 var _config: Dictionary = {}
 var _lines: Array = []
@@ -188,19 +188,20 @@ func _build_ui() -> void:
 	dialog_panel.anchor_bottom = 1.0
 	dialog_panel.offset_left = -720.0
 	dialog_panel.offset_right = 720.0
-	dialog_panel.offset_top = -335.0
+	dialog_panel.offset_top = -385.0
 	dialog_panel.offset_bottom = -65.0
 	dialog_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_root.add_child(dialog_panel)
 
 	_dialog_label = Label.new()
 	_dialog_label.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_dialog_label.offset_left = 95.0
-	_dialog_label.offset_right = -95.0
-	_dialog_label.offset_top = 58.0
-	_dialog_label.offset_bottom = -68.0
+	_dialog_label.offset_left = 104.0
+	_dialog_label.offset_right = -104.0
+	_dialog_label.offset_top = 64.0
+	_dialog_label.offset_bottom = -78.0
 	_dialog_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_dialog_label.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+	_dialog_label.add_theme_constant_override("line_spacing", 12)
 	_dialog_label.add_theme_font_override("font", FONT)
 	_dialog_label.add_theme_font_size_override("font_size", DIALOG_FONT_SIZE)
 	_dialog_label.add_theme_color_override("font_color", COLOR_TEXT)
@@ -213,13 +214,13 @@ func _build_ui() -> void:
 	_hint_label.anchor_right = 1.0
 	_hint_label.anchor_top = 1.0
 	_hint_label.anchor_bottom = 1.0
-	_hint_label.offset_left = -215.0
-	_hint_label.offset_right = -75.0
-	_hint_label.offset_top = -68.0
+	_hint_label.offset_left = -225.0
+	_hint_label.offset_right = -72.0
+	_hint_label.offset_top = -76.0
 	_hint_label.offset_bottom = -38.0
 	_hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_hint_label.add_theme_font_override("font", FONT)
-	_hint_label.add_theme_font_size_override("font_size", 14)
+	_hint_label.add_theme_font_size_override("font_size", 18)
 	_hint_label.add_theme_color_override("font_color", COLOR_SUB)
 	_hint_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	dialog_panel.add_child(_hint_label)

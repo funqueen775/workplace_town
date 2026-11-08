@@ -5053,8 +5053,8 @@
       "reportUse": "story_only",
       "entryMode": "on_site",
       "budget": {
-        "ap": 3,
-        "slots": 3
+        "ap": 1,
+        "slots": 1
       },
       "day": 3,
       "hour": 14
@@ -5534,8 +5534,8 @@
       "reportUse": "story_only",
       "entryMode": "on_site",
       "budget": {
-        "ap": 3,
-        "slots": 3
+        "ap": 1,
+        "slots": 1
       },
       "guideBy": "老周"
     },
@@ -7804,7 +7804,7 @@
       "entryMode": "on_site",
       "budget": {
         "ap": 3,
-        "slots": 3
+        "slots": 1
       },
       "when": {
         "notFlag": "probation_ended"
@@ -8221,8 +8221,8 @@
       "reportUse": "story_only",
       "entryMode": "on_site",
       "budget": {
-        "ap": 3,
-        "slots": 3
+        "ap": 1,
+        "slots": 1
       },
       "guideBy": "老周"
     },
@@ -8892,8 +8892,8 @@
       "reportUse": "story_only",
       "entryMode": "on_site",
       "budget": {
-        "ap": 3,
-        "slots": 3
+        "ap": 1,
+        "slots": 1
       }
     },
     {

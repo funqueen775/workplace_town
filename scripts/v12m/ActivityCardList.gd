@@ -8,7 +8,7 @@ extends CanvasLayer
 ## 为什么不直接把美术给的整卡贴上去（重要）：那 12 张图把区名、活动名、一句话、消耗
 ## 全烙死在像素里，而烙的字和游戏数据对不上——图上 E 区印"财务部"、H 区印"生产部"，
 ## 游戏里 E 是松风训练谷、H 是慢生活园；图上写"小馆咖啡聊天"，数据里这条叫"销售部外摆"。
-## 所以这里只取图上不会错的两样零件（缩略图、蜂蜜罐，由 tools/v12m_cut_activity_cards.py 切出来），
+## 所以这里只取图上不会错的缩略图（由 tools/v12m_cut_activity_cards.py 切出来），
 ## 版式照图重画，文字一律现读 activities.json。图重画了重跑那个脚本即可。
 ##
 ## 卡片只负责"选哪件"：点一下发 activity_selected，结算仍在原来的到访页。
@@ -19,7 +19,7 @@ signal closed()
 
 const FONT := preload("res://assets/fonts/NotoSansCJKsc-Regular.otf")
 const HAND_FONT := preload("res://assets/fonts/ZCOOLKuaiLe-Regular.ttf")
-const JAR_TEX := "res://assets/ui/activity_cards/honey_jar.png"
+const MOOD_HEART_TEX := "res://assets/ui/rework_v1/profile/components/03_人际关系/关系_实心爱心.png"
 const THUMB_DIR := "res://assets/ui/activity_cards/thumb_%s.png"
 
 const PAPER := Color("fdf6e6")
@@ -255,7 +255,7 @@ func _build_ticket(row: Control, item: Dictionary, thumb: String) -> void:
 	note.add_theme_constant_override("line_spacing", 3)
 	outer.add_child(note)
 
-	# 消耗栏 = 心情那本账。蜂蜜罐在全游戏只表示心情 H（HUD 顶上同款），
+	# 消耗栏 = 心情那本账，使用与 HUD 一致的爱心图标；行动力仍由蜜罐表示。
 	# 所以这里的数字读 hCost，不读格子；占几格走下面那行小字。
 	var cost_panel := Panel.new()
 	cost_panel.position = Vector2(872, 30)
@@ -269,17 +269,17 @@ func _build_ticket(row: Control, item: Dictionary, thumb: String) -> void:
 	cost_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	cost_panel.add_child(cost_title)
 	var cost := int(item.get("cost", 0))
-	if ResourceLoader.exists(JAR_TEX):
-		var jar := TextureRect.new()
-		jar.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		jar.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		jar.texture = load(JAR_TEX)
-		jar.position = Vector2(66, 50)
-		jar.size = Vector2(66, 80)
-		jar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if ResourceLoader.exists(MOOD_HEART_TEX):
+		var heart := TextureRect.new()
+		heart.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		heart.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		heart.texture = load(MOOD_HEART_TEX)
+		heart.position = Vector2(66, 50)
+		heart.size = Vector2(66, 80)
+		heart.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		if cost <= 0:
-			jar.modulate = Color(0.72, 0.70, 0.66, 0.55)
-		cost_panel.add_child(jar)
+			heart.modulate = Color(0.72, 0.70, 0.66, 0.55)
+		cost_panel.add_child(heart)
 	# 不花心情时罐子压暗、写"不花"：实拍里 0 在这套手写体下画成了一个方框，
 	# 而且"消耗 0"读着像坏数据——"不花"才是人话，也正好是这条去处的卖点。
 	var cost_number := _label("不花" if cost <= 0 else str(cost), 32,

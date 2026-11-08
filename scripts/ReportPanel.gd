@@ -86,9 +86,6 @@ class BigFiveRadar:
 
 var _main: VBoxContainer
 ## 十二个月那本账的排版（沿用这一页的底图、字体和分节样式，不另起一页）
-var _root_box: VBoxContainer
-var _twelve: VBoxContainer
-var _twelve_open := false
 var _kicker_label: Label
 var _title_label: Label
 var _status: Label
@@ -101,6 +98,15 @@ var _hint: Label
 var _basis_note: Label
 var _summary: Label
 var _evidence_caption: Label
+var _detail_action_heading: Label
+var _detail_actions: FlowContainer
+var _detail_overlay: Control
+var _detail_panel: Panel
+var _detail_title: Label
+var _detail_close_button: Button
+var _detail_content: VBoxContainer
+var _detail_scroll: ScrollContainer
+var _month12_data: Dictionary = {}
 
 
 func _ready() -> void:
@@ -121,13 +127,18 @@ func open() -> void:
 
 
 func close() -> void:
+	if _detail_overlay != null:
+		_detail_overlay.hide()
 	visible = false
 	closed.emit()
 
 
 func _unhandled_input(event: InputEvent) -> void:
 	if visible and event.is_action_pressed("ui_cancel"):
-		close()
+		if _detail_overlay != null and _detail_overlay.visible:
+			_close_detail()
+		else:
+			close()
 
 
 func _build() -> void:
@@ -146,6 +157,7 @@ func _build() -> void:
 	add_child(texture)
 
 	var scroll := ScrollContainer.new()
+	scroll.name = "ReportScroll"
 	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
@@ -162,9 +174,9 @@ func _build() -> void:
 	margin.add_theme_constant_override("margin_bottom", 72)
 	center.add_child(margin)
 	var root := VBoxContainer.new()
+	root.name = "ReportRoot"
 	root.add_theme_constant_override("separation", 0)
 	margin.add_child(root)
-	_root_box = root
 
 	var hero_body := VBoxContainer.new()
 	hero_body.add_theme_constant_override("separation", 5)
@@ -253,12 +265,71 @@ func _build() -> void:
 	_extras.name = "ExtraSections"
 	_extras.visible = false
 	_main.add_child(_extras)
+	_detail_actions = FlowContainer.new()
+	_detail_actions.name = "ReportDetailActions"
+	_detail_actions.add_theme_constant_override("h_separation", 10)
+	_detail_actions.add_theme_constant_override("v_separation", 8)
+	_detail_actions.visible = false
+	_detail_action_heading = _label("查看完整内容", 17, MUTED)
+	_detail_action_heading.name = "ReportDetailActionHeading"
+	_detail_action_heading.visible = false
+	_main.add_child(_detail_action_heading)
+	_main.add_child(_spacer(8))
+	_main.add_child(_detail_actions)
+	_build_detail_popup()
+
+
+func _build_detail_popup() -> void:
+	_detail_overlay = Control.new()
+	_detail_overlay.name = "ReportDetailOverlay"
+	_detail_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_detail_overlay.z_index = 100
+	_detail_overlay.hide()
+	add_child(_detail_overlay)
+	var dim := ColorRect.new()
+	dim.color = Color(0.12, 0.10, 0.08, 0.62)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	dim.mouse_filter = Control.MOUSE_FILTER_STOP
+	_detail_overlay.add_child(dim)
+	_detail_panel = Panel.new()
+	_detail_panel.name = "ReportDetailPage"
+	var style := _style(Color("fffaf2"), 8)
+	style.border_color = Color("d8d0be")
+	style.set_border_width_all(2)
+	style.content_margin_left = 28
+	style.content_margin_right = 28
+	style.content_margin_top = 22
+	style.content_margin_bottom = 24
+	_detail_panel.add_theme_stylebox_override("panel", style)
+	_detail_overlay.add_child(_detail_panel)
+	_detail_title = _label("报告详情", 27, INK)
+	_detail_title.position = Vector2(28, 20)
+	_detail_title.size = Vector2(760, 44)
+	_detail_title.add_theme_font_override("font", DISPLAY_FONT)
+	_detail_panel.add_child(_detail_title)
+	_detail_close_button = _button("关闭  ×")
+	_detail_close_button.name = "ReportDetailClose"
+	_detail_close_button.custom_minimum_size = Vector2(120, 44)
+	_detail_close_button.size = Vector2(120, 44)
+	_detail_close_button.pressed.connect(_close_detail)
+	_detail_panel.add_child(_detail_close_button)
+	_detail_scroll = ScrollContainer.new()
+	_detail_scroll.name = "ReportDetailScroll"
+	_detail_scroll.position = Vector2(28, 82)
+	_detail_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_detail_panel.add_child(_detail_scroll)
+	_detail_content = VBoxContainer.new()
+	_detail_content.name = "ReportDetailContent"
+	_detail_content.add_theme_constant_override("separation", 10)
+	_detail_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_detail_scroll.add_child(_detail_content)
 
 
 ## 十二个月走完时直接喂这一页：内容来自 Month12Report 装配好的那一年那本账，
 ## 不请求后端、不显示任何分数。视觉沿用本页（底图、楷体标题、分节线）。
 func open_with(data: Dictionary) -> void:
 	visible = true
+	_month12_data = data.duplicate(true)
 	_kicker_label.text = "职业档案   /   CAREER PROFILE"
 	_title_label.text = "你的职场画像"
 	var personality: Dictionary = data.get("personality", {}) as Dictionary
@@ -285,15 +356,156 @@ func open_with(data: Dictionary) -> void:
 		"styleTags": data.get("tags", []),
 	}
 	var report := {"layers": {"persona": persona}, "skippedStoryIds": data.get("skippedStoryIds", [])}
-	if _twelve != null:
-		_twelve.visible = false
-		_reuse(_twelve)
 	_extras.visible = false
+	_reuse(_extras)
 	_basis_note.visible = false
+	_detail_overlay.hide()
 	_rename_head("SectionProfile", "五维轮廓", "01  /  PROFILE")
 	_rename_head("SectionDetail", "维度细读", "02  /  DETAIL")
 	_rename_head("SectionStyle", "你的风格标签", "03  /  STYLE")
 	render(report)
+	var report_scroll := find_child("ReportScroll", true, false) as ScrollContainer
+	if report_scroll != null:
+		report_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_build_detail_actions(data)
+
+
+func _build_detail_actions(data: Dictionary) -> void:
+	_reuse(_detail_actions)
+	var actions: Array[Dictionary] = [
+		{"key": "personality", "title": "大五行为倾向"},
+		{"key": "requirements", "title": "下一级要求"},
+		{"key": "direction", "title": "方向倾向"},
+		{"key": "section:summary", "title": "结论摘要"},
+		{"key": "section:competency", "title": "岗位能力证据"},
+		{"key": "section:behaviour", "title": "行为倾向观察"},
+		{"key": "section:activity", "title": "自由活动回顾"},
+		{"key": "section:next", "title": "后续建议"},
+		{"key": "game_summary", "title": "七行摘要"},
+		{"key": "evidence", "title": "证据与依据"},
+	]
+	for action in actions:
+		var button := _button(String(action["title"]))
+		button.custom_minimum_size = Vector2(178, 42)
+		button.pressed.connect(_open_detail.bind(String(action["key"]), String(action["title"])))
+		_detail_actions.add_child(button)
+	_detail_action_heading.visible = true
+	_detail_actions.visible = true
+
+
+func _open_detail(key: String, title: String) -> void:
+	_reuse(_detail_content)
+	_detail_title.text = title
+	var viewport_size := get_viewport().get_visible_rect().size
+	_detail_panel.size = Vector2(minf(1120.0, viewport_size.x - 48.0), minf(780.0, viewport_size.y - 48.0))
+	_detail_panel.position = (viewport_size - _detail_panel.size) * 0.5
+	_detail_title.position = Vector2(28, 20)
+	_detail_title.size = Vector2(_detail_panel.size.x - 210.0, 44)
+	_detail_close_button.position = Vector2(_detail_panel.size.x - 160.0, 18)
+	_detail_scroll.position = Vector2(28, 82)
+	_detail_scroll.size = Vector2(_detail_panel.size.x - 56.0, _detail_panel.size.y - 108.0)
+	match key:
+		"personality":
+			_fill_personality(_month12_data, _detail_content)
+		"requirements":
+			_append_requirements(_month12_data)
+		"direction":
+			_append_direction(_month12_data)
+		"game_summary":
+			_append_game_summary(_month12_data)
+		"evidence":
+			_append_evidence(_month12_data)
+		_:
+			if key.begins_with("section:"):
+				_append_report_section(_month12_data, key.trim_prefix("section:"))
+	_append_placeholder_if_empty()
+	_detail_overlay.show()
+
+
+func _close_detail() -> void:
+	_detail_overlay.hide()
+
+
+func _append_requirements(data: Dictionary) -> void:
+	_detail_content.add_child(_section_title("下一级要求，已经覆盖到哪", ""))
+	_detail_content.add_child(_spacer(12))
+	for value in data.get("requirements", []) as Array:
+		_detail_content.add_child(_requirement_row(Dictionary(value)))
+	var captions := data.get("captions", {}) as Dictionary
+	var note := String(captions.get("requirements", "")).strip_edges()
+	if not note.is_empty():
+		_detail_content.add_child(_spacer(8))
+		_detail_content.add_child(_caption(note))
+
+
+func _append_direction(data: Dictionary) -> void:
+	var direction := data.get("direction", {}) as Dictionary
+	_detail_content.add_child(_section_title("方向倾向", ""))
+	_detail_content.add_child(_spacer(12))
+	var line := String(direction.get("line", "")).strip_edges()
+	if not line.is_empty():
+		_detail_content.add_child(_paragraph(line))
+	var observe := String(direction.get("observe", "")).strip_edges()
+	if not observe.is_empty():
+		_detail_content.add_child(_spacer(8))
+		_detail_content.add_child(_caption(observe))
+	var captions := data.get("captions", {}) as Dictionary
+	var scope := String(captions.get("direction", "")).strip_edges()
+	if not scope.is_empty():
+		_detail_content.add_child(_spacer(8))
+		_detail_content.add_child(_caption(scope))
+
+
+func _append_report_section(data: Dictionary, section_id: String) -> void:
+	for value in data.get("sections", []) as Array:
+		var section := Dictionary(value)
+		if String(section.get("id", "")) != section_id:
+			continue
+		_detail_content.add_child(_section_title(String(section.get("title", "报告详情")), ""))
+		_detail_content.add_child(_spacer(12))
+		for line in section.get("lines", []) as Array:
+			var text := String(line).strip_edges()
+			if not text.is_empty():
+				_detail_content.add_child(_paragraph(text))
+				_detail_content.add_child(_spacer(8))
+		return
+	_detail_content.add_child(_paragraph("这部分暂时没有可展示的记录。"))
+
+
+func _append_game_summary(data: Dictionary) -> void:
+	_detail_content.add_child(_section_title("游戏内摘要", ""))
+	_detail_content.add_child(_spacer(12))
+	var added := false
+	for value in data.get("gameSummary", []) as Array:
+		var row := Dictionary(value)
+		var content := String(row.get("value", "")).strip_edges()
+		if content.is_empty():
+			continue
+		_detail_content.add_child(_summary_row(String(row.get("label", "")), content))
+		added = true
+	if not added:
+		_detail_content.add_child(_paragraph("这一年暂时没有足够记录生成摘要。"))
+
+
+func _append_evidence(data: Dictionary) -> void:
+	_detail_content.add_child(_section_title("证据与依据", ""))
+	_detail_content.add_child(_spacer(12))
+	var added := false
+	for value in data.get("expand", []) as Array:
+		var item := Dictionary(value)
+		_detail_content.add_child(_label(String(item.get("label", "")), 19, INK))
+		var lines := item.get("lines", []) as Array
+		for line in lines:
+			_detail_content.add_child(_paragraph(String(line)))
+			_detail_content.add_child(_spacer(6))
+		added = added or not lines.is_empty()
+	if not added:
+		_detail_content.add_child(_paragraph("这一年暂时没有可展开的证据记录。"))
+
+
+func _append_placeholder_if_empty() -> void:
+	if _detail_content.get_child_count() == 0:
+		_detail_content.add_child(_paragraph("这一部分暂时没有可展示的记录。"))
 
 
 ## 分节标题就地改名，编号那行照原来那一页留着（换成中文，玩家可见文字全中文）。
@@ -385,23 +597,25 @@ func _coverage_block(row: Dictionary) -> VBoxContainer:
 
 ## 大五那一块（算法册 §3.1–3.3）：形状照能力四维那一块，喂的是 B_t 那本账。
 ## 情绪稳定这一版本没标定，所以那一轴不画点、条上写"这一版没测"。
-func _fill_personality(data: Dictionary) -> void:
+func _fill_personality(data: Dictionary, destination: VBoxContainer = null) -> void:
 	var personality: Dictionary = data.get("personality", {}) as Dictionary
 	var rows := (personality.get("rows", []) as Array)
-	if rows.is_empty() or _extras == null:
+	var target := _extras if destination == null else destination
+	if rows.is_empty() or target == null:
 		return
-	_reuse(_extras)
-	_extras.visible = true
-	_extras.add_child(_spacer(20))
-	_extras.add_child(_rule(LINE, 1))
-	_extras.add_child(_spacer(24))
+	_reuse(target)
+	if target == _extras:
+		target.visible = true
+	target.add_child(_spacer(20))
+	target.add_child(_rule(LINE, 1))
+	target.add_child(_spacer(24))
 	var head := _section_title("这一年的行为倾向（大五）", "04 / 大五")
 	head.name = "SectionPersonality"
-	_extras.add_child(head)
-	_extras.add_child(_spacer(10))
+	target.add_child(head)
+	target.add_child(_spacer(10))
 	var analysis := HBoxContainer.new()
 	analysis.add_theme_constant_override("separation", 40)
-	_extras.add_child(analysis)
+	target.add_child(analysis)
 	var chart_column := VBoxContainer.new()
 	chart_column.custom_minimum_size.x = 430
 	analysis.add_child(chart_column)
@@ -427,8 +641,8 @@ func _fill_personality(data: Dictionary) -> void:
 	analysis.add_child(bars)
 	var caption := String(personality.get("caption", "")).strip_edges()
 	if not caption.is_empty():
-		_extras.add_child(_spacer(12))
-		_extras.add_child(_caption(caption))
+		target.add_child(_spacer(12))
+		target.add_child(_caption(caption))
 
 
 ## 条子和点的颜色：数据给了 tone 就照它（大五那一块用它标朝哪一头），
@@ -444,129 +658,6 @@ func _bar_tone(row: Dictionary) -> Color:
 		_:
 			var level := String(row.get("level", "waiting"))
 			return GREEN if level == "solid" else (GOLD if level == "early" else Color("b5b0a5"))
-
-
-## 图下面追加两块：下一级要求覆盖，和方向倾向。
-func _fill_extras(data: Dictionary) -> void:
-	if _extras == null:
-		return
-	var captions: Dictionary = data.get("captions", {}) as Dictionary
-	var requirements := (data.get("requirements", []) as Array)
-	var direction: Dictionary = data.get("direction", {}) as Dictionary
-	var line := String(direction.get("line", "")).strip_edges()
-	if requirements.is_empty() and line.is_empty():
-		_extras.visible = false
-		return
-	_extras.visible = true
-	_extras.add_child(_spacer(20))
-	_extras.add_child(_rule(LINE, 1))
-	_extras.add_child(_spacer(24))
-	if not requirements.is_empty():
-		_extras.add_child(_section_title("下一级要求，已经覆盖到哪", "05 / 要求"))
-		_extras.add_child(_spacer(12))
-		for value in requirements:
-			_extras.add_child(_requirement_row(Dictionary(value)))
-		var note := String(captions.get("requirements", "")).strip_edges()
-		if not note.is_empty():
-			_extras.add_child(_spacer(10))
-			_extras.add_child(_caption(note))
-	if not line.is_empty():
-		_extras.add_child(_spacer(24))
-		_extras.add_child(_rule(LINE, 1))
-		_extras.add_child(_spacer(20))
-		_extras.add_child(_section_title("方向倾向", "06 / 方向"))
-		_extras.add_child(_spacer(10))
-		_extras.add_child(_paragraph(line))
-		var observe := String(direction.get("observe", "")).strip_edges()
-		if not observe.is_empty():
-			_extras.add_child(_spacer(8))
-			_extras.add_child(_caption(observe))
-		var scope := String(captions.get("direction", "")).strip_edges()
-		if not scope.is_empty():
-			_extras.add_child(_spacer(8))
-			_extras.add_child(_caption(scope))
-
-
-## 长文全部收进折叠：页面上先看见图和两块结论，摘要、依据、建议留给想看的人。
-func _render_words(data: Dictionary) -> void:
-	if _twelve == null and _root_box != null:
-		_twelve = VBoxContainer.new()
-		_twelve.add_theme_constant_override("separation", 0)
-		_root_box.add_child(_twelve)
-	if _twelve == null:
-		return
-	_twelve.visible = true
-	_reuse(_twelve)
-
-	var detail := VBoxContainer.new()
-	detail.add_theme_constant_override("separation", 0)
-	detail.name = "TwelveDetail"
-	detail.visible = _twelve_open
-
-	for section in (data.get("sections", []) as Array):
-		var block := Dictionary(section)
-		var block_id := String(block.get("id", ""))
-		# 轮廓图已经承载能力四维；下一级要求和方向倾向在图下面，这里不重复。
-		if block_id in ["charts", "requirements", "direction"]:
-			continue
-		var lines := (block.get("lines", []) as Array)
-		if lines.is_empty():
-			continue
-		detail.add_child(_spacer(24))
-		detail.add_child(_rule(LINE, 1))
-		detail.add_child(_spacer(20))
-		detail.add_child(_section_title(String(block.get("title", "")), ""))
-		detail.add_child(_spacer(12))
-		for text_line in lines:
-			var text := String(text_line).strip_edges()
-			if text.is_empty():
-				continue
-			detail.add_child(_paragraph(text))
-			detail.add_child(_spacer(9))
-
-	# 七行摘要（册子 §6.2：字段缺失就整行隐藏，不留"暂无"这种占位）
-	detail.add_child(_spacer(20))
-	detail.add_child(_rule(LINE, 1))
-	detail.add_child(_spacer(20))
-	var summary_box := VBoxContainer.new()
-	summary_box.add_theme_constant_override("separation", 8)
-	summary_box.add_child(_label("游戏内摘要", 19, INK))
-	for row in (data.get("gameSummary", []) as Array):
-		var item := Dictionary(row)
-		var value := String(item.get("value", "")).strip_edges()
-		if value.is_empty():
-			continue
-		summary_box.add_child(_summary_row(String(item.get("label", "")), value))
-	detail.add_child(summary_box)
-
-	# 依据区（册子 §6.1 展开区）
-	detail.add_child(_spacer(16))
-	for row in (data.get("expand", []) as Array):
-		var item := Dictionary(row)
-		detail.add_child(_spacer(12))
-		detail.add_child(_label(String(item.get("label", "")), 19, INK))
-		for detail_line in (item.get("lines", []) as Array):
-			detail.add_child(_paragraph(String(detail_line)))
-
-	var toggle := _button("看文字版（结论摘要 · 能力证据 · 自由活动 · 七行摘要 · 依据）")
-	toggle.name = "TwelveExpand"
-	toggle.pressed.connect(_toggle_twelve)
-	_twelve.add_child(_spacer(8))
-	_twelve.add_child(toggle)
-	_twelve.add_child(_spacer(14))
-	_twelve.add_child(detail)
-
-
-func _toggle_twelve() -> void:
-	_twelve_open = not _twelve_open
-	if _twelve == null:
-		return
-	var toggle := _twelve.find_child("TwelveExpand", true, false) as Button
-	if toggle != null:
-		toggle.text = "收起文字版" if _twelve_open else "看文字版（结论摘要 · 能力证据 · 自由活动 · 七行摘要 · 依据）"
-	var detail := _twelve.find_child("TwelveDetail", true, false) as VBoxContainer
-	if detail != null:
-		detail.visible = _twelve_open
 
 
 ## 重开一页时清掉上一版的临时节点：先从树上摘下来再释放，避免同一帧里新旧叠着。

@@ -16,7 +16,7 @@ const PAW_TEXTURE := preload("res://assets/ui/rework_v1/task_book/22_页面装�
 const HEROES := {
 	"archive": preload("res://assets/ui/rework_v1/hud/components/16_圆钮统一_archive.png"),
 	"manual": preload("res://assets/ui/rework_v1/hud/components/16_圆钮统一_manual.png"),
-	"mood": preload("res://assets/ui/rework_v1/hud/components/05_蜂蜜罐_满.png"),
+	"mood": preload("res://assets/ui/rework_v1/profile/components/03_人际关系/关系_实心爱心.png"),
 }
 
 const INK := Color("2b2119")
